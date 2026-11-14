@@ -11,3 +11,7 @@ data/demo_*.duckdb.wal
 .claude/
 team-repo/
 data/_check.duckdb*
+
+# Private runtime state (recommendation store, agentkit/recommendations.py)
+state/
+.venv-actions/

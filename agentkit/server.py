@@ -42,6 +42,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="agentkit", lifespan=lifespan)
 app.include_router(portal.router)
+from . import feedback_api  # noqa: E402  (recommendations + owner feedback, agentkit/feedback_api.py)
+app.include_router(feedback_api.router)
+from . import verification_api  # noqa: E402  (second-scan sessions, agentkit/verification_api.py; vision pending)
+app.include_router(verification_api.router)
 app.mount("/files", StaticFiles(directory=str(config.WORKSPACE)), name="files")
 CONSOLE = config.ROOT / "console"
 app.mount("/ui", StaticFiles(directory=str(CONSOLE / "ui")), name="ui")   # κοινό στυλ των σελίδων

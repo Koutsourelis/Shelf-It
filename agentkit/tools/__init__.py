@@ -56,3 +56,4 @@ def tool(name: str, description: str, properties: dict | None = None,
 def load_all() -> None:
     """Φορτώνει όλα τα αρχεία εργαλείων ώστε να γραφτούν στο μητρώο."""
     from . import browser, core, data, evidence, mail, shelf, verify, web  # noqa: F401
+    from . import talker  # noqa: F401  (make_shelf_talker; not in any scenario yet, see tools/talker.py)
