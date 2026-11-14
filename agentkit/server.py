@@ -295,21 +295,11 @@ async def set_reference(file: UploadFile | None = None):
     return {"ok": True, "reference": config.VISION_REFERENCE}
 
 
-def _lan_ip() -> str | None:
-    """Η IP του laptop στο τοπικό δίκτυο (χωρίς να στέλνει πακέτο)."""
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.connect(("10.255.255.255", 1))
-            return s.getsockname()[0]
-    except OSError:
-        return None
-
-
 def _phone_url(path: str) -> dict:
     """Η διεύθυνση που ανοίγει το κινητό. Με HOST=127.0.0.1 ο server δεν φαίνεται από το δίκτυο."""
     if config.PUBLIC_URL:
         return {"url": config.PUBLIC_URL.rstrip("/") + path, "reachable": True}
-    ip = _lan_ip()
+    ip = config.lan_ip()
     reachable = config.HOST not in ("127.0.0.1", "localhost") and bool(ip)
     return {"url": f"http://{ip or config.HOST}:{config.PORT}{path}", "reachable": reachable}
 

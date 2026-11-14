@@ -112,7 +112,21 @@ PROJECT_LOGO = _env("PROJECT_LOGO")
 
 HOST = _env("HOST", "127.0.0.1")
 PORT = int(_env("PORT", "8000"))
-BASE_URL = _env("BASE_URL", f"http://{HOST}:{PORT}")
+def lan_ip() -> str | None:
+    """Η IP του laptop στο τοπικό δίκτυο (χωρίς να στέλνει πακέτο)."""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("10.255.255.255", 1))
+            return s.getsockname()[0]
+    except OSError:
+        return None
+
+
+# Με HOST=0.0.0.0 ο server ακούει σε όλο το δίκτυο· το BASE_URL όμως δεν μπορεί να είναι 0.0.0.0,
+# γιατί αυτή η διεύθυνση δεν ανοίγει από κινητό (τη χρησιμοποιούν τα μηνύματα του agent).
+_BROWSE_HOST = (lan_ip() or "localhost") if HOST in ("0.0.0.0", "::") else HOST
+BASE_URL = _env("BASE_URL", f"http://{_BROWSE_HOST}:{PORT}")
 # Διεύθυνση για το κινητό αν μπαίνει από tunnel (π.χ. https://xxxx.trycloudflare.com). Κενό = η IP του laptop.
 PUBLIC_URL = _env("PUBLIC_URL")
 
