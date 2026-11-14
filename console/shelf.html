@@ -14,6 +14,7 @@
   .light { display: flex; align-items: center; gap: 16px; padding: 18px 22px; border-radius: var(--r); margin-bottom: 14px;
     background: var(--card); border: 1px solid var(--line); transition: background .3s; }
   .light .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--mut); flex: none; }
+  .light.warn { background: var(--warnbg); border-color: #6b4d10; } .light.warn .dot { background: var(--warn); }
   .light.ok { background: var(--okbg); border-color: #1d5a31; } .light.ok .dot { background: var(--ok); box-shadow: 0 0 18px var(--ok); }
   .light.bad { background: var(--badbg); border-color: #6b2326; } .light.bad .dot { background: var(--bad); box-shadow: 0 0 18px var(--bad); animation: pulse 1.6s infinite; }
   @keyframes pulse { 50% { opacity: .45; } }
@@ -200,7 +201,9 @@ function taskCard(t) {
 function render(d) {
   last = d; draw();
   const tasks = d.tasks || [];
-  if (d.status === "occluded") setLight("", "Κάτι κρύβει το ράφι", "Περιμένω να καθαρίσει η εικόνα· αυτό το frame δεν μετράει.");
+  if (d.unknown_shelf) setLight("warn", "Άγνωστο ράφι (άλλου τμήματος)",
+    "Το αξιολογώ χωρίς κατάλογο: προτείνω διάταξη, δεν παραγγέλνω τίποτα.");
+  else if (d.status === "occluded") setLight("", "Κάτι κρύβει το ράφι", "Περιμένω να καθαρίσει η εικόνα· αυτό το frame δεν μετράει.");
   else if (d.status === "idle") setLight("", "Περιμένω το πρώτο frame…", "");
   else if (!tasks.length) setLight("ok", "Το ράφι είναι σωστό", d.done && d.done.length ? `Τελευταία διόρθωση: ${esc(d.done[0].text)}` : "Όλα τα προϊόντα στη θέση τους.");
   else setLight("bad", `${tasks.length} ${tasks.length === 1 ? "εργασία" : "εργασίες"} για το ράφι`,

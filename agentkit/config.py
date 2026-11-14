@@ -66,7 +66,9 @@ def vision_model() -> str:
 LIVE_INTERVAL_SECONDS = int(_env("LIVE_INTERVAL_SECONDS", "30"))    # κάθε πόσο στέλνει frame η σελίδα /live
 LIVE_CONFIRM_FRAMES = int(_env("LIVE_CONFIRM_FRAMES", "2"))         # ίδια ευρήματα σε τόσα συνεχόμενα frames → αναφορά
 LIVE_DIFF_THRESHOLD = float(_env("LIVE_DIFF_THRESHOLD", "4.0"))     # μέση διαφορά pixel (0-255) κάτω από την οποία το frame θεωρείται ίδιο
-LIVE_START_AGENT = _env("LIVE_START_AGENT", "1") == "1"             # νέα ευρήματα → πλήρης εκτέλεση του agent (αναπλήρωση, παραγγελία)
+LIVE_START_AGENT = _env("LIVE_START_AGENT", "1") == "1"
+# Πάνω από αυτό το ποσοστό άγνωστων προϊόντων, το ράφι θεωρείται άλλου τμήματος και αξιολογείται χωρίς κατάλογο
+LIVE_UNKNOWN_RATIO = float(_env("LIVE_UNKNOWN_RATIO", "0.6"))             # νέα ευρήματα → πλήρης εκτέλεση του agent (αναπλήρωση, παραγγελία)
 
 # --- Αυτονομία (agentkit/tasks.py) ---------------------------------------
 # Παραγγελία χωρίς έγκριση μέσα σε αυτά τα όρια. Πάνω από αυτά, ο υπεύθυνος εγκρίνει με ένα πάτημα.

@@ -164,6 +164,19 @@ def user_prompt(catalog: list[dict], has_reference: bool) -> str:
     ref = ("Η ΠΡΩΤΗ εικόνα δείχνει το ίδιο ράφι σε καλή κατάσταση (αναφορά). Η ΔΕΥΤΕΡΗ είναι η σημερινή. "
            "Σύγκρινε νοητά, αλλά αξιολόγησε μόνο τη δεύτερη.\n\n" if has_reference else "")
     rules = "\n".join(f"- {r}" for r in RULES)
+    if not catalog:
+        return (f"{ref}ΔΕΝ έχεις κατάλογο: το ράφι μπορεί να είναι άλλου τμήματος ή άγνωστο.\n\n"
+                "Διάβασε τη φωτογραφία και πες τι βλέπεις:\n"
+                "1. Για κάθε επίπεδο (top/eye/bottom) τις ομάδες ίδιων προϊόντων από αριστερά, με προσόψεις και "
+                "box_2d. Στο sku βάλε πάντα null και δώσε στο label τύπο προϊόντος (π.χ. «ελαιόλαδο», «ελιές»).\n"
+                "2. Στο missing ΜΗΝ βάλεις τίποτα: χωρίς κατάλογο δεν ξέρουμε τι θα έπρεπε να υπάρχει.\n"
+                "3. Στο foreign ΜΗΝ βάλεις τίποτα: όλα είναι άγνωστα, όχι ξένα.\n"
+                "4. Στο misplaced μόνο ό,τι δεν βγάζει νόημα για τη διάταξη (π.χ. πολύ βαρύ πάνω).\n"
+                "5. Στο visual_issues τις παραβάσεις παρουσίασης και τα μεγάλα κενά.\n"
+                "6. Στο suggested_layout πώς θα στήσιμο το ράφι με κανόνες κατηγορίας, με βάση τα προϊόντα που "
+                "βλέπεις. Στη σύνοψη πες τι κατηγορία είναι το ράφι και ό,τι αξίζει να προσέξει ο υπεύθυνος.\n"
+                "7. shelf_ok = true αν δεν υπάρχει πραγματικό ελάττωμα παρουσίασης.\n\n"
+                "Κανόνες κατηγορίας:\n" + rules)
     return (
         f"{ref}Κατάλογος του τμήματος (κωδικός | προϊόν | μάρκα | κατηγορία):\n" + "\n".join(rows) + "\n\n"
         "Ο κατάλογος λέει ΠΟΙΑ προϊόντα πουλάμε, όχι σε ποια θέση πρέπει να είναι. Αξιολόγησε τη φωτογραφία:\n"
@@ -252,6 +265,14 @@ def normalize(raw: dict, known: set[str]) -> dict:
             "suggested_layout": layout, "summary": str(raw.get("summary") or "")}
 
 
+def unknown_ratio(verdict: dict) -> float:
+    """Πόσο μεγάλο μέρος του ραφιού δεν ταιριάζει με τον κατάλογο (0 = όλα γνωστά, 1 = κανένα)."""
+    items = [i for sh in verdict.get("shelves") or [] for i in sh["items"]]
+    if not items:
+        return 0.0
+    return sum(1 for i in items if not i.get("sku")) / len(items)
+
+
 def _catalog() -> list[dict]:
     from ..tools.data import run_sql
     _, rows = run_sql("select sku, name, brand, unit_cost, unit_price, category from products order by sku")
@@ -275,11 +296,15 @@ def _provider():
     return gemini.structured if config.vision_provider() == "gemini" else structured
 
 
-async def assess_photo(path: Path) -> dict:
-    """Φωτογραφία → αξιολόγηση κατά ASSESS_SCHEMA. Καμία σύγκριση με θέσεις· όλα από το μοντέλο."""
+async def assess_photo(path: Path, catalog: list[dict] | None = None) -> dict:
+    """Φωτογραφία → αξιολόγηση κατά ASSESS_SCHEMA. Καμία σύγκριση με θέσεις· όλα από το μοντέλο.
+
+    catalog=None → κανονική λειτουργία (ο κατάλογος του τμήματος). catalog=[] → «άγνωστο ράφι»: το μοντέλο
+    περιγράφει μόνο ό,τι βλέπει, χωρίς «λείπει» και χωρίς παραγγελίες, γιατί δεν ξέρουμε τι θα έπρεπε να έχει.
+    """
     from . import prompts
     path = Path(path)
-    catalog = await asyncio.to_thread(_catalog)
+    catalog = await asyncio.to_thread(_catalog) if catalog is None else catalog
     known = {c["sku"] for c in catalog}
 
     if config.vision_provider() == "mock":
@@ -290,7 +315,7 @@ async def assess_photo(path: Path) -> dict:
 
     ref = _reference()
     key = (str(path.resolve()), path.stat().st_mtime_ns, config.vision_provider(), config.vision_model(),
-           prompts.PROMPT_VERSION, str(ref), len(catalog))
+           prompts.PROMPT_VERSION, str(ref), len(catalog) or "unknown")
     if key in _cache:
         _cache.move_to_end(key)
         return _cache[key]

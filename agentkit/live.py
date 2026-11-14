@@ -23,6 +23,7 @@ from typing import Any
 
 from . import config, events, tasks
 from .vision import assess_photo
+from .vision.assessment import unknown_ratio
 
 LIVE_DIR = config.WORKSPACE / "live"
 KEEP_FRAMES = 200                       # τα παλιότερα frames σβήνονται
@@ -185,6 +186,12 @@ async def process_frame(data: bytes, force: bool = False) -> dict:
         t0 = time.time()
         verdict = await assess_photo(frame)
         STATE.model_calls += 1
+        if config.vision_provider() != "mock" and unknown_ratio(verdict) >= config.LIVE_UNKNOWN_RATIO:
+            # Το ράφι δεν είναι του τμήματος: ξαναδιαβάζεται χωρίς κατάλογο, ώστε να μη βγει «φέρε τους καφέδες»
+            tasks.log("foreign", "Το ράφι δεν ανήκει στο τμήμα· το αξιολογώ χωρίς κατάλογο")
+            verdict = await assess_photo(frame, catalog=[])
+            verdict["unknown_shelf"] = True
+            STATE.model_calls += 1
         seconds = round(time.time() - t0, 1)
         if verdict["occluded"]:
             events.emit("system", "live_frame", frame=frame.name, status="occluded", seconds=seconds)
@@ -204,6 +211,7 @@ async def process_frame(data: bytes, force: bool = False) -> dict:
             "status": "acted" if acted else ("confirmed" if confirmed else "pending"),
             "frame": frame.name, "seconds": seconds, "findings": found,
             "shelves": verdict["shelves"], "summary": verdict["summary"],
+            "unknown_shelf": bool(verdict.get("unknown_shelf")),
             "suggested_layout": verdict["suggested_layout"], "shelf_ok": verdict["shelf_ok"],
             "confirm": f"{sum(1 for s in STATE.recent if s == sig)}/{STATE.recent.maxlen}",
         }

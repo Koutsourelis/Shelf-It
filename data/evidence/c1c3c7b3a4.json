@@ -1,0 +1,60 @@
+{
+  "category": "Καφές",
+  "region": "Ελλάδα",
+  "audience": "",
+  "retrieved_at": "2026-11-14",
+  "provider": "duckduckgo",
+  "queries": [
+    "Καφές αγορά Ελλάδα πωλήσεις τάση 2026",
+    "Καφές καταναλωτές Ελλάδα προτιμήσεις έρευνα"
+  ],
+  "sources": 6,
+  "dropped": 4,
+  "evidence": [
+    {
+      "claim": "Η αξία των πωλήσεων καφέ στο επτάμηνο Ιανουαρίου-Ιουλίου 2026 ανήλθε σε 304,7 εκατ. ευρώ.",
+      "value": 304.7,
+      "unit": "εκατ. ευρώ",
+      "quote": "Στο επτάμηνο Ιανουαρίου-Ιουλίου 2026, η αξία των πωλήσεων έφτασε τα 304,7 εκατ. ευρώ, έναντι 279,7 εκατ. ευρώ το αντίστοιχο διάστημα του 2025, σημειώνοντας άνοδο 8,9%.",
+      "url": "https://www.businessnews.gr/epixeiriseis/item/348320-kafes-i-agora-ton-501-ekat-evro-pou-allazei-xarmani",
+      "title": "Καφές: Η αγορά των 501 εκατ. ευρώ που αλλάζει «χαρμάνι»",
+      "published": "2026-10-02",
+      "region": null,
+      "note": null
+    },
+    {
+      "claim": "Η μέση τιμή ανά κιλό για τις κάψουλες καφέ διαμορφώθηκε στα 60,2 ευρώ στο επτάμηνο του 2026.",
+      "value": 60.2,
+      "unit": "ευρώ",
+      "quote": "Στις κάψουλες, η μέση τιμή έφθασε τα 60,2 ευρώ το κιλό.",
+      "url": "https://www.philenews.com/oikonomia/kafti-grammi/article/1777125/i-ellines-den-kovoun-ton-kafe-polisis-ano-ton-e500-ekat-ke-strofi-ston-espresso-sto-spiti/",
+      "title": "Καφές: Πωλήσεις άνω των €500 εκατ. στην Ελλάδα",
+      "published": "2026-10-02",
+      "region": null,
+      "note": null
+    },
+    {
+      "claim": "Η μέση τιμή ανά κιλό για τον ελληνικό καφέ ανήλθε στα 18,6 ευρώ στο επτάμηνο του 2026.",
+      "value": 18.6,
+      "unit": "ευρώ",
+      "quote": "Στο επτάμηνο του 2026, οι μέσες τιμές ανά κιλό διαμορφώθηκαν στα 18,6 ευρώ για τον ελληνικό, στα 34,1 ευρώ για τον στιγμιαίο, στα 21,1 ευρώ για τον φίλτρου, στα 23,5 ευρώ για τον espresso σε κόκκους και στα 26,9 ευρώ για τον αλεσμένο espresso.",
+      "url": "https://www.philenews.com/oikonomia/kafti-grammi/article/1777125/i-ellines-den-kovoun-ton-kafe-polisis-ano-ton-e500-ekat-ke-strofi-ston-espresso-sto-spiti/",
+      "title": "Καφές: Πωλήσεις άνω των €500 εκατ. στην Ελλάδα",
+      "published": "2026-10-02",
+      "region": null,
+      "note": null
+    },
+    {
+      "claim": "Τα cafe και οι αλυσίδες καφέ συγκεντρώνουν το 74,2% των προτιμήσεων στην κατανάλωση εκτός σπιτιού.",
+      "value": 74.2,
+      "unit": "%",
+      "quote": "Τα cafe και οι αλυσίδες καφέ συγκεντρώνουν τις προτιμήσεις σε ποσοστό 74,2%, ενώ ο καφές πλησιάζει την μπίρα ως προς το αγαπημένο προϊόν κατανάλωσης εκτός σπιτιού.",
+      "url": "https://www.tovima.gr/2026/10/02/finance/agora-kafe-ti-allazei-stis-synitheies-ton-ellinon/",
+      "title": "Αγορά καφέ: Τι αλλάζει στις συνήθειες των Ελλήνων - ΤΟ ΒΗΜΑ",
+      "published": "2026-10-02",
+      "region": null,
+      "note": null
+    }
+  ],
+  "reason": null
+}
