@@ -14,10 +14,12 @@
 Μορφή του πακέτου: planning/EVIDENCE.md.
 """
 import asyncio
+import csv
 import hashlib
 import json
 import re
 from datetime import date, datetime
+from urllib.parse import urlparse
 
 import httpx
 
@@ -28,7 +30,10 @@ from .data import run_sql
 from .web import _UA, html_to_text
 
 CACHE_DIR = config.DATA_DIR / "evidence"
+SOURCES_CSV = config.DATA_DIR / "shelf" / "sources.csv"
 MAX_SOURCES = 6
+MAX_LISTED_QUERIES = 3
+GENERIC_QUERIES = 2
 PAGE_CHARS = 5000
 
 CLAIMS_SCHEMA = {
@@ -268,8 +273,49 @@ def verify_claims(claims: list, sources: list[dict]) -> tuple[list[dict], int]:
             value = None
         kept.append({"claim": str(c.get("claim") or "").strip(), "value": value,
                      "unit": c.get("unit") if value is not None else None, "quote": quote, "url": src["url"],
-                     "title": src["title"], "published": published, "region": c.get("region"), "note": note})
+                     "title": src["title"], "listed_source": src.get("listed_source"), "published": published, "region": c.get("region"), "note": note})
     return kept, dropped
+
+
+# --- Πηγές ανά κατηγορία (data/shelf/sources.csv) -------------------------------------------------
+
+def load_sources(category: str) -> list[dict]:
+    """Οι πηγές της λίστας για μια κατηγορία: πρώτα οι δικές της, μετά όσες ισχύουν για όλες («*»)."""
+    if not SOURCES_CSV.exists():
+        return []
+    with SOURCES_CSV.open(encoding="utf-8-sig", newline="") as f:
+        rows = [{k: (v or "").strip() for k, v in r.items()} for r in csv.DictReader(f)]
+    wanted = _norm(category)
+    return ([r for r in rows if _norm(r["category"]) == wanted and r["domain"]]
+            + [r for r in rows if r["category"] == "*" and r["domain"]])
+
+
+def plan_queries(category: str, audience: str, region: str, sources: list[dict]) -> list[str]:
+    """Τα ερωτήματα μιας κατηγορίας: πρώτα όσα στοχεύουν πηγές της λίστας, μετά τα γενικά."""
+    year = date.today().year
+    listed = []
+    for s in sources:
+        if s["use"] == "search" and s["query"]:
+            q = f"{s['query'].format(category=category, year=year, region=region)} {s['domain']}"
+            if q not in listed:
+                listed.append(q)
+    who = f" {audience}" if audience else ""
+    generic = [f"{category} αγορά {region} πωλήσεις τάση {year}",
+               f"{category} καταναλωτές{who} {region} προτιμήσεις έρευνα",
+               f"{category} κατανάλωση {region} εποχικότητα"]
+    return listed[:MAX_LISTED_QUERIES] + generic[:GENERIC_QUERIES if listed else len(generic)]
+
+
+def listed_source(url: str, sources: list[dict]) -> dict | None:
+    """Η πηγή της λίστας στην οποία ανήκει μια διεύθυνση, ή None."""
+    host = (urlparse(url).hostname or "").lower()
+    return next((s for s in sources if host == s["domain"].lower() or host.endswith("." + s["domain"].lower())), None)
+
+
+def rank_results(found: list[dict], sources: list[dict]) -> list[dict]:
+    """Βάζει μπροστά τα αποτελέσματα από πηγές της λίστας, χωρίς να αλλάζει τη σειρά των υπολοίπων."""
+    tagged = [{**r, "listed_source": (listed_source(r["url"], sources) or {}).get("name")} for r in found]
+    return sorted(tagged, key=lambda r: r["listed_source"] is None)
 
 
 # --- Τεκμήρια κατηγορίας (με αποθήκευση) ----------------------------------------------------------
@@ -291,10 +337,8 @@ async def category_evidence(category: str, audience: str = "", refresh: bool = F
                 "search_trend": None, "treg_calls": [],
                 "reason": "Ψεύτικο μοντέλο: δεν έγινε αναζήτηση και δεν υπάρχουν αποθηκευμένες πηγές."}
 
-    who = f" {audience}" if audience else ""
-    queries = [f"{category} αγορά {region} πωλήσεις τάση {date.today().year}",
-               f"{category} καταναλωτές{who} {region} προτιμήσεις έρευνα",
-               f"{category} κατανάλωση {region} εποχικότητα"]
+    listed = load_sources(category)
+    queries = plan_queries(category, audience, region, listed)
     calls: list[dict] = []
     trend = await search_trend(category, calls) if config.TREG_TOKEN else None
     provider, found, seen = "none", [], set()
@@ -305,7 +349,7 @@ async def category_evidence(category: str, audience: str = "", refresh: bool = F
             if r["url"] not in seen:
                 seen.add(r["url"])
                 found.append(r)
-    found = found[:MAX_SOURCES]
+    found = rank_results(found, listed)[:MAX_SOURCES]
     pages = await asyncio.gather(*(_page_text(r["url"]) for r in found))
     sources = [{**r, "text": f"{r['title']}\n{r['snippet']}\n{page}"} for r, page in zip(found, pages)]
     if not sources:
@@ -354,7 +398,8 @@ async def build_pack(sku: str, audience: str = "", refresh: bool = False) -> dic
         "margin_pct": round(100 * (price - cost) / price, 1) if price else None,
         "status": "sufficient" if sufficient else "insufficient",
         "reason": reason,
-        "sources": len(urls), "numeric_evidence": numeric, "dropped_claims": cat.get("dropped", 0),
+        "sources": len(urls), "listed_sources": len({e["url"] for e in cat["evidence"] if e.get("listed_source")}),
+        "numeric_evidence": numeric, "dropped_claims": cat.get("dropped", 0),
         "evidence": cat["evidence"],
         "search_trend": cat.get("search_trend"),
         "treg_calls": cat.get("treg_calls") or [],
@@ -381,7 +426,8 @@ async def product_evidence(ctx, sku: str, audience: str = "", refresh: bool = Fa
     ctx.audit("compute", label=f"{pack['sku']}: περιθώριο (%)", expression="round(100 * (price - cost) / price, 1)",
               variables={"price": pack["price"]["value"], "cost": pack["cost"]["value"]}, result=pack["margin_pct"])
     ctx.audit("extract", source=f"τεκμήρια κατηγορίας «{pack['category']}» ({pack['provider']})",
-              values={"status": pack["status"], "πηγές": pack["sources"], "με αριθμό": pack["numeric_evidence"],
+              values={"status": pack["status"], "πηγές": pack["sources"], "από τη λίστα πηγών": pack["listed_sources"],
+                      "με αριθμό": pack["numeric_evidence"],
                       "απορρίφθηκαν": pack["dropped_claims"]})
     if pack["treg_calls"]:
         ctx.audit("compute", label=f"treg: κόστος {len(pack['treg_calls'])} κλήσεων για «{pack['category']}» ($)",
