@@ -3,55 +3,79 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Φωτογραφία ραφιού</title>
+<title>Scan ραφιού</title>
+<link rel="stylesheet" href="/ui/app.css">
+<!-- Κινητό: εδώ οδηγεί το QR της αρχικής. Φωτογραφία του ραφιού → POST /api/shelf/frame?single=1 → /tasks.
+     Χρησιμοποιεί <input capture>, όχι getUserMedia, άρα δουλεύει και με απλό http στο τοπικό δίκτυο. -->
 <style>
-  body { font-family: system-ui, "Segoe UI", Arial, sans-serif; margin: 0; padding: 24px 16px; background: #0f1720; color: #e8eef4; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  .wrap { max-width: 560px; padding: 16px 14px 40px; }
   h1 { font-size: 22px; margin: 0 0 6px; }
-  p { color: #9fb0c0; margin: 0 0 20px; line-height: 1.4; }
-  label, button { display: block; width: 100%; box-sizing: border-box; padding: 18px; border-radius: 12px; border: 0;
-    font-size: 18px; font-weight: 600; text-align: center; cursor: pointer; }
-  label { background: #1f6feb; color: #fff; }
-  button { background: #2ea043; color: #fff; margin-top: 12px; }
-  button:disabled { background: #33414f; color: #8b9aa8; }
-  input { display: none; }
-  img { width: 100%; border-radius: 12px; margin-top: 16px; display: none; }
-  #status { margin-top: 16px; font-size: 16px; min-height: 24px; color: #e8eef4; }
+  p.lead { color: var(--mut); margin: 0 0 18px; line-height: 1.4; }
+  .big { display: flex; justify-content: center; width: 100%; box-sizing: border-box; padding: 18px; font-size: 18px; }
+  .big[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+  input[type=file] { display: none; }
+  #preview { width: 100%; border-radius: var(--r); margin-top: 16px; display: none; }
+  #status { margin: 16px 0; font-size: 17px; min-height: 24px; line-height: 1.4; }
+  #results { margin-top: 4px; }
 </style>
 </head>
 <body>
-  <h1>Φωτογραφία ραφιού</h1>
-  <p>Στάσου απέναντι από το ράφι, να φαίνεται ολόκληρο και ίσιο. Ο agent ξεκινά μόλις σταλεί η φωτογραφία.</p>
-  <label for="photo">Άνοιξε την κάμερα</label>
+<main class="wrap">
+  <h1>Scan ραφιού</h1>
+  <p class="lead">Στάσου απέναντι από το ράφι, να φαίνεται ολόκληρο και ίσιο. Μόλις βγάλεις τη φωτογραφία, ο agent τη
+    διαβάζει και σου δείχνει τις εργασίες.</p>
+  <label id="open" class="btn big" for="photo">📷 Άνοιξε την κάμερα</label>
   <input id="photo" type="file" accept="image/*" capture="environment">
-  <img id="preview" alt="Προεπισκόπηση">
-  <button id="send" disabled>Στείλε στον agent</button>
+  <img id="preview" alt="Η φωτογραφία του ραφιού">
   <div id="status" role="status"></div>
+  <a id="results" class="btn ghost big" href="/tasks">Δες τις εργασίες</a>
+</main>
 <script>
-const input = document.getElementById("photo"), send = document.getElementById("send");
-const preview = document.getElementById("preview"), status = document.getElementById("status");
-input.onchange = () => {
-  const file = input.files[0];
-  if (!file) return;
-  preview.src = URL.createObjectURL(file);
-  preview.style.display = "block";
-  send.disabled = false;
-  status.textContent = "";
-};
-send.onclick = async () => {
-  const file = input.files[0];
-  if (!file) return;
-  send.disabled = true;
-  status.textContent = "Στέλνω…";
-  const body = new FormData();
-  body.append("file", file);
+const $ = id => document.getElementById(id);
+const MAX_SIDE = 1600;               // μικραίνουμε τη φωτογραφία: γρηγορότερο ανέβασμα και ανάγνωση
+
+async function shrink(file) {
   try {
-    const r = await fetch("/api/shelf/photo", { method: "POST", body });
-    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
-    status.textContent = "Στάλθηκε. Ο agent ελέγχει το ράφι· δες την κονσόλα.";
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(ok => c.toBlob(b => ok(b || file), "image/jpeg", 0.88));
+  } catch { return file; }           // π.χ. HEIC που δεν ανοίγει ο browser: στείλε το αρχείο όπως είναι
+}
+function busy(on) {
+  $("open").setAttribute("aria-disabled", on);
+  $("open").textContent = on ? "Διαβάζω το ράφι…" : "📷 Ξανά φωτογραφία";
+}
+$("photo").onchange = async () => {
+  const file = $("photo").files[0];
+  if (!file) return;
+  $("preview").src = URL.createObjectURL(file);
+  $("preview").style.display = "block";
+  $("status").textContent = "Στέλνω τη φωτογραφία…";
+  busy(true);
+  try {
+    const body = new FormData();
+    body.append("file", await shrink(file), "shelf.jpg");
+    const r = await fetch("/api/shelf/frame?single=1", { method: "POST", body });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.statusText);
+    if (d.status === "busy" || d.status === "occluded") {
+      $("status").textContent = d.status === "busy" ? "Διαβάζεται ήδη άλλη φωτογραφία. Δοκίμασε ξανά σε λίγο."
+        : "Κάτι κρύβει το ράφι. Βγάλε ξανά φωτογραφία χωρίς εμπόδια.";
+    } else {
+      const n = (d.tasks || []).length;
+      $("status").textContent = (n ? `Έτοιμο: ${n} ${n === 1 ? "εργασία ανοιχτή" : "εργασίες ανοιχτές"}.` : "Έτοιμο: το ράφι είναι σωστό.")
+        + " Ανοίγω τις εργασίες…";
+      setTimeout(() => location.href = "/tasks", 1200);
+    }
   } catch (e) {
-    status.textContent = "Δεν στάλθηκε: " + e.message;
-    send.disabled = false;
+    $("status").textContent = "Δεν διαβάστηκε: " + e.message;
   }
+  busy(false);
+  $("photo").value = "";             // ώστε να ξαναπαίξει το onchange και με την ίδια φωτογραφία
 };
 </script>
 </body>

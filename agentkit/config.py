@@ -55,6 +55,13 @@ LIVE_CONFIRM_FRAMES = int(_env("LIVE_CONFIRM_FRAMES", "2"))         # ίδια �
 LIVE_DIFF_THRESHOLD = float(_env("LIVE_DIFF_THRESHOLD", "4.0"))     # μέση διαφορά pixel (0-255) κάτω από την οποία το frame θεωρείται ίδιο
 LIVE_START_AGENT = _env("LIVE_START_AGENT", "1") == "1"             # νέα ευρήματα → πλήρης εκτέλεση του agent (αναπλήρωση, παραγγελία)
 
+# --- Αυτονομία (agentkit/tasks.py) ---------------------------------------
+# Παραγγελία χωρίς έγκριση μέσα σε αυτά τα όρια. Πάνω από αυτά, ο υπεύθυνος εγκρίνει με ένα πάτημα.
+AUTO_ORDER = _env("AUTO_ORDER", "1") == "1"
+AUTO_ORDER_MAX_CASES = int(_env("AUTO_ORDER_MAX_CASES", "3"))
+AUTO_ORDER_MAX_EUR = float(_env("AUTO_ORDER_MAX_EUR", "50"))
+TASK_REMINDER_MINUTES = int(_env("TASK_REMINDER_MINUTES", "10"))    # 0 = χωρίς υπενθυμίσεις
+
 # --- Συμπεριφορά -------------------------------------------------------
 DEFAULT_SCENARIO = _env("DEFAULT_SCENARIO", "shelf")
 AUTO_APPROVE = _env("AUTO_APPROVE", "0") == "1"
@@ -73,6 +80,15 @@ SMTP_USER = _env("SMTP_USER")
 SMTP_PASSWORD = _env("SMTP_PASSWORD")
 SMTP_FROM = _env("SMTP_FROM") or SMTP_USER
 
+# --- Τεκμήρια από το διαδίκτυο (agentkit/tools/evidence.py) -----------------
+# Χωρίς token treg η αναζήτηση γίνεται με DuckDuckGo, χωρίς κλειδί.
+TREG_TOKEN = _env("TREG_TOKEN")
+TREG_ORG = _env("TREG_ORG")
+TREG_SEARCH_TOOL = _env("TREG_SEARCH_TOOL")          # id εργαλείου αναζήτησης από το `treg catalog search`
+TREG_QUERY_PARAM = _env("TREG_QUERY_PARAM", "q")     # όνομα της παραμέτρου του ερωτήματος σε αυτό το εργαλείο
+EVIDENCE_REGION = _env("EVIDENCE_REGION", "Ελλάδα")
+EVIDENCE_MIN_SOURCES = int(_env("EVIDENCE_MIN_SOURCES", "2"))
+
 # --- Ταυτότητα του project (φαίνεται στην κονσόλα) --------------------------
 PROJECT_NAME = _env("PROJECT_NAME", "Agent Console")
 PROJECT_TAGLINE = _env("PROJECT_TAGLINE")
@@ -82,6 +98,8 @@ PROJECT_LOGO = _env("PROJECT_LOGO")
 HOST = _env("HOST", "127.0.0.1")
 PORT = int(_env("PORT", "8000"))
 BASE_URL = _env("BASE_URL", f"http://{HOST}:{PORT}")
+# Διεύθυνση για το κινητό αν μπαίνει από tunnel (π.χ. https://xxxx.trycloudflare.com). Κενό = η IP του laptop.
+PUBLIC_URL = _env("PUBLIC_URL")
 
 # --- Φάκελοι -----------------------------------------------------------
 DATA_DIR = ROOT / "data"

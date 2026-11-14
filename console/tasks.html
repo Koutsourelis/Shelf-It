@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e141b">
+<title>Εργασίες ραφιού</title>
+<link rel="stylesheet" href="/ui/app.css">
+<!-- Κινητό υπαλλήλου. Ενημερώνεται μόνο του (ροή γεγονότων). Νέα εργασία = δόνηση + ήχος (όπου επιτρέπεται).
+     Η εργασία κλείνει όταν η κάμερα δει το ράφι σωστό· το «Το κάνω» απλώς δείχνει ότι κάποιος την ανέλαβε. -->
+<style>
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  .wrap { max-width: 560px; padding: 16px 14px 40px; }
+  .head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .head h1 { font-size: 22px; margin: 0; }
+  .head .pill { margin-left: auto; }
+  .t { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-bottom: 14px; }
+  .t.new { animation: pop .6s ease-out; border-color: var(--bad); }
+  @keyframes pop { from { transform: scale(.96); opacity: .3; } }
+  .t img { width: 100%; max-height: 240px; object-fit: contain; display: block; background: #000; }
+  .t .body { padding: 14px 16px 16px; }
+  .t .n { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--bad);
+    font-weight: 700; margin-right: 8px; font-size: 15px; }
+  .t b { font-size: 18px; line-height: 1.35; }
+  .t .meta { color: var(--mut); font-size: 14px; margin-top: 8px; }
+  .t .acts { display: flex; gap: 10px; margin-top: 14px; }
+  .t .acts button { flex: 1; justify-content: center; padding: 14px; font-size: 16px; }
+  .t.in_progress .n { background: var(--warn); }
+  .t.in_progress { border-color: var(--warn); }
+  .done { margin-top: 26px; }
+  .done h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--mut); }
+  .done li { color: var(--mut); padding: 6px 0; list-style: none; }
+  .done ul { padding: 0; margin: 0; }
+  #sound { width: 100%; justify-content: center; margin-bottom: 14px; }
+  #scan { display: flex; justify-content: center; padding: 16px; font-size: 17px; margin-bottom: 10px; text-decoration: none; box-sizing: border-box; }
+  .foot { text-align: center; margin-top: 20px; font-size: 14px; }
+  .foot a { color: var(--mut); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="head"><h1>Εργασίες ραφιού</h1><span class="pill" id="state">…</span></div>
+  <a id="scan" class="btn" href="/capture">📷 Σκάναρε το ράφι</a>
+  <button id="sound" class="ghost">🔔 Ειδοποίηση με ήχο</button>
+  <div id="list"></div>
+  <div class="done"><h2>Έγιναν πρόσφατα</h2><ul id="done"></ul></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const WHO = localStorage.getItem("shelf_worker") || "υπάλληλος";
+let known = null, soundOn = false, audio;
+
+function beep() {
+  navigator.vibrate?.([180, 90, 180]);
+  if (!soundOn) return;
+  audio = audio || new AudioContext();
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination);
+  o.start(); o.stop(audio.currentTime + 0.18);
+}
+function card(t, i, fresh) {
+  const order = t.order && t.order.order_no ? ` · παραγγέλθηκε (${esc(t.order.order_no)})` : "";
+  const m = Math.round((Date.now() / 1000 - t.created) / 60), since = m < 1 ? "μόλις τώρα" : `πριν από ${m}′`;
+  const act = t.status === "open"
+    ? `<div class="acts"><button class="ok" data-claim="${esc(t.id)}">Το κάνω</button></div>`
+    : `<div class="meta">✋ Το έχει αναλάβει ${esc(t.claimed_by)} · κλείνει μόλις η κάμερα δει το ράφι σωστό</div>`;
+  return `<div class="t ${t.status} ${fresh ? "new" : ""}">${t.image ? `<img src="/files/${encodeURI(t.image)}" alt="Το σημείο στο ράφι">` : ""}
+    <div class="body"><span class="n">${i + 1}</span><b>${esc(t.text)}</b>
+    <div class="meta">${since}${order}</div>${act}</div></div>`;
+}
+async function refresh() {
+  const d = await (await fetch("/api/tasks")).json();
+  const ids = new Set(d.tasks.map(t => t.id));
+  const fresh = known ? d.tasks.filter(t => !known.has(t.id)).map(t => t.id) : [];
+  if (fresh.length) beep();
+  known = ids;
+  $("state").textContent = d.tasks.length ? `${d.tasks.length} ανοιχτές` : "Όλα εντάξει";
+  $("state").className = "pill " + (d.tasks.length ? "bad" : "ok");
+  $("list").innerHTML = d.tasks.length ? d.tasks.map((t, i) => card(t, i, fresh.includes(t.id))).join("")
+    : `<div class="card empty"><div class="big">✅</div>Το ράφι είναι σωστό. Θα ειδοποιηθείς αν χρειαστεί κάτι.</div>`;
+  $("done").innerHTML = (d.done || []).map(t => `<li>✓ ${esc(t.text)}</li>`).join("") || `<li>—</li>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-claim]"); if (!b) return;
+  b.disabled = true; b.textContent = "…";
+  await fetch(`/api/tasks/${encodeURIComponent(b.dataset.claim)}/claim`, { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify({ who: WHO }) });
+  refresh();
+});
+$("sound").onclick = () => { soundOn = !soundOn; $("sound").textContent = soundOn ? "🔔 Ήχος ενεργός" : "🔔 Ειδοποίηση με ήχο";
+  if (soundOn) { audio = audio || new AudioContext(); audio.resume(); } };
+const es = new EventSource("/api/events");
+es.onmessage = m => { const ev = JSON.parse(m.data); if (ev.run_id === "system" && ev.type === "shelf_log" && Date.now() / 1000 - ev.ts < 5) refresh(); };
+setInterval(refresh, 15000);         // εφεδρικά, αν κοπεί η ροή γεγονότων
+refresh();
+</script>
+</body>
+</html>
