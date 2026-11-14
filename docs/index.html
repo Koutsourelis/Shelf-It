@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShelfSense: a shelf agent for supermarkets</title>
+<meta name="description" content="Take a photo of a supermarket shelf. The agent finds what is missing or misplaced, prepares the refill, orders what the backroom lacks, and shows the source of every number.">
+<meta property="og:title" content="ShelfSense: a shelf agent for supermarkets">
+<meta property="og:description" content="Photo of a shelf in, refill list and placement suggestions out. Every number comes from code and has a source.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f6b4f'/%3E%3Cpath d='M7 11h18M7 17h18M7 23h18' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f4ee;
+    --surface: #ffffff;
+    --ink: #17231d;
+    --muted: #5b6a62;
+    --line: #dedbd0;
+    --accent: #0f6b4f;
+    --accent-ink: #ffffff;
+    --accent-soft: #e2f1ea;
+    --warn: #b4530a;
+    --warn-soft: #fbeedd;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101613;
+      --surface: #18211c;
+      --ink: #ecf1ed;
+      --muted: #9fb0a6;
+      --line: #2b3830;
+      --accent: #4fc79c;
+      --accent-ink: #08130e;
+      --accent-soft: #17352a;
+      --warn: #f0a85a;
+      --warn-soft: #3a2a17;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 18px; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  h1, h2, h3 { line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+  h1 { font-size: clamp(2.1rem, 8vw, 3.2rem); letter-spacing: -0.03em; }
+  h2 { font-size: 1.45rem; margin-bottom: 6px; }
+  h3 { font-size: 1.05rem; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 0.88rem; }
+
+  header.hero { padding: 44px 0 30px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .tag {
+    font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .lead { font-size: 1.2rem; margin: 14px 0 22px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn {
+    display: inline-block; padding: 12px 18px; border-radius: 10px; font-weight: 600;
+    text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--surface);
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+  nav.toc {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.toc .wrap { display: flex; gap: 18px; overflow-x: auto; padding-top: 10px; padding-bottom: 10px; scrollbar-width: none; }
+  nav.toc a { white-space: nowrap; font-size: 0.9rem; font-weight: 600; color: var(--muted); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+
+  section { padding: 34px 0 6px; scroll-margin-top: 48px; }
+  .sub { color: var(--muted); margin-bottom: 18px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 18px; margin-bottom: 12px;
+  }
+  .principle {
+    display: grid; gap: 10px; grid-template-columns: repeat(3, 1fr); margin: 18px 0 6px;
+  }
+  .principle div {
+    background: var(--accent-soft); border-radius: var(--radius); padding: 14px; text-align: center;
+  }
+  .principle b { display: block; color: var(--accent); font-size: 1.05rem; }
+  .principle span { font-size: 0.86rem; color: var(--muted); }
+  @media (max-width: 520px) { .principle { grid-template-columns: 1fr; } }
+
+  ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  ol.steps li {
+    counter-increment: step; position: relative; padding: 0 0 16px 46px;
+  }
+  ol.steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+    display: grid; place-items: center; font-weight: 700; font-size: 0.95rem;
+  }
+  ol.steps li:not(:last-child)::after {
+    content: ""; position: absolute; left: 15px; top: 36px; bottom: 4px; width: 2px; background: var(--line);
+  }
+  ol.steps b { display: block; }
+  .who {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 7px; border-radius: 6px; margin-left: 6px; vertical-align: 2px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .who.human { background: var(--warn-soft); color: var(--warn); }
+
+  dl.proof { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+  dl.proof dt { font-weight: 700; color: var(--accent); }
+  dl.proof dd { margin: 0; }
+
+  .rule h3 { margin-bottom: 6px; }
+  .rule .n { color: var(--accent); margin-right: 6px; }
+  .rule p { margin-bottom: 6px; }
+  .src { font-size: 0.88rem; color: var(--muted); }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 0.93rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  .pill { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .pill.real { background: var(--accent-soft); color: var(--accent); }
+  .pill.synth { background: var(--warn-soft); color: var(--warn); }
+
+  ul.plain { margin: 0; padding-left: 20px; }
+  ul.plain li { margin-bottom: 6px; }
+  ul.links { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 24px; }
+  ul.links li { margin-bottom: 6px; break-inside: avoid; }
+  @media (max-width: 520px) { ul.links { columns: 1; } }
+
+  video, .video-frame { width: 100%; border-radius: var(--radius); border: 1px solid var(--line); background: #000; display: block; }
+
+  footer { margin-top: 40px; padding: 22px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.88rem; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="tags">
+      <span class="tag">Gen AI Summit Hackathon · Athens · 14–15 Nov 2026</span>
+      <span class="tag">Open Track</span>
+    </div>
+    <h1>ShelfSense</h1>
+    <p class="lead">A shelf agent for supermarket department managers. Take a photo of a shelf: the agent finds what is
+      missing or misplaced, prepares the refill from the backroom, orders what the backroom does not have, and shows
+      where every number comes from.</p>
+    <div class="cta">
+      <a class="btn primary" href="#how">How it works</a>
+      <a class="btn" href="https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent">Code on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="wrap">
+    <a href="#how">How it works</a>
+    <a href="#proof">Proof</a>
+    <a href="#rules">Rules</a>
+    <a href="#data">Data</a>
+    <a href="#limits">Limits</a>
+    <a href="#built">What we built</a>
+    <a href="#refs">References</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- DEMO VIDEO. Remove the "hidden" attribute once the video exists.
+       Either put the file at docs/demo.mp4, or replace <video> with the embed code of the hosted video. -->
+  <section id="demo" hidden>
+    <h2>Demo</h2>
+    <p class="sub">The full path in under two minutes.</p>
+    <video controls preload="none" playsinline src="demo.mp4"></video>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sub">Today a department manager checks the shelves by eye, every morning. ShelfSense takes that job from
+      "something looks wrong" to "the shelf is right and what was missing is on order".</p>
+
+    <ol class="steps">
+      <li><b>Sees <span class="who">model</span></b>
+        A vision model turns the photo into a table: shelf, position, product, facings, bounding box.</li>
+      <li><b>Compares <span class="who">code</span></b>
+        The table is checked against the planogram: missing products, too few facings, wrong shelf, wrong order. The
+        findings are drawn on the photo, with a compliance score.</li>
+      <li><b>Computes <span class="who">code</span></b>
+        Units to bring from the backroom, cases to order, and the daily sales lost while a product has no facing.</li>
+      <li><b>Acts <span class="who human">human approves</span></b>
+        The shelf worker gets a task list. The order to the central warehouse is prepared in full and placed only
+        after a person approves it.</li>
+      <li><b>Suggests <span class="who">code</span></b>
+        Up to two layout suggestions from category-management rules, each with its rule, its number and its source.</li>
+      <li><b>Checks again <span class="who">model + code</span></b>
+        A new photo runs through the same steps and shows before and after.</li>
+    </ol>
+
+    <div class="principle">
+      <div><b>The model reads</b><span>It looks at the photo and explains.</span></div>
+      <div><b>Code computes</b><span>Every figure is calculated and logged.</span></div>
+      <div><b>A human approves</b><span>Nothing is ordered without a yes.</span></div>
+    </div>
+  </section>
+
+  <section id="proof">
+    <h2>Every suggestion carries its proof</h2>
+    <p class="sub">A suggestion has four parts, and the model cannot add a fifth. When a figure is missing, the rule
+      does not run and the agent says there is not enough data.</p>
+    <div class="card">
+      <dl class="proof">
+        <dt>What</dt><dd>Move one facing from "Mountain tea" to "Espresso capsules".</dd>
+        <dt>Rule</dt><dd>Rule 3, space against sales.</dd>
+        <dt>Number</dt><dd>Gain €1.97 a day − loss €0.43 = +€1.54 margin a day.</dd>
+        <dt>Source</dt><dd>Eisend 2014, space elasticity 0.17; 28 days of sales (synthetic in the demo).</dd>
+      </dl>
+    </div>
+    <p class="small muted">Example from the demo data. The same four parts are written to an audit trail that is
+      visible on screen next to the agent's steps.</p>
+  </section>
+
+  <section id="rules">
+    <h2>The six decision rules</h2>
+    <p class="sub">Which suggestion comes out is decided by code, with parameters taken from published retail research.</p>
+
+    <div class="card rule">
+      <h3><span class="n">1</span>Which gap to fill first</h3>
+      <p>Gaps are ranked by daily sales × 0.40, the share of a stock-out's sales that the store loses.</p>
+      <p class="src">Gruen, Corsten &amp; Bharadwaj 2002: facing an empty shelf, 31% of shoppers buy elsewhere and 9% do not buy at all.</p>
+    </div>
+    <div class="card rule">
+      <h3><span class="n">2</span>Backroom or order</h3>
+      <p>The store's own backroom first, then an order to the central warehouse.</p>
+      <p class="src">Same study: in 25% of stock-outs the product is in the store but not on the shelf.</p>
+    </div>
+    <div class="card rule">
+      <h3><span class="n">3</span>How many facings</h3>
+      <p>One facing moves from product A to product B only when B's gain is larger than A's loss, with a space elasticity of 0.17.</p>
+      <p class="src">Eisend 2014, a meta-analysis of 1,268 estimates.</p>
+    </div>
+    <div class="card rule">
+      <h3><span class="n">4</span>Which height</h3>
+      <p>Products with the highest margin per facing go at eye level. The agent gives no uplift percentage for this move, because no source gives one that transfers to another shelf.</p>
+      <p class="src">Drèze, Hoch &amp; Purk 1994; Chandon et al. 2009.</p>
+    </div>
+    <div class="card rule">
+      <h3><span class="n">5</span>Which horizontal position</h3>
+      <p>The target product of each shelf goes in the centre.</p>
+      <p class="src">Atalay, Bodur &amp; Rasolofoarison 2012, two eye-tracking studies.</p>
+    </div>
+    <div class="card rule">
+      <h3><span class="n">6</span>Where the private label goes</h3>
+      <p>Next to the category leader.</p>
+      <p class="src">Sayman, Hoch &amp; Raju 2002.</p>
+    </div>
+    <p class="small muted">Parameters live in one file (<code>data/shelf/rules.json</code>) and change without touching
+      code. Full list of papers under <a href="#refs">References</a>.</p>
+  </section>
+
+  <section id="data">
+    <h2>Data: what is real and what is not</h2>
+    <p class="sub">Public or synthetic data only. No planogram, sales figure or store photo from any team member's employer.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>What</th><th>Source</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Shelf photos</td><td>Photos from the web with a licence that allows reuse</td><td><span class="pill real">Public</span></td></tr>
+          <tr><td>Product identity</td><td><a href="https://world.openfoodfacts.org/">Open Food Facts</a>: name, brand, size, barcode</td><td><span class="pill real">Public</span></td></tr>
+          <tr><td>Shelf prices</td><td><a href="https://posokanei.gov.gr/">Poso Kanei</a>, the Greek state price-comparison platform</td><td><span class="pill real">Public</span></td></tr>
+          <tr><td>Market evidence per product</td><td>Web and news search through treg, Greek trade and financial press first</td><td><span class="pill real">Public</span></td></tr>
+          <tr><td>Planogram and backroom stock</td><td>Written by the team for each photo</td><td><span class="pill synth">Synthetic</span></td></tr>
+          <tr><td>Sales and purchase cost</td><td>Generated; only the retailer has the real figures</td><td><span class="pill synth">Synthetic</span></td></tr>
+          <tr><td>Central warehouse</td><td>A simulated ordering portal</td><td><span class="pill synth">Simulation</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:22px">Market sources the agent searches first</h3>
+    <p class="sub">For each product the agent builds an evidence pack. A claim is kept only when its quote appears
+      word for word in the source, and a number only when the source is dated. With fewer than two sources the pack
+      is marked "insufficient" instead of guessing.</p>
+    <ul class="links">
+      <li><a href="https://www.ielka.gr/">IELKA</a>, retail consumer-goods research institute</li>
+      <li><a href="https://www.selfservice.gr/">Self Service</a>, trade magazine</li>
+      <li><a href="https://www.powergame.gr/">Powergame</a></li>
+      <li><a href="https://www.forin.gr/">Forin</a></li>
+      <li><a href="https://www.naftemporiki.gr/">Naftemporiki</a></li>
+      <li><a href="https://www.newmoney.gr/">Newmoney</a></li>
+      <li><a href="https://www.statistics.gr/">ELSTAT</a>, consumer price index</li>
+      <li><a href="https://iobe.gr/">IOBE</a>, food and drink statistics</li>
+    </ul>
+  </section>
+
+  <section id="limits">
+    <h2>Known limits</h2>
+    <ul class="plain">
+      <li>The camera sees the front row only. The refill assumes the shelf is full behind each facing.</li>
+      <li>One shelf and one photo at a time.</li>
+      <li>Layout suggestions describe how the space performs today. They do not forecast sales.</li>
+      <li>The 0.17 space elasticity and the 40% lost-sales share are averages across categories.</li>
+      <li>Eye-tracking studies (rules 4 and 5) measure attention and choice in experiments, not store sales.</li>
+    </ul>
+  </section>
+
+  <section id="built">
+    <h2>What we built in two days</h2>
+    <ul class="plain">
+      <li>Shelf tools: read the photo, check the planogram, plan the refill, suggest a layout, order from the warehouse.</li>
+      <li>Decision rules with sourced parameters, and tests for them.</li>
+      <li>Evidence pack per product, with quote and date checks.</li>
+      <li>Image input for the model, a phone capture page, and a trigger on each new photo.</li>
+      <li>The shelf data model and the simulated warehouse portal.</li>
+    </ul>
+    <p class="small muted" style="margin-top:12px">Before the event we prepared a generic agent skeleton with no
+      project logic (agent loop, model providers, console, approvals, replay). It is declared in the README and
+      marked in the history with the <code>boilerplate</code> tag.</p>
+  </section>
+
+  <!-- TEAM. Remove "hidden" and fill in the names once everyone agrees to be listed. -->
+  <section id="team" hidden>
+    <h2>Team</h2>
+    <ul class="plain">
+      <li>Name, role</li>
+    </ul>
+  </section>
+
+  <section id="refs">
+    <h2>References</h2>
+    <ul class="plain small">
+      <li>Gruen, Corsten &amp; Bharadwaj (2002). <a href="https://www.supplychain247.com/images/pdfs/GMA_2002_Worldwide_OOS_Study.pdf">Retail Out-of-Stocks: A Worldwide Examination of Extent, Causes and Consumer Responses</a>. GMA / FMI / CIES.</li>
+      <li>Eisend (2014). <a href="https://ideas.repec.org/a/eee/jouret/v90y2014i2p168-181.html">Shelf space elasticity: A meta-analysis</a>. Journal of Retailing 90(2).</li>
+      <li>Drèze, Hoch &amp; Purk (1994). <a href="https://repository.upenn.edu/handle/20.500.14332/39417">Shelf management and space elasticity</a>. Journal of Retailing 70(4).</li>
+      <li>Chandon, Hutchinson, Bradlow &amp; Young (2009). <a href="https://flora.insead.edu/fichiersti_wp/inseadwp2008/2008-51.pdf">Does in-store marketing work?</a> Journal of Marketing 73(6).</li>
+      <li>Atalay, Bodur &amp; Rasolofoarison (2012). <a href="https://econpapers.repec.org/RePEc:oup:jconrs:doi:10.1086/665984">Shining in the center</a>. Journal of Consumer Research 39(4).</li>
+      <li>Sayman, Hoch &amp; Raju (2002). <a href="https://faculty.wharton.upenn.edu/wp-content/uploads/2012/05/Store-brand-positioning1.pdf">Positioning of store brands</a>. Marketing Science 21(4).</li>
+      <li>Deng, Kahn, Unnava &amp; Lee (2016). <a href="https://faculty.wharton.upenn.edu/wp-content/uploads/2016/12/jmr130151_ia9gse-1.pdf">A "wide" variety</a>. Journal of Marketing Research 53(5).</li>
+      <li>Bianchi-Aguiar, Hübner, Carravilla &amp; Oliveira (2021). <a href="https://ideas.repec.org/a/eee/ejores/v289y2021i1p1-16.html">Retail shelf space planning problems</a>. EJOR 289(1).</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    ShelfSense · built at the Gen AI Summit Hackathon, Athens, November 2026 ·
+    <a href="https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent">github.com/Koutsourelis/Gen-AI-Hackathon-Agent</a>
+  </div>
+</footer>
+
+</body>
+</html>
