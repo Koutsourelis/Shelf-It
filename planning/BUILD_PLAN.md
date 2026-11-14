@@ -35,7 +35,7 @@
 | 4 | _συμπληρώστε_ | Ενοποίηση και οθόνη | 5, 6, 7 | `console/`, `agentkit/server.py`, `agentkit/telegram.py` |
 | 5 | _συμπληρώστε_ | Ράφι, δεύτερη φωτογραφία, demo και pitch | 2, 10, 13 | `data/shelf/photos/`, `pitch/`, `README.md` |
 
-Δύο άτομα αγγίζουν το `shelf.py` (1 και 2), σε διαφορετικές συναρτήσεις. Πριν από κάθε push: `git pull --rebase`.
+Δύο άτομα αγγίζουν το `shelf.py` (1 και 2), σε διαφορετικές συναρτήσεις. Κώδικας μπαίνει στο `main` μόνο με pull request: [`WORKFLOW.md`](WORKFLOW.md).
 
 ## Οι εργασίες, με σειρά προτεραιότητας
 
