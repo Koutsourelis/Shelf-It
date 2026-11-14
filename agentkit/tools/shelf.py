@@ -14,7 +14,7 @@ import math
 from collections import defaultdict
 from pathlib import Path
 
-from .. import config
+from .. import config, rules as decision_rules
 from ..demo_data import DAYS, PHOTOS_DIR
 from ..llm.structured import structured
 from . import tool
@@ -304,6 +304,9 @@ async def replenishment_plan(ctx) -> str:
         return photo, rows, dict(daily)
     photo, rows, daily = await asyncio.to_thread(work)
 
+    rules = decision_rules.load()
+    # Κ1: πρώτα οι κωδικοί που λείπουν εντελώς, κατά χαμένες πωλήσεις· μετά οι υπόλοιποι, κατά πωλήσεις.
+    rows.sort(key=lambda r: (r[6] > 0, -float(daily.get(r[0], 0))))
     lines, at_risk = [], {}
     for sku, name, facings, depth, case_size, on_hand, seen in rows:
         missing = max(facings - seen, 0)
@@ -321,7 +324,11 @@ async def replenishment_plan(ctx) -> str:
                       expression="ceil((units - backroom_on_hand) / case_size)",
                       variables={"units": units, "backroom_on_hand": on_hand, "case_size": case_size}, result=cases)
         if seen == 0:
-            at_risk[sku] = round(float(daily.get(sku, 0)), 2)
+            at_risk[sku] = decision_rules.lost_sales(float(daily.get(sku, 0)), rules)
+            ctx.audit("compute", label=f"{sku}: χαμένες πωλήσεις ανά ημέρα (€), κανόνας Κ1",
+                      expression="avg_daily_revenue * lost_share",
+                      variables={"avg_daily_revenue": round(float(daily.get(sku, 0)), 2),
+                                 "lost_share": rules["K1"]["lost_share"]}, result=at_risk[sku])
     await asyncio.to_thread(_replace, "replenishment", lines)
     if not lines:
         return "Δεν χρειάζεται αναπλήρωση: όλες οι προσόψεις του πλανογράμματος υπάρχουν στο ράφι."
@@ -329,9 +336,10 @@ async def replenishment_plan(ctx) -> str:
     total_backroom = sum(l[5] for l in lines)
     risk = round(sum(at_risk.values()), 2)
     if at_risk:
-        ctx.audit("compute", label="Πωλήσεις σε κίνδυνο ανά ημέρα (€)",
-                  expression="sum(avg_daily_revenue of skus with no facing on the shelf)", variables=at_risk, result=risk)
-    out = [_table(["κωδικός", "προϊόν", "προσόψεις που λείπουν", "τεμάχια", "από αποθήκη", "προς παραγγελία", "κιβώτια"],
+        ctx.audit("compute", label="Χαμένες πωλήσεις ανά ημέρα (€), σύνολο",
+                  expression="sum(lost sales of skus with no facing on the shelf)", variables=at_risk, result=risk)
+    out = ["Με σειρά προτεραιότητας (κανόνας Κ1):",
+           _table(["κωδικός", "προϊόν", "προσόψεις που λείπουν", "τεμάχια", "από αποθήκη", "προς παραγγελία", "κιβώτια"],
                   [l[1:] for l in lines]),
            f"Σύνολο από την αποθήκη: {total_backroom} τεμάχια σε {sum(1 for l in lines if l[5])} κωδικούς."]
     to_order = [l for l in lines if l[6]]
@@ -339,66 +347,50 @@ async def replenishment_plan(ctx) -> str:
         out.append("Η αποθήκη δεν φτάνει για: " + ", ".join(f"{l[1]} ({l[7]} κιβ.)" for l in to_order)
                    + ". Ετοίμασε παραγγελία με το order_from_warehouse.")
     if at_risk:
-        out.append(f"Κωδικοί χωρίς καμία πρόσοψη: {', '.join(at_risk)}. Πωλήσεις σε κίνδυνο: {risk} € ανά ημέρα "
-                   f"(μέσος όρος {DAYS} ημερών).")
+        out.append(f"Κωδικοί χωρίς καμία πρόσοψη: {', '.join(at_risk)}. Χαμένες πωλήσεις για το κατάστημα: {risk} € ανά "
+                   f"ημέρα, δηλαδή το {round(100 * rules['K1']['lost_share'])}% των μέσων πωλήσεων {DAYS} ημερών. "
+                   f"Πηγή: {rules['K1']['source']}.")
+    out.append(f"Πρώτα η αποθήκη του καταστήματος, μετά παραγγελία (κανόνας Κ2). Πηγή: {rules['K2']['source']}.")
     out.append("Υπόθεση: πίσω από κάθε πρόσοψη που φαίνεται το ράφι είναι γεμάτο. Η κάμερα δεν βλέπει το βάθος.")
     return "\n".join(out)
 
 
 @tool(
     "layout_suggestions",
-    "Έλεγξε τη διάταξη του πλανογράμματος με κανόνες category management: μερίδιο χώρου έναντι μεριδίου πωλήσεων "
-    "ανά κωδικό, και αν στο ύψος των ματιών βρίσκονται οι κωδικοί με το υψηλότερο περιθώριο ανά πρόσοψη. "
-    "Επιστρέφει έως δύο προτάσεις με τους αριθμούς που τις στηρίζουν.",
+    "Έλεγξε τη διάταξη του πλανογράμματος με τους κανόνες category management Κ3 έως Κ6: ύψος ματιών, οριζόντιο "
+    "κέντρο, ιδιωτική ετικέτα δίπλα στον ηγέτη, χώρος έναντι πωλήσεων. Κάθε πρόταση έχει τέσσερα μέρη (τι, κανόνας, "
+    "αριθμός, πηγή)· μετάφερέ τα αυτούσια και μην προσθέτεις δικούς σου αριθμούς ή ποσοστά αύξησης.",
     {},
 )
 async def layout_suggestions(ctx) -> str:
     _, rows = await asyncio.to_thread(run_sql, """
-        with s as (select sku, sum(revenue) rev, sum(revenue - cost) margin from sales group by 1)
-        select pl.sku, p.name, pl.shelf, pl.level, pl.facings, s.rev, s.margin
-        from planogram pl join products p using (sku) join s using (sku) order by pl.shelf, pl.position""")
-    if not rows:
-        return "Δεν υπάρχουν πωλήσεις για το πλανόγραμμα."
-    total_facings = sum(r[4] for r in rows)
-    total_rev = sum(r[5] for r in rows) or 1
-    table, stats = [], {}
-    for sku, name, shelf, level, facings, rev, margin in rows:
-        space = 100 * facings / total_facings
-        sales = 100 * rev / total_rev
-        per_facing = margin / DAYS / facings
-        stats[sku] = {"name": name, "shelf": shelf, "level": level, "facings": facings, "space": round(space, 1),
-                      "sales": round(sales, 1), "index": round(sales / space, 2), "per_facing": round(per_facing, 2)}
-        table.append((sku, name, shelf, level, facings, round(space, 1), round(sales, 1),
-                      stats[sku]["index"], stats[sku]["per_facing"]))
+        with s as (select sku, sum(qty) qty, sum(revenue) rev, sum(revenue - cost) margin from sales group by 1)
+        select pl.sku, p.name, p.brand, p.category, pl.shelf, pl.level, pl.position, pl.facings, pl.depth,
+               coalesce(s.qty, 0), coalesce(s.rev, 0), coalesce(s.margin, 0)
+        from planogram pl join products p using (sku) left join s using (sku) order by pl.shelf, pl.position""")
+    slots = [decision_rules.Slot(sku, name, brand or "", category or "", shelf, level, position, facings, depth,
+                                 float(qty) / DAYS, float(rev) / DAYS, float(margin) / DAYS)
+             for sku, name, brand, category, shelf, level, position, facings, depth, qty, rev, margin in rows]
+    suggestions, skipped = decision_rules.evaluate(slots)
 
-    suggestions = []
-    eye = [s for s in stats if stats[s]["level"] == "eye"]
-    rest = [s for s in stats if stats[s]["level"] != "eye"]
-    if eye and rest:
-        best = max(rest, key=lambda s: stats[s]["per_facing"])
-        worst = min(eye, key=lambda s: stats[s]["per_facing"])
-        if stats[best]["per_facing"] > 1.25 * stats[worst]["per_facing"]:
-            ctx.audit("compute", label="Περιθώριο ανά πρόσοψη ανά ημέρα (€)", expression="margin / days / facings",
-                      variables={best: stats[best]["per_facing"], worst: stats[worst]["per_facing"], "days": DAYS},
-                      result=round(stats[best]["per_facing"] - stats[worst]["per_facing"], 2))
-            suggestions.append(
-                f"Ύψος ματιών: το {best} ({stats[best]['name']}) αποδίδει {stats[best]['per_facing']} € περιθώριο ανά "
-                f"πρόσοψη την ημέρα από το ράφι {stats[best]['shelf']}, ενώ το {worst} ({stats[worst]['name']}) αποδίδει "
-                f"{stats[worst]['per_facing']} € στο ύψος των ματιών. Πρόταση: να αλλάξουν θέση.")
-    under = max(stats, key=lambda s: stats[s]["index"])
-    over = min(stats, key=lambda s: stats[s]["index"])
-    if stats[under]["index"] >= 1.3 and stats[over]["index"] <= 0.7 and stats[over]["facings"] > 1:
-        ctx.audit("compute", label="Δείκτης χώρου (μερίδιο πωλήσεων / μερίδιο χώρου)", expression="sales_share / space_share",
-                  variables={under: stats[under]["index"], over: stats[over]["index"]}, result=stats[under]["index"])
-        suggestions.append(
-            f"Χώρος: το {under} ({stats[under]['name']}) κάνει το {stats[under]['sales']}% των πωλήσεων με "
-            f"{stats[under]['space']}% του χώρου, ενώ το {over} ({stats[over]['name']}) κάνει {stats[over]['sales']}% με "
-            f"{stats[over]['space']}%. Πρόταση: μία πρόσοψη από το {over} στο {under}.")
+    for s in suggestions:
+        ctx.audit("compute", label=f"{s.rule}: {s.title}", expression=s.expression, variables=s.variables, result=s.result)
+    path = config.WORKSPACE / "suggestions.json"
+    path.write_text(json.dumps({"suggestions": [s.as_dict() for s in suggestions], "skipped": skipped},
+                               ensure_ascii=False, indent=2), encoding="utf-8")
+    ctx.artifact(path)
 
-    out = [_table(["κωδικός", "προϊόν", "ράφι", "επίπεδο", "προσόψεις", "% χώρου", "% πωλήσεων", "δείκτης", "€ περιθώριο/πρόσοψη/ημέρα"], table)]
-    out += suggestions or ["Καμία πρόταση: η διάταξη συμφωνεί με τους κανόνες."]
-    out.append(f"Οι πωλήσεις είναι {DAYS} ημερών. Οι προτάσεις δεν προβλέπουν αύξηση πωλήσεων· δείχνουν μόνο τη σημερινή "
-               "απόδοση του χώρου. Αλλαγή πλανογράμματος αποφασίζει ο category manager.")
+    total_facings = sum(s.facings for s in slots) or 1
+    total_rev = sum(s.revenue_day for s in slots) or 1
+    table = [(s.sku, s.name, s.shelf, s.level, s.facings, round(100 * s.facings / total_facings, 1),
+              round(100 * s.revenue_day / total_rev, 1), round(s.margin_per_facing, 2)) for s in slots]
+    out = [_table(["κωδικός", "προϊόν", "ράφι", "επίπεδο", "προσόψεις", "% χώρου", "% πωλήσεων", "€ περιθώριο/πρόσοψη/ημέρα"], table)]
+    out += [f"\nΠρόταση {n}\n{s.as_text()}" for n, s in enumerate(suggestions, start=1)]
+    if not suggestions and not skipped:
+        out.append("Καμία πρόταση: η διάταξη συμφωνεί με τους κανόνες.")
+    out += skipped
+    out.append(f"\nΟι πωλήσεις είναι {DAYS} ημερών. Η θέση (Κ4, Κ5, Κ6) έχει προτεραιότητα έναντι των προσόψεων (Κ3). "
+               "Αλλαγή πλανογράμματος αποφασίζει ο category manager. Αρχείο: workspace/suggestions.json")
     return "\n".join(out)
 
 
