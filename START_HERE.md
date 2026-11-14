@@ -30,6 +30,7 @@ hackathon. Τελευταία ενημέρωση: 13 Νοε 2026, βράδυ.
 | [`planning/BRAINSTORM.md`](planning/BRAINSTORM.md) | Ιδέες της ομάδας, σημειώσεις από το Discord, πρώτη αξιολόγηση | **Τώρα** |
 | [`planning/KICKOFF.md`](planning/KICKOFF.md) | Έπαθλα, κανόνες, tracks, credits, οδηγίες της Quintessential για το πώς κερδίζεις | **Τώρα** |
 | [`planning/SITE_MAP.md`](planning/SITE_MAP.md) | Τι λέει το επίσημο site: tracks, πρόγραμμα, όροι, credits | Απόψε και αύριο το πρωί |
+| [`planning/MENTORS_JUDGES.md`](planning/MENTORS_JUDGES.md) | Πιθανοί mentors και κριτές, πώς κρίνουν, ποιον ψάχνουμε για mentoring | Σάββατο πριν το kickoff |
 | [`planning/DISCORD.md`](planning/DISCORD.md) | Ανακοινώσεις από το Discord | Πριν το kickoff |
 | [`planning/IDEAS.md`](planning/IDEAS.md) | Οι πέντε ιδέες, συνδυασμοί, ποια ταιριάζει σε ποιο track | Σάββατο 13:00, για να διαλέξουμε |
 | [`planning/DECISIONS.md`](planning/DECISIONS.md) | Ερωτήσεις για το kickoff, αποφάσεις που μένουν, ημερολόγιο | Συνεχώς· κάθε απόφαση γράφεται εδώ |
