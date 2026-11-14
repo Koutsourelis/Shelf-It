@@ -99,8 +99,12 @@ SMTP_FROM = _env("SMTP_FROM") or SMTP_USER
 # Χωρίς token treg η αναζήτηση γίνεται με DuckDuckGo, χωρίς κλειδί.
 TREG_TOKEN = _env("TREG_TOKEN")
 TREG_ORG = _env("TREG_ORG")
-TREG_SEARCH_TOOL = _env("TREG_SEARCH_TOOL")          # id εργαλείου αναζήτησης από το `treg catalog search`
-TREG_QUERY_PARAM = _env("TREG_QUERY_PARAM", "q")     # όνομα της παραμέτρου του ερωτήματος σε αυτό το εργαλείο
+# Εργαλεία του treg (ids από τον δημόσιο κατάλογο, https://treg.to/catalog). Καλούνται με POST και σώμα JSON.
+TREG_SEARCH_TOOL = _env("TREG_SEARCH_TOOL", "treg.web.search")
+TREG_NEWS_TOOL = _env("TREG_NEWS_TOOL", "treg.web.search.news")
+TREG_TRENDS_TOOL = _env("TREG_TRENDS_TOOL", "treg.google.keywords.trends")
+TREG_QUERY_PARAM = _env("TREG_QUERY_PARAM", "q")     # όνομα του πεδίου του ερωτήματος στα εργαλεία αναζήτησης
+TREG_TRENDS_EXTRA = _env("TREG_TRENDS_EXTRA")         # προαιρετικά επιπλέον πεδία σε JSON, π.χ. {"location_name": "Greece"}
 EVIDENCE_REGION = _env("EVIDENCE_REGION", "Ελλάδα")
 EVIDENCE_MIN_SOURCES = int(_env("EVIDENCE_MIN_SOURCES", "2"))
 

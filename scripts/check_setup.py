@@ -67,6 +67,21 @@ async def main() -> None:
     report("Πακέτο τεκμηρίων", pack["margin_pct"] is not None and pack["status"] in ("sufficient", "insufficient"),
            f"{pack['sku']}: περιθώριο {pack['margin_pct']}%, status {pack['status']}, πηγές {pack['sources']}")
 
+    # Πηγές ανά κατηγορία: τα στοχευμένα ερωτήματα πάνε πρώτα και τα αποτελέσματα της λίστας μπαίνουν μπροστά.
+    from agentkit.tools import evidence as ev
+    listed = ev.load_sources("Καφές")
+    queries = ev.plan_queries("Καφές", "", "Ελλάδα", listed)
+    ranked = ev.rank_results([{"url": "https://example.com/a", "title": "α"},
+                              {"url": "https://www.ielka.gr/b", "title": "β"}], listed)
+    kept, _ = ev.verify_claims([{"source": 1, "claim": "γ", "quote": "αυτούσιο απόσπασμα της πηγής", "value": None}],
+                               [{**ranked[0], "text": "ένα αυτούσιο απόσπασμα της πηγής εδώ"}])
+    report("Πηγές ανά κατηγορία",
+           bool(listed) and listed[0]["category"] == "Καφές" and queries[0].endswith("selfservice.gr")
+           and len(queries) == ev.MAX_LISTED_QUERIES + ev.GENERIC_QUERIES
+           and [r["listed_source"] for r in ranked] == ["ΙΕΛΚΑ", None] and kept[0]["listed_source"] == "ΙΕΛΚΑ"
+           and ev.load_sources("Άγνωστη")[0]["category"] == "*",
+           f"{len(listed)} πηγές για «Καφές», {len(queries)} ερωτήματα, πρώτο: {queries[0]}")
+
     # Προληπτικός έλεγχος: ήσυχος όσο δεν υπάρχει νέα φωτογραφία, χτυπά μόλις πέσει μία στο workspace/photos.
     watchers.reset()
     quiet = watchers.new_photo() is None and watchers.new_photo() is None
