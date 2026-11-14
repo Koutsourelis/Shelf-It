@@ -101,7 +101,7 @@ def load_cached_result():
 
 
 def load_dataset_for_image(image_name: str | None) -> dict:
-    if image_name == "Screenshot From 2026-11-14 19-32-35.png":
+    if image_name in {None, "demo_shelf.jpg"}:
         return load_cached_result()
     raise ValueError("No verified dataset is available for this mock image. Disable Cached Demo to analyze it with Gemini.")
 

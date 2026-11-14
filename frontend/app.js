@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const targetAudienceSelect = document.getElementById("targetAudience");
     const scenarioSelect = document.getElementById("scenarioSelect");
     const useCachedToggle = document.getElementById("useCachedDemo");
-    const mockImageSelect = document.getElementById("mockImageSelect");
     const fallbackFileInput = document.getElementById("fallbackFile");
 
     const traceLog = document.getElementById("traceLog");
@@ -198,7 +197,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function showCachedDemoImage() {
-        fallbackImageData = `/mock-assets/${encodeURIComponent(mockImageSelect.value)}`;
+        fallbackImageData = "/demo_shelf.jpg";
+        fallbackImgElem.onerror = () => showError("Demo image failed to load");
         fallbackImgElem.src = fallbackImageData;
         fallbackImgElem.classList.remove("hidden");
         videoElem.classList.add("hidden");
@@ -209,15 +209,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (useCachedToggle.checked) showCachedDemoImage();
     });
 
-    mockImageSelect.addEventListener("change", () => {
-        if (useCachedToggle.checked) showCachedDemoImage();
-    });
-
     function ensureFallbackImageReady() {
         if (fallbackImgElem.complete && fallbackImgElem.naturalWidth > 0) return Promise.resolve();
         return new Promise((resolve, reject) => {
-            fallbackImgElem.addEventListener("load", resolve, { once: true });
-            fallbackImgElem.addEventListener("error", () => reject(new Error("Mock image failed to load")), { once: true });
+            fallbackImgElem.addEventListener("load", () => resolve(true), { once: true });
+            fallbackImgElem.addEventListener("error", () => {
+                fallbackImgElem.onerror = null;
+                showError("Demo image failed to load");
+                resolve(false);
+            }, { once: true });
         });
     }
 
@@ -297,7 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             if (useCachedDemo) {
                 showCachedDemoImage();
-                await ensureFallbackImageReady();
+                if (!await ensureFallbackImageReady()) return;
             }
             const imageBase64 = await captureStableFrame();
             const response = await fetch("/api/analyze-stream", {
@@ -307,8 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     image_base64: imageBase64,
                     target_audience: targetAudience,
                     use_cached_demo: useCachedDemo,
-                    scenario: useCachedDemo ? "default" : scenario,
-                    dataset_image: useCachedDemo ? mockImageSelect.value : null
+                    scenario: useCachedDemo ? "default" : scenario
                 })
             });
 
@@ -435,8 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({
                     run_id: currentRunId,
                     image_base64: imageBase64,
-                    scenario,
-                    dataset_image: useCachedToggle.checked ? mockImageSelect.value : null
+                    scenario
                 })
             });
             if (!response.ok) throw new Error("Resume failed");
