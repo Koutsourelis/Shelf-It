@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Console</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f5f6f8; --panel: #ffffff; --panel2: #f0f2f5; --line: #dfe3e8; --text: #17202a; --muted: #5d6b7a;
+  --accent: #2456d6; --accent-soft: #e6edfc; --ok: #177a45; --ok-soft: #e2f4ea; --warn: #a15c00; --warn-soft: #fff1d6;
+  --err: #b3261e; --err-soft: #fde8e6; --mono: ui-monospace, Consolas, "Cascadia Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1318; --panel: #171c23; --panel2: #1e252e; --line: #2b343f; --text: #e6eaef; --muted: #93a1b0;
+    --accent: #7ea2ff; --accent-soft: #1c2a4a; --ok: #5fd08f; --ok-soft: #14301f; --warn: #f0b860; --warn-soft: #3a2c10;
+    --err: #ff8a80; --err-soft: #3b1917;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; }
+header { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header h1 { font-size: 16px; margin: 0; letter-spacing: .2px; }
+.badge { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+.badge.on { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.badge.live { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.spacer { flex: 1; }
+main { flex: 1; display: grid; grid-template-columns: 310px minmax(0, 1fr) 330px; min-height: 0; }
+section { min-height: 0; overflow-y: auto; padding: 16px; }
+#left, #right { background: var(--panel); }
+#left { border-right: 1px solid var(--line); } #right { border-left: 1px solid var(--line); }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 18px 0 8px; font-weight: 600; }
+h2:first-child { margin-top: 0; }
+select, textarea, button { font: inherit; color: inherit; }
+select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+textarea { min-height: 84px; resize: vertical; }
+textarea:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 7px 12px; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; width: 100%; margin-top: 8px; padding: 9px; }
+@media (prefers-color-scheme: dark) { button.primary { color: #0f1318; } }
+button.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; font-weight: 600; }
+button.no { background: var(--err-soft); color: var(--err); border-color: transparent; }
+.chip { display: block; width: 100%; text-align: left; font-size: 12.5px; margin-top: 6px; color: var(--muted); background: transparent; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.grid2 button { font-size: 12.5px; }
+.run { display: flex; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+.run:hover { background: var(--panel2); } .run.sel { background: var(--accent-soft); border-color: var(--accent); }
+.run .g { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.running { background: var(--accent); animation: pulse 1s infinite; } .dot.done { background: var(--ok); }
+.dot.error, .dot.max_steps, .dot.cancelled, .dot.refusal, .dot.max_tokens { background: var(--err); }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .dot.running { animation: none; } }
+#center { padding: 0; display: flex; flex-direction: column; min-width: 0; }
+#runhead { padding: 16px 22px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+#goal { font-size: 17px; font-weight: 600; margin: 0 0 6px; overflow-wrap: anywhere; }
+#meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#plan { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+#plan li { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; color: var(--muted); }
+#plan li.in_progress { color: var(--text); font-weight: 600; } #plan li.done { text-decoration: line-through; }
+#plan .mark { width: 16px; flex: none; text-align: center; color: var(--accent); }
+#plan li.done .mark { color: var(--ok); }
+#timeline { flex: 1; overflow-y: auto; padding: 18px 22px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; }
+.ev { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; max-width: 880px; overflow-wrap: anywhere; }
+.ev.thought { background: transparent; border: 0; padding: 2px 4px; color: var(--muted); font-style: italic; }
+.ev.notify { background: var(--accent-soft); border-color: transparent; }
+.ev.final { border-color: var(--ok); background: var(--ok-soft); white-space: pre-wrap; font-size: 15px; }
+.ev.final.bad { border-color: var(--err); background: var(--err-soft); }
+.ev.approval { border-color: var(--warn); background: var(--warn-soft); }
+.ev.log { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: pre-wrap; }
+.tool summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; list-style: none; }
+.tool summary::-webkit-details-marker { display: none; }
+.tname { font-family: var(--mono); font-weight: 600; color: var(--accent); white-space: nowrap; }
+.targs { color: var(--muted); font-size: 12.5px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tstat { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tstat.err { color: var(--err); } .tstat.ok { color: var(--ok); }
+pre { font-family: var(--mono); font-size: 12px; background: var(--panel2); padding: 9px; border-radius: 7px; overflow-x: auto; white-space: pre-wrap; margin: 8px 0 0; max-height: 320px; overflow-y: auto; }
+.ev img, #lastshot img { max-width: 100%; border-radius: 7px; border: 1px solid var(--line); display: block; }
+.ev.shot img { max-height: 300px; }
+.lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.row { display: flex; gap: 8px; margin-top: 10px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.stat { background: var(--panel2); border-radius: 8px; padding: 8px 10px; }
+.stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; } .stat span { font-size: 11.5px; color: var(--muted); }
+.art { display: flex; gap: 8px; align-items: center; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; text-decoration: none; color: inherit; overflow-wrap: anywhere; }
+.art:hover { border-color: var(--accent); }
+.art .ext { font-family: var(--mono); font-size: 11px; background: var(--accent-soft); color: var(--accent); border-radius: 5px; padding: 1px 6px; text-transform: uppercase; flex: none; }
+.au { font-size: 12.5px; padding: 7px 9px; border-left: 3px solid var(--accent); background: var(--panel2); border-radius: 0 7px 7px 0; margin-top: 6px; overflow-wrap: anywhere; }
+.au code { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.ev.hero { border: 0; background: var(--accent); color: #fff; padding: 20px 24px; }
+@media (prefers-color-scheme: dark) { .ev.hero { color: #0f1318; } }
+.ev.hero .v { font-size: 44px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ev.hero .l { font-size: 17px; font-weight: 600; margin-top: 4px; }
+.ev.hero .d { font-size: 13px; opacity: .85; margin-top: 6px; }
+#brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#brand img { height: 26px; width: auto; display: block; }
+#tagline { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#presentBtn { font-size: 12px; padding: 3px 10px; }
+/* Λειτουργία παρουσίασης: μεγαλύτερα γράμματα, λιγότερος θόρυβος. Πλήκτρο P ή ?present=1 */
+body.present { zoom: 1.25; height: calc(100vh / 1.25); width: calc(100vw / 1.25); }
+body.present .ev.log, body.present #s-tokens, body.present #b-model, body.present #b-tg, body.present #lists { display: none; }
+body.present #timeline { gap: 12px; }
+@media (min-width: 1051px) { body.present main { grid-template-columns: 250px minmax(0, 1fr) 280px; } }
+.empty { color: var(--muted); padding: 60px 22px; text-align: center; }
+#toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 99px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+#toast.show { opacity: 1; }
+@media (max-width: 1050px) { main { grid-template-columns: 1fr; overflow-y: auto; } section { overflow: visible; } #left, #right { border: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <div id="brand"><img id="logo" alt="" hidden><h1 id="pname">Agent Console</h1></div>
+  <span id="tagline"></span>
+  <span class="badge" id="b-model">…</span>
+  <span class="badge" id="b-watch">Προληπτικοί έλεγχοι</span>
+  <span class="badge" id="b-tg">Telegram</span>
+  <span class="spacer"></span>
+  <button id="presentBtn" title="Λειτουργία παρουσίασης (πλήκτρο P)">Παρουσίαση</button>
+  <span class="badge" id="b-conn">σύνδεση…</span>
+</header>
+<main>
+  <section id="left">
+    <h2>Ρόλος</h2>
+    <select id="scenario" aria-label="Ρόλος του agent"></select>
+    <div id="sdesc" style="color:var(--muted);font-size:12.5px;margin-top:6px"></div>
+    <h2>Στόχος</h2>
+    <textarea id="goalInput" placeholder="Γράψε τι θέλεις να γίνει…" aria-label="Στόχος"></textarea>
+    <button class="primary" id="go">Ανάθεση στον agent</button>
+    <div id="examples"></div>
+    <h2>Χειριστήρια demo</h2>
+    <div class="grid2">
+      <button data-demo="margin_drop" title="Ανεβάζει το κόστος μιας κατηγορίας την τελευταία ημέρα">Ρίξε περιθώριο</button>
+      <button data-demo="stock_out" title="Ρίχνει το απόθεμα ενός προϊόντος κάτω από το όριο">Άδειασε απόθεμα</button>
+      <button data-demo="check_now" title="Τρέχει τώρα τους προληπτικούς ελέγχους">Έλεγχος τώρα</button>
+      <button data-demo="reset" title="Ξαναχτίζει τα δεδομένα">Επαναφορά</button>
+    </div>
+    <div id="lists">
+      <h2>Εκτελέσεις</h2>
+      <div id="runs"></div>
+      <h2>Αποθηκευμένες (replay)</h2>
+      <div id="saved"></div>
+    </div>
+  </section>
+
+  <section id="center">
+    <div id="runhead" hidden>
+      <p id="goal"></p>
+      <div id="meta"></div>
+      <ul id="plan"></ul>
+    </div>
+    <div id="timeline"><div class="empty">Δώσε έναν στόχο αριστερά ή πάτα ένα χειριστήριο demo.<br>Ό,τι κάνει ο agent θα εμφανίζεται εδώ ζωντανά.</div></div>
+  </section>
+
+  <section id="right">
+    <h2>Μετρήσεις</h2>
+    <div class="stats">
+      <div class="stat"><b id="s-steps">0</b><span>βήματα</span></div>
+      <div class="stat"><b id="s-tools">0</b><span>εργαλεία</span></div>
+      <div class="stat"><b id="s-time">0s</b><span>χρόνος</span></div>
+    </div>
+    <div style="color:var(--muted);font-size:12px;margin-top:6px" id="s-tokens"></div>
+    <h2>Παραδοτέα</h2>
+    <div id="arts"><div style="color:var(--muted);font-size:13px">Κανένα ακόμη.</div></div>
+    <h2>Ίχνος ελέγχου</h2>
+    <div id="trail"><div style="color:var(--muted);font-size:13px">Κανένας αριθμός ακόμη.</div></div>
+    <h2>Τι βλέπει ο agent</h2>
+    <div id="lastshot"><div style="color:var(--muted);font-size:13px">Δεν έχει ανοίξει browser.</div></div>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const runs = new Map();      // run_id -> {id, goal, scenario, source, status, events[], started, ended}
+let selected = null, cfg = null, timer = null;
+const STATUS = { running: "σε εξέλιξη", done: "ολοκληρώθηκε", error: "σφάλμα", max_steps: "όριο βημάτων", cancelled: "ακυρώθηκε", refusal: "άρνηση", max_tokens: "όριο κειμένου" };
+const SOURCE = { console: "κονσόλα", telegram: "Telegram", watcher: "ξεκίνησε μόνος του" };
+
+function toast(text) { const t = $("toast"); t.textContent = text; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3500); }
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error((await r.text()) || r.status);
+  return r.json();
+}
+
+// ---- αρχικοποίηση -----------------------------------------------------
+async function init() {
+  cfg = await api("/api/config");
+  $("pname").textContent = document.title = cfg.name || "Agent Console";
+  $("tagline").textContent = cfg.tagline || "";
+  if (cfg.logo) { $("logo").src = cfg.logo; $("logo").hidden = false; }
+  $("b-model").textContent = cfg.provider === "mock" ? "ψεύτικο μοντέλο (χωρίς κλειδί)" : cfg.model;
+  $("b-watch").classList.toggle("on", cfg.watchers);
+  $("b-tg").classList.toggle("on", cfg.telegram);
+  $("scenario").innerHTML = cfg.scenarios.map(s => `<option value="${esc(s.name)}">${esc(s.title)}</option>`).join("");
+  $("scenario").value = cfg.default_scenario;
+  renderScenario();
+  refreshSaved();
+  connect();
+}
+function renderScenario() {
+  const s = cfg.scenarios.find(x => x.name === $("scenario").value);
+  $("sdesc").textContent = s.description;
+  $("examples").innerHTML = s.examples.map(e => `<button class="chip">${esc(e)}</button>`).join("");
+  $("examples").querySelectorAll("button").forEach(b => b.onclick = () => { $("goalInput").value = b.textContent; $("goalInput").focus(); });
+}
+$("scenario").onchange = renderScenario;
+$("go").onclick = async () => {
+  const goal = $("goalInput").value.trim();
+  if (!goal) return $("goalInput").focus();
+  try { const r = await api("/api/runs", { goal, scenario: $("scenario").value }); selected = r.run_id; $("goalInput").value = ""; }
+  catch (e) { toast("Αποτυχία: " + e.message); }
+};
+$("goalInput").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("go").click(); });
+document.querySelectorAll("[data-demo]").forEach(b => b.onclick = async () => {
+  try { toast((await api("/api/demo/" + b.dataset.demo, {})).text); } catch (e) { toast("Αποτυχία: " + e.message); }
+});
+// ---- λειτουργία παρουσίασης --------------------------------------------
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+function setPresent(on) {
+  document.body.classList.toggle("present", on);
+  $("presentBtn").textContent = on ? "Κανονική προβολή" : "Παρουσίαση";
+  store("present", on ? "1" : "0");
+}
+{
+  const q = new URLSearchParams(location.search).get("present");
+  setPresent(q !== null ? q !== "0" : store("present") === "1");
+}
+$("presentBtn").onclick = () => setPresent(!document.body.classList.contains("present"));
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() !== "p" || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement?.tagName || "")) return;
+  $("presentBtn").click();
+});
+async function refreshSaved() {
+  const data = await api("/api/runs");
+  $("saved").innerHTML = data.saved.filter(id => !id.includes("-replay-")).slice(0, 12).map(id =>
+    `<div class="run"><span class="g">${esc(id)}</span><button data-replay="${esc(id)}">▶</button></div>`).join("") ||
+    `<div style="color:var(--muted);font-size:13px">Καμία ακόμη.</div>`;
+  $("saved").querySelectorAll("[data-replay]").forEach(b => b.onclick = () => api(`/api/runs/${b.dataset.replay}/replay`, {}).catch(e => toast(e.message)));
+}
+
+// ---- ζωντανή ροή ------------------------------------------------------
+function connect() {
+  const es = new EventSource("/api/events");
+  es.onopen = () => { $("b-conn").textContent = "ζωντανά"; $("b-conn").classList.add("on"); };
+  es.onerror = () => { $("b-conn").textContent = "αποσύνδεση…"; $("b-conn").classList.remove("on"); };
+  es.onmessage = m => handle(JSON.parse(m.data));
+}
+function handle(ev) {
+  if (ev.run_id === "system") { if (ev.type === "demo") toast(ev.text); return; }
+  let run = runs.get(ev.run_id);
+  if (!run) { run = { id: ev.run_id, goal: "", status: "running", events: [], started: ev.ts }; runs.set(ev.run_id, run); }
+  run.events.push(ev);
+  if (ev.type === "run_start") {
+    Object.assign(run, { goal: ev.goal, scenario: ev.scenario_title, source: ev.source, model: ev.model, started: ev.ts, replay: !!ev.replay });
+    if (!selected || ev.source === "watcher" || ev.replay || Date.now() / 1000 - ev.ts < 5) selected = run.id;
+  }
+  if (ev.type === "run_end") { run.status = ev.status; run.ended = ev.ts; refreshSaved(); }
+  renderRuns();
+  if (run.id === selected) scheduleRender();
+}
+let pending = false;
+function scheduleRender() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; renderRun(); }); }
+
+function renderRuns() {
+  const list = [...runs.values()].reverse();
+  $("runs").innerHTML = list.map(r =>
+    `<div class="run ${r.id === selected ? "sel" : ""}" data-id="${esc(r.id)}"><span class="dot ${esc(r.status)}"></span><span class="g">${esc(r.goal || r.id)}</span></div>`
+  ).join("") || `<div style="color:var(--muted);font-size:13px">Καμία ακόμη.</div>`;
+  $("runs").querySelectorAll(".run").forEach(el => el.onclick = () => { selected = el.dataset.id; renderRuns(); renderRun(); });
+}
+
+function summarize(input) {
+  if (!input || typeof input !== "object") return "";
+  return Object.entries(input).map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`).join(" · ");
+}
+
+function renderRun() {
+  const run = runs.get(selected);
+  if (!run) return;
+  const tl = $("timeline");
+  const stick = tl.scrollHeight - tl.scrollTop - tl.clientHeight < 80;
+  const open = new Set([...tl.querySelectorAll("details[open]")].map(d => d.dataset.id));
+
+  let plan = null, usage = null, lastShot = null, tools = 0;
+  const arts = [], trail = [], results = new Map(), approvals = new Map(), html = [];
+  for (const ev of run.events) {
+    if (ev.type === "tool_result") results.set(ev.id, ev);
+    if (ev.type === "approval_result") approvals.set(ev.id, ev.approved);
+  }
+  for (const ev of run.events) {
+    switch (ev.type) {
+      case "plan": plan = ev.steps; break;
+      case "usage": usage = ev; break;
+      case "artifact": if (!arts.includes(ev.file)) arts.push(ev.file); break;
+      case "thought": html.push(`<div class="ev thought">${esc(ev.text)}</div>`); break;
+      case "notify": html.push(`<div class="ev notify"><div class="lbl">Μήνυμα προς τον χρήστη</div>${esc(ev.text)}</div>`); break;
+      case "audit":
+        trail.push(ev.kind === "compute"
+          ? `<div class="au"><b>${esc(ev.label)}</b> = ${esc(ev.result)}<br><code>${esc(ev.expression)}</code> · ${esc(JSON.stringify(ev.variables))}</div>`
+          : `<div class="au"><b>Από έγγραφο</b> ${esc(ev.source)}<br><code>${esc(JSON.stringify(ev.values))}</code></div>`);
+        break;
+      case "headline":
+        html.push(`<div class="ev hero"><div class="v">${esc(ev.value)}</div><div class="l">${esc(ev.label)}</div>${ev.detail ? `<div class="d">${esc(ev.detail)}</div>` : ""}</div>`);
+        break;
+      case "log": html.push(`<div class="ev log">${esc(ev.text)}</div>`); break;
+      case "screenshot":
+        lastShot = ev;
+        html.push(`<div class="ev shot"><div class="lbl">Browser · ${esc(ev.url)}</div><img src="/files/${esc(ev.file)}" alt="Στιγμιότυπο browser" loading="lazy"></div>`);
+        break;
+      case "tool_call": {
+        if (ev.name === "update_plan" || ev.name === "headline_result") break;
+        tools++;
+        const res = results.get(ev.id);
+        const stat = !res ? `<span class="tstat">τρέχει…</span>` : res.is_error ? `<span class="tstat err">σφάλμα · ${res.seconds}s</span>` : `<span class="tstat ok">${res.seconds}s</span>`;
+        html.push(`<details class="ev tool" data-id="${esc(ev.id)}" ${open.has(ev.id) ? "open" : ""}><summary><span class="tname">${esc(ev.name)}</span><span class="targs">${esc(summarize(ev.input))}</span>${stat}</summary>` +
+          `<pre>${esc(JSON.stringify(ev.input, null, 2))}</pre>${res ? `<pre>${esc(res.output)}</pre>` : ""}</details>`);
+        break;
+      }
+      case "approval_request": {
+        const decided = ev.resolved ? (ev.approved ?? true) : approvals.get(ev.id);
+        const d = ev.details || {};
+        const body = d.to ? `<b>Προς:</b> ${esc(d.to)}<br><b>Θέμα:</b> ${esc(d.subject)}<pre>${esc(d.body)}</pre>` : `<pre>${esc(JSON.stringify(d, null, 2))}</pre>`;
+        const foot = decided === undefined
+          ? `<div class="row"><button class="ok" data-appr="${esc(ev.id)}" data-v="1">Έγκριση</button><button class="no" data-appr="${esc(ev.id)}" data-v="0">Απόρριψη</button></div>`
+          : `<div class="row"><span class="badge ${decided ? "on" : ""}">${decided ? "Εγκρίθηκε" : "Απορρίφθηκε"}</span></div>`;
+        html.push(`<div class="ev approval"><div class="lbl">Χρειάζεται έγκριση · ${esc(ev.title)}</div>${body}${foot}</div>`);
+        break;
+      }
+      case "run_end":
+        html.push(`<div class="ev final ${ev.status === "done" ? "" : "bad"}"><div class="lbl">Τελικό αποτέλεσμα</div>${esc(ev.final)}</div>`);
+        break;
+    }
+  }
+  $("runhead").hidden = false;
+  $("goal").textContent = run.goal;
+  $("meta").innerHTML =
+    `<span class="badge ${run.status === "running" ? "live" : run.status === "done" ? "on" : ""}">${esc(STATUS[run.status] || run.status)}</span>` +
+    `<span class="badge">${esc(run.scenario || "")}</span>` +
+    `<span class="badge ${run.source === "watcher" ? "live" : ""}">${esc(SOURCE[run.source] || run.source || "")}</span>` +
+    (run.replay ? `<span class="badge">replay</span>` : "") +
+    (run.status === "running" && !run.replay ? `<button id="cancel" style="padding:1px 9px;font-size:12px">Διακοπή</button>` : "");
+  const c = $("cancel"); if (c) c.onclick = () => api(`/api/runs/${run.id}/cancel`, {});
+  $("plan").innerHTML = (plan || []).map(s => `<li class="${esc(s.status)}"><span class="mark">${s.status === "done" ? "✓" : s.status === "in_progress" ? "▸" : "○"}</span>${esc(s.title)}</li>`).join("");
+  tl.innerHTML = html.join("") || `<div class="empty">Ξεκινάει…</div>`;
+  tl.querySelectorAll("[data-appr]").forEach(b => b.onclick = () => api("/api/approvals/" + b.dataset.appr, { approved: b.dataset.v === "1" }).catch(e => toast(e.message)));
+  if (stick) tl.scrollTop = tl.scrollHeight;
+
+  $("s-steps").textContent = usage ? usage.steps : 0;
+  $("s-tools").textContent = tools;
+  $("s-tokens").textContent = usage && (usage.input_tokens || usage.output_tokens) ? `${usage.input_tokens.toLocaleString("el")} tokens εισόδου · ${usage.output_tokens.toLocaleString("el")} εξόδου` : "";
+  $("arts").innerHTML = arts.filter(f => !f.startsWith("screens/")).map(f => {
+    const ext = f.split(".").pop();
+    return `<a class="art" href="/files/${encodeURI(f)}" target="_blank" rel="noopener"><span class="ext">${esc(ext)}</span>${esc(f)}</a>`;
+  }).join("") || `<div style="color:var(--muted);font-size:13px">Κανένα ακόμη.</div>`;
+  $("trail").innerHTML = trail.join("") || `<div style="color:var(--muted);font-size:13px">Κανένας αριθμός ακόμη.</div>`;
+  $("lastshot").innerHTML = lastShot ? `<img src="/files/${esc(lastShot.file)}" alt="Τελευταίο στιγμιότυπο browser">` : `<div style="color:var(--muted);font-size:13px">Δεν έχει ανοίξει browser.</div>`;
+  tick();
+}
+function tick() {
+  clearInterval(timer);
+  const run = runs.get(selected);
+  if (!run) return;
+  const show = () => { $("s-time").textContent = Math.max(0, Math.round((run.ended || (run.replay ? run.events.at(-1).ts : Date.now() / 1000)) - run.started)) + "s"; };
+  show();
+  if (run.status === "running" && !run.replay) timer = setInterval(show, 1000);
+}
+init().catch(e => toast("Σφάλμα: " + e.message));
+</script>
+</body>
+</html>

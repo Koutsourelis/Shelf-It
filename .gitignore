@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+workspace/
+runs/
+data/demo.duckdb
+data/demo.duckdb.wal
+.claude/
+team-repo/
+data/_check.duckdb*

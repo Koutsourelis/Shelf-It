@@ -1,0 +1,112 @@
+[
+  {
+    "invoice_no": "INV-2026-0400",
+    "supplier": "Γαλακτοκομική Ηπείρου ΑΕ",
+    "supplier_email": "sales@galaktokomiki-ipeirou.example",
+    "date": "2026-09-29",
+    "net": 2303.44,
+    "vat": 552.83,
+    "total": 2856.27,
+    "source": "email",
+    "file": "INV-2026-0400.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0401",
+    "supplier": "Ελαιώνες Μεσσηνίας ΟΕ",
+    "supplier_email": "orders@elaiones-messinias.example",
+    "date": "2026-10-02",
+    "net": 539.06,
+    "vat": 129.37,
+    "total": 668.43,
+    "source": "email",
+    "file": "INV-2026-0401.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0402",
+    "supplier": "Ποτά Αιγαίου ΑΕ",
+    "supplier_email": "b2b@pota-aigaiou.example",
+    "date": "2026-10-05",
+    "net": 1454.82,
+    "vat": 349.16,
+    "total": 1803.98,
+    "source": "portal",
+    "file": "INV-2026-0402.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0403",
+    "supplier": "Αλευρόμυλοι Θεσσαλίας ΑΕ",
+    "supplier_email": "sales@alevromyloi-thessalias.example",
+    "date": "2026-10-08",
+    "net": 2811.18,
+    "vat": 674.68,
+    "total": 3485.86,
+    "source": "email",
+    "file": "INV-2026-0403.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0405",
+    "supplier": "Κατεψυγμένα Βορρά ΑΕ",
+    "supplier_email": "orders@katepsygmena-vorra.example",
+    "date": "2026-10-14",
+    "net": 2471.8,
+    "vat": 593.23,
+    "total": 3065.03,
+    "source": "email",
+    "file": "INV-2026-0405.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0406",
+    "supplier": "Γαλακτοκομική Ηπείρου ΑΕ",
+    "supplier_email": "sales@galaktokomiki-ipeirou.example",
+    "date": "2026-10-17",
+    "net": 1767.17,
+    "vat": 424.12,
+    "total": 2191.29,
+    "source": "email",
+    "file": "INV-2026-0406.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0407",
+    "supplier": "Ελαιώνες Μεσσηνίας ΟΕ",
+    "supplier_email": "orders@elaiones-messinias.example",
+    "date": "2026-10-20",
+    "net": 698.27,
+    "vat": 167.58,
+    "total": 865.85,
+    "source": "email",
+    "file": "INV-2026-0407.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0408",
+    "supplier": "Ποτά Αιγαίου ΑΕ",
+    "supplier_email": "b2b@pota-aigaiou.example",
+    "date": "2026-10-23",
+    "net": 1153.72,
+    "vat": 276.89,
+    "total": 1430.61,
+    "source": "portal",
+    "file": "INV-2026-0408.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0410",
+    "supplier": "Καθαριστικά Νότου ΕΠΕ",
+    "supplier_email": "info@katharistika-notou.example",
+    "date": "2026-10-29",
+    "net": 2815.06,
+    "vat": 675.61,
+    "total": 3490.67,
+    "source": "email",
+    "file": "INV-2026-0410.pdf"
+  },
+  {
+    "invoice_no": "INV-2026-0411",
+    "supplier": "Κατεψυγμένα Βορρά ΑΕ",
+    "supplier_email": "orders@katepsygmena-vorra.example",
+    "date": "2026-11-01",
+    "net": 1381.85,
+    "vat": 331.64,
+    "total": 1713.49,
+    "source": "email",
+    "file": "INV-2026-0411.pdf"
+  }
+]
