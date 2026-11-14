@@ -3,49 +3,179 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e141b">
-<title>Εργασίες ραφιού</title>
+<meta name="theme-color" content="#ffffff">
+<title>Εργασίες Ραφιού · ShelfSense</title>
+<link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/ui/app.css">
 <!-- Κινητό υπαλλήλου. Ενημερώνεται μόνο του (ροή γεγονότων). Νέα εργασία = δόνηση + ήχος (όπου επιτρέπεται).
-     Η εργασία κλείνει όταν η κάμερα δει το ράφι σωστό· το «Το κάνω» απλώς δείχνει ότι κάποιος την ανέλαβε. -->
+     Η εργασία κλείνει όταν η κάμερα δει το ράφι σωστό· η ανάληψη δείχνει ότι ο υπάλληλος ξεκίνησε. -->
 <style>
   body { padding-bottom: env(safe-area-inset-bottom); }
-  .wrap { max-width: 560px; padding: 16px 14px 40px; }
-  .head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .head h1 { font-size: 22px; margin: 0; }
-  .head .pill { margin-left: auto; }
-  .t { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-bottom: 14px; }
-  .t.new { animation: pop .6s ease-out; border-color: var(--bad); }
-  @keyframes pop { from { transform: scale(.96); opacity: .3; } }
-  .t img { width: 100%; max-height: 240px; object-fit: contain; display: block; background: #000; }
+  .mbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .mbar a.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--fg);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+  .mbar a.brand img { width: 22px; height: 22px; border-radius: 5px; }
+  .mbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  #sound {
+    padding: 7px 10px;
+    min-height: 36px;
+    font-size: 12.5px;
+    border-radius: 7px;
+  }
+  #sound.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent-border);
+  }
+
+  .wrap { max-width: 540px; padding: 16px 15px 44px; }
+
+  #scan {
+    width: 100%;
+    min-height: 46px;
+    font-size: 14.5px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  #scan svg { color: var(--accent); }
+
+  .t {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    overflow: hidden;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .t.new { animation: pop 0.45s ease-out; border-color: var(--bad); }
+  @keyframes pop { from { transform: translateY(4px); opacity: 0.4; } }
+  .t.in_progress { border-color: var(--warnline); }
+
+  .t img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    display: block;
+    background: #141b17;
+    border-bottom: 1px solid var(--line);
+  }
   .t .body { padding: 14px 16px 16px; }
-  .t .n { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--bad);
-    font-weight: 700; margin-right: 8px; font-size: 15px; }
-  .t b { font-size: 18px; line-height: 1.35; }
-  .t .meta { color: var(--mut); font-size: 14px; margin-top: 8px; }
+  .t-top { display: flex; align-items: flex-start; gap: 10px; }
+  .t .n {
+    flex: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: var(--badbg);
+    color: var(--bad);
+    border: 1px solid var(--badline);
+    margin-top: 1px;
+  }
+  .t.in_progress .n {
+    background: var(--warnbg);
+    color: var(--warn);
+    border-color: var(--warnline);
+  }
+  .t b { font-size: 16.5px; line-height: 1.38; letter-spacing: -0.01em; color: var(--fg); }
+  .t .meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: var(--mut);
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .t .ord-pill {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-border);
+    padding: 1px 7px;
+    border-radius: 4px;
+  }
   .t .acts { display: flex; gap: 10px; margin-top: 14px; }
-  .t .acts button { flex: 1; justify-content: center; padding: 14px; font-size: 16px; }
-  .t.in_progress .n { background: var(--warn); }
-  .t.in_progress { border-color: var(--warn); }
-  .done { margin-top: 26px; }
-  .done h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--mut); margin-bottom: 10px; }
-  .done li { color: var(--mut); padding: 6px 0; list-style: none; }
-  .done ul { padding: 0; margin: 0; }
-  #sound { width: 100%; justify-content: center; margin-bottom: 14px; }
-  #scan { display: flex; justify-content: center; padding: 16px; font-size: 17px; margin-bottom: 10px; text-decoration: none; box-sizing: border-box; }
-  .foot { text-align: center; margin-top: 20px; font-size: 14px; }
-  .foot a { color: var(--mut); }
+  .t .acts button { flex: 1; min-height: 46px; font-size: 15px; }
+  .t .claimed-box {
+    margin-top: 12px;
+    padding: 9px 12px;
+    border-radius: 7px;
+    background: var(--warnbg);
+    border: 1px solid var(--warnline);
+    color: var(--warn);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .sec-block { margin-top: 26px; }
+  .done-list { list-style: none; padding: 0; margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
+  .done-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--fg2);
+    font-size: 13.5px;
+  }
+  .done-list li:last-child { border-bottom: 0; }
+  .done-list .chk { color: var(--ok); font-family: var(--mono); font-weight: 700; flex: none; }
 </style>
 </head>
 <body>
+<header class="mbar">
+  <a class="brand" href="/"><img src="/ui/logo.svg" alt="">Εργασίες</a>
+  <div class="right">
+    <span class="pill" id="state">…</span>
+    <button type="button" id="sound" class="ghost" title="Ηχητική ειδοποίηση σε νέα εργασία">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span id="soundLbl">Ήχος</span>
+    </button>
+  </div>
+</header>
+
 <main class="wrap">
-  <div class="head"><h1>Εργασίες ραφιού</h1><span class="pill" id="state">…</span></div>
-  <a id="scan" class="btn" href="/capture">📷 Σκάναρε το ράφι</a>
-  <button id="sound" class="ghost">🔔 Ειδοποίηση με ήχο</button>
+  <a id="scan" class="btn ghost" href="/capture">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    Σάρωση ραφιού με κάμερα
+  </a>
+
   <div id="list"></div>
-  <div class="done"><h2>Αλλαγές θέσης που προτείνει το AI</h2><div id="proposals"></div></div>
-  <div class="done"><h2>Έγιναν πρόσφατα</h2><ul id="done"></ul></div>
+
+  <section class="sec-block">
+    <div class="sec-head"><h2 class="sec-title">Προτάσεις διάταξης</h2></div>
+    <div id="proposals"></div>
+  </section>
+
+  <section class="sec-block">
+    <div class="sec-head"><h2 class="sec-title">Ολοκληρώθηκαν πρόσφατα</h2></div>
+    <ul class="done-list" id="done"></ul>
+  </section>
 </main>
+
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -60,49 +190,78 @@ function beep() {
   o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination);
   o.start(); o.stop(audio.currentTime + 0.18);
 }
-const RULE = { K3: "Χώρος", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
+
+const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
 function propCard(p) {
-  return `<div class="prop"><span class="tag">💡 ${esc(RULE[p.rule] || "Διάταξη")}</span><b>${esc(p.text)}</b>
-    <p class="why">${esc(p.reason)}</p><p class="num">${esc(p.numbers)}</p>
-    <small>${esc(p.note)} Πηγή: ${esc(p.source)}.</small></div>`;
+  return `<div class="prop">
+    <div class="prop-head"><span class="tag">${esc(p.rule || "ΠΡΟΤΑΣΗ")}</span><span class="rule-lbl">${esc(RULE[p.rule] || "Διάταξη")}</span></div>
+    <b>${esc(p.text)}</b>
+    <p class="why">${esc(p.reason)}</p>
+    <div class="num">${esc(p.numbers)}</div>
+    <small>${esc(p.note)} Πηγή: ${esc(p.source)}.</small>
+  </div>`;
 }
+
 function card(t, i, fresh) {
-  const order = t.order && t.order.order_no ? ` · παραγγέλθηκε (${esc(t.order.order_no)})` : "";
+  const order = t.order && t.order.order_no ? `<span class="ord-pill">Παραγγέλθηκε · ${esc(t.order.order_no)}</span>` : "";
   const m = Math.round((Date.now() / 1000 - t.created) / 60), since = m < 1 ? "μόλις τώρα" : `πριν από ${m}′`;
+  const idx = String(i + 1).padStart(2, "0");
   const act = t.status === "open"
-    ? `<div class="acts"><button class="ok" data-claim="${esc(t.id)}">Το κάνω</button></div>`
-    : `<div class="meta">✋ Το έχει αναλάβει ${esc(t.claimed_by)} · κλείνει μόλις η κάμερα δει το ράφι σωστό</div>`;
-  return `<div class="t ${t.status} ${fresh ? "new" : ""}">${t.image ? `<img src="/files/${encodeURI(t.image)}" alt="Το σημείο στο ράφι">` : ""}
-    <div class="body"><span class="n">${i + 1}</span><b>${esc(t.text)}</b>
-    <div class="meta">${since}${order}</div>${act}</div></div>`;
+    ? `<div class="acts"><button class="ok" data-claim="${esc(t.id)}">Ανάληψη εργασίας</button></div>`
+    : `<div class="claimed-box">Σε εξέλιξη από ${esc(t.claimed_by)} · κλείνει αυτόματα μόλις η κάμερα δει το ράφι σωστό</div>`;
+  return `<div class="t ${t.status} ${fresh ? "new" : ""}">
+    ${t.image ? `<img src="/files/${encodeURI(t.image)}" alt="Σημείο στο ράφι">` : ""}
+    <div class="body">
+      <div class="t-top"><span class="n">${idx}</span><b>${esc(t.text)}</b></div>
+      <div class="meta"><span>${since}</span>${order}</div>
+      ${act}
+    </div>
+  </div>`;
 }
+
 async function refresh() {
   const d = await (await fetch("/api/tasks")).json();
   const ids = new Set(d.tasks.map(t => t.id));
   const fresh = known ? d.tasks.filter(t => !known.has(t.id)).map(t => t.id) : [];
   if (fresh.length) beep();
   known = ids;
-  $("state").textContent = d.tasks.length ? `${d.tasks.length} ανοιχτές` : "Όλα εντάξει";
+  $("state").textContent = d.tasks.length ? `${d.tasks.length} ${d.tasks.length === 1 ? "ενεργή" : "ενεργές"}` : "Εντάξει";
   $("state").className = "pill " + (d.tasks.length ? "bad" : "ok");
-  $("list").innerHTML = d.tasks.length ? d.tasks.map((t, i) => card(t, i, fresh.includes(t.id))).join("")
-    : `<div class="card empty"><div class="big">✅</div>Το ράφι είναι σωστό. Θα ειδοποιηθείς αν χρειαστεί κάτι.</div>`;
+  $("list").innerHTML = d.tasks.length
+    ? d.tasks.map((t, i) => card(t, i, fresh.includes(t.id))).join("")
+    : `<div class="card empty" style="background:var(--card)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Το ράφι είναι σωστό. Θα ενημερωθείς αυτόματα αν προκύψει έλλειψη.</div>`;
   const ps = d.proposals || [];
-  $("proposals").innerHTML = ps.length ? ps.map(propCard).join("")
-    : `<div class="mut">${d.agent_status === "running" ? "Ο agent αναλύει τις πωλήσεις και τη διάταξη…" : "Καμία πρόταση ακόμη."}</div>`;
-  $("done").innerHTML = (d.done || []).map(t => `<li>✓ ${esc(t.text)}</li>`).join("") || `<li>—</li>`;
+  $("proposals").innerHTML = ps.length
+    ? ps.map(propCard).join("")
+    : `<div class="empty">${d.agent_status === "running" ? "Ανάλυση πωλήσεων και διάταξης σε εξέλιξη…" : "Καμία πρόταση αλλαγής θέσης αυτή τη στιγμή."}</div>`;
+  $("done").innerHTML = (d.done || []).map(t => `<li><span class="chk">✓</span><span>${esc(t.text)}</span></li>`).join("")
+    || `<li><span class="mut">Καμία ολοκληρωμένη εργασία ακόμη.</span></li>`;
 }
+
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-claim]"); if (!b) return;
-  b.disabled = true; b.textContent = "…";
-  await fetch(`/api/tasks/${encodeURIComponent(b.dataset.claim)}/claim`, { method: "POST",
-    headers: { "Content-Type": "application/json" }, body: JSON.stringify({ who: WHO }) });
+  b.disabled = true; b.textContent = "Καταχώρηση…";
+  await fetch(`/api/tasks/${encodeURIComponent(b.dataset.claim)}/claim`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ who: WHO })
+  });
   refresh();
 });
-$("sound").onclick = () => { soundOn = !soundOn; $("sound").textContent = soundOn ? "🔔 Ήχος ενεργός" : "🔔 Ειδοποίηση με ήχο";
-  if (soundOn) { audio = audio || new AudioContext(); audio.resume(); } };
+
+$("sound").onclick = () => {
+  soundOn = !soundOn;
+  $("sound").classList.toggle("active", soundOn);
+  $("soundLbl").textContent = soundOn ? "Ενεργός" : "Ήχος";
+  if (soundOn) { audio = audio || new AudioContext(); audio.resume(); }
+};
+
 const es = new EventSource("/api/events");
-es.onmessage = m => { const ev = JSON.parse(m.data); if (ev.run_id === "system" && ev.type === "shelf_log" && Date.now() / 1000 - ev.ts < 5) refresh(); };
-setInterval(refresh, 15000);         // εφεδρικά, αν κοπεί η ροή γεγονότων
+es.onmessage = m => {
+  const ev = JSON.parse(m.data);
+  if (ev.run_id === "system" && ev.type === "shelf_log" && Date.now() / 1000 - ev.ts < 5) refresh();
+};
+setInterval(refresh, 15000);
 refresh();
 </script>
 </body>

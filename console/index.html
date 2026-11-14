@@ -3,24 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agent Console</title>
+<title>ShelfSense · Κονσόλα Agent</title>
+<link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 :root {
-  color-scheme: light dark;
-  --bg: #f5f6f8; --panel: #ffffff; --panel2: #f0f2f5; --line: #dfe3e8; --text: #17202a; --muted: #5d6b7a;
-  --accent: #2456d6; --accent-soft: #e6edfc; --ok: #177a45; --ok-soft: #e2f4ea; --warn: #a15c00; --warn-soft: #fff1d6;
-  --err: #b3261e; --err-soft: #fde8e6; --mono: ui-monospace, Consolas, "Cascadia Mono", monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1318; --panel: #171c23; --panel2: #1e252e; --line: #2b343f; --text: #e6eaef; --muted: #93a1b0;
-    --accent: #7ea2ff; --accent-soft: #1c2a4a; --ok: #5fd08f; --ok-soft: #14301f; --warn: #f0b860; --warn-soft: #3a2c10;
-    --err: #ff8a80; --err-soft: #3b1917;
-  }
+  color-scheme: light;
+  --bg: #f6f4ee; --panel: #ffffff; --panel2: #efece3; --line: #dedad0; --text: #141f1a; --muted: #5c6b63;
+  --accent: #0f6b4f; --accent-soft: #e2f1ea; --ok: #157347; --ok-soft: #e3f3eb; --warn: #b45309; --warn-soft: #fef3e2;
+  --err: #be2e26; --err-soft: #fdeceb; --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 'Inter', -apple-system, "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 header { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
 header h1 { font-size: 16px; margin: 0; letter-spacing: .2px; }
 .badge { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
@@ -40,7 +35,6 @@ textarea:focus, select:focus, button:focus-visible { outline: 2px solid var(--ac
 button { cursor: pointer; border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 7px 12px; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; width: 100%; margin-top: 8px; padding: 9px; }
-@media (prefers-color-scheme: dark) { button.primary { color: #0f1318; } }
 button.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; font-weight: 600; }
 button.no { background: var(--err-soft); color: var(--err); border-color: transparent; }
 .chip { display: block; width: 100%; text-align: left; font-size: 12.5px; margin-top: 6px; color: var(--muted); background: transparent; }
@@ -91,13 +85,12 @@ pre { font-family: var(--mono); font-size: 12px; background: var(--panel2); padd
 .au { font-size: 12.5px; padding: 7px 9px; border-left: 3px solid var(--accent); background: var(--panel2); border-radius: 0 7px 7px 0; margin-top: 6px; overflow-wrap: anywhere; }
 .au code { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
 .ev.hero { border: 0; background: var(--accent); color: #fff; padding: 20px 24px; }
-@media (prefers-color-scheme: dark) { .ev.hero { color: #0f1318; } }
 .ev.hero .v { font-size: 44px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .ev.hero .l { font-size: 17px; font-weight: 600; margin-top: 4px; }
 .ev.hero .d { font-size: 13px; opacity: .85; margin-top: 6px; }
-#brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-#brand img { height: 26px; width: auto; display: block; }
-#tagline { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+#brand img { height: 24px; width: 24px; border-radius: 6px; display: block; }
+#tagline { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 #presentBtn { font-size: 12px; padding: 3px 10px; }
 /* Λειτουργία παρουσίασης: μεγαλύτερα γράμματα, λιγότερος θόρυβος. Πλήκτρο P ή ?present=1 */
 body.present { zoom: 1.25; height: calc(100vh / 1.25); width: calc(100vw / 1.25); }

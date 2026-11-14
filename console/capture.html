@@ -2,35 +2,111 @@
 <html lang="el">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scan ραφιού</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Σάρωση Ραφιού · ShelfSense</title>
+<link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/ui/app.css">
 <!-- Κινητό: φωτογραφία του ραφιού → POST /api/shelf/frame?single=1 → /tasks.
      Χρησιμοποιεί <input capture>, όχι getUserMedia, άρα δουλεύει και με απλό http στο τοπικό δίκτυο. -->
 <style>
   body { padding-bottom: env(safe-area-inset-bottom); }
-  .wrap { max-width: 560px; padding: 16px 14px 40px; }
-  h1 { font-size: 22px; margin: 0 0 6px; }
-  p.lead { color: var(--mut); margin: 0 0 18px; line-height: 1.4; }
-  .big { display: flex; justify-content: center; width: 100%; box-sizing: border-box; padding: 18px; font-size: 18px; }
-  .big[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+  .mbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mbar a.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--fg);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+  .mbar a.brand img { width: 22px; height: 22px; border-radius: 5px; }
+  .mbar a.back { font-size: 13.5px; font-weight: 500; color: var(--mut); text-decoration: none; }
+
+  .wrap { max-width: 540px; padding: 18px 15px 44px; }
+  .lead-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; }
+  p.lead { color: var(--mut); font-size: 14px; margin: 0 0 18px; line-height: 1.45; }
+
+  .big {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    min-height: 50px;
+    font-size: 15.5px;
+  }
   input[type=file] { display: none; }
-  #preview { width: 100%; border-radius: var(--r); margin-top: 16px; display: none; }
-  #status { margin: 16px 0; font-size: 17px; min-height: 24px; line-height: 1.4; }
-  #results { margin-top: 4px; }
+
+  .viewfinder {
+    position: relative;
+    margin-top: 14px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #141b17;
+    display: none;
+  }
+  #preview { width: 100%; max-height: 300px; object-fit: contain; display: block; }
+
+  #status {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border-radius: 7px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    font-size: 14px;
+    line-height: 1.4;
+    display: none;
+  }
+  #status.on { display: block; }
+  #results { margin-top: 12px; }
 </style>
 </head>
 <body>
+<header class="mbar">
+  <a class="brand" href="/"><img src="/ui/logo.svg" alt="">Σάρωση ραφιού</a>
+  <a class="back" href="/tasks">← Εργασίες</a>
+</header>
+
 <main class="wrap">
-  <h1>Scan ραφιού</h1>
-  <p class="lead">Στάσου απέναντι από το ράφι, να φαίνεται ολόκληρο και ίσιο. Μόλις βγάλεις τη φωτογραφία, ο agent τη
-    διαβάζει και σου δείχνει τις εργασίες.</p>
-  <label id="open" class="btn big" for="photo">📷 Άνοιξε την κάμερα</label>
-  <input id="photo" type="file" accept="image/*" capture="environment">
-  <img id="preview" alt="Η φωτογραφία του ραφιού">
-  <div id="status" role="status"></div>
-  <a id="results" class="btn ghost big" href="/tasks">Δες τις εργασίες</a>
+  <div class="lead-card">
+    <h1>Φωτογράφισε το ράφι</h1>
+    <p class="lead">Στάσου μετωπικά ώστε να φαίνονται καθαρά και τα τρία επίπεδα. Το σύστημα αναλύει την εικόνα και ενημερώνει αμέσως τις εργασίες.</p>
+
+    <label id="open" class="btn big" for="photo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <span id="openLbl">Άνοιγμα κάμερας</span>
+    </label>
+    <input id="photo" type="file" accept="image/*" capture="environment">
+
+    <div class="viewfinder" id="vf">
+      <img id="preview" alt="Προεπισκόπηση φωτογραφίας ραφιού">
+    </div>
+
+    <div id="status" role="status"></div>
+  </div>
+
+  <a id="results" class="btn ghost big" href="/tasks">Προβολή ουράς εργασιών</a>
 </main>
+
 <script>
 const $ = id => document.getElementById(id);
 const MAX_SIDE = 1600;
@@ -47,14 +123,19 @@ async function shrink(file) {
 }
 function busy(on) {
   $("open").setAttribute("aria-disabled", on);
-  $("open").textContent = on ? "Διαβάζω το ράφι…" : "📷 Ξανά φωτογραφία";
+  $("openLbl").textContent = on ? "Ανάλυση εικόνας…" : "Νέα φωτογραφία";
+}
+function setMsg(text) {
+  const s = $("status");
+  s.textContent = text;
+  s.classList.toggle("on", Boolean(text));
 }
 $("photo").onchange = async () => {
   const file = $("photo").files[0];
   if (!file) return;
   $("preview").src = URL.createObjectURL(file);
-  $("preview").style.display = "block";
-  $("status").textContent = "Στέλνω τη φωτογραφία…";
+  $("vf").style.display = "block";
+  setMsg("Αποστολή και έλεγχος ραφιού…");
   busy(true);
   try {
     const body = new FormData();
@@ -63,16 +144,17 @@ $("photo").onchange = async () => {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail || r.statusText);
     if (d.status === "busy" || d.status === "occluded") {
-      $("status").textContent = d.status === "busy" ? "Διαβάζεται ήδη άλλη φωτογραφία. Δοκίμασε ξανά σε λίγο."
-        : "Κάτι κρύβει το ράφι. Βγάλε ξανά φωτογραφία χωρίς εμπόδια.";
+      setMsg(d.status === "busy"
+        ? "Εκτελείται ήδη ανάλυση προηγούμενης εικόνας. Δοκίμασε ξανά σε λίγο."
+        : "Περιορισμένη ορατότητα στο πλάνο. Δοκίμασε ξανά χωρίς εμπόδια.");
     } else {
       const n = (d.tasks || []).length;
-      $("status").textContent = (n ? `Έτοιμο: ${n} ${n === 1 ? "εργασία ανοιχτή" : "εργασίες ανοιχτές"}.` : "Έτοιμο: το ράφι είναι σωστό.")
-        + " Ανοίγω τις εργασίες…";
-      setTimeout(() => location.href = "/tasks", 1200);
+      setMsg((n ? `Ολοκληρώθηκε: ${n} ${n === 1 ? "ενεργή εργασία" : "ενεργές εργασίες"}.` : "Ολοκληρώθηκε: το ράφι είναι σωστό.")
+        + " Μετάβαση στις εργασίες…");
+      setTimeout(() => location.href = "/tasks", 1100);
     }
   } catch (e) {
-    $("status").textContent = "Δεν διαβάστηκε: " + e.message;
+    setMsg("Αποτυχία ανάγνωσης: " + e.message);
   }
   busy(false);
   $("photo").value = "";
