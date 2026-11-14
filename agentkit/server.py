@@ -235,13 +235,14 @@ async def tasks_page():
 
 
 @app.post("/api/shelf/frame")
-async def shelf_frame(file: UploadFile, force: bool = False):
-    """Ένα frame από τη ζωντανή κάμερα. force=1: διάβασέ το ακόμη κι αν μοιάζει με το προηγούμενο («Scan τώρα»)."""
+async def shelf_frame(file: UploadFile, force: bool = False, single: bool = False):
+    """Ένα frame από τη ζωντανή κάμερα. force=1: διάβασέ το ακόμη κι αν μοιάζει με το προηγούμενο («Scan τώρα»).
+    single=1: φωτογραφία από το κινητό (/capture), μετράει ως επιβεβαιωμένη χωρίς δεύτερο frame."""
     data = await file.read()
     if not data or len(data) > 10_000_000:
         raise HTTPException(400, "Κενό ή πολύ μεγάλο frame (όριο 10 MB)")
     try:
-        return await live.process_frame(data, force=force)
+        return await live.process_frame(data, force=force, single=single)
     except Exception as e:
         events.emit("system", "log", text=f"Live frame: {type(e).__name__}: {e}")
         raise HTTPException(502, f"{type(e).__name__}: {e}")
@@ -310,11 +311,16 @@ def _phone_url(path: str) -> dict:
 
 @app.get("/photo/{name}")
 async def photo(name: str):
-    """Φωτογραφία του ενεργού σετ (data/shelf[/sets/<set>]/photos). Χρήσιμο για δοκιμές και για το demo."""
-    path = (config.SHELF_DIR / "photos" / name).resolve()
-    if path.parent != (config.SHELF_DIR / "photos").resolve() or not path.is_file():
+    """Φωτογραφία του ενεργού σετ (data/shelf[/sets/<set>]/photos). Αν λείπει η κατάληξη, δοκιμάζει jpg/jpeg/png/webp."""
+    photos_dir = (config.SHELF_DIR / "photos").resolve()
+    base = (photos_dir / name).resolve()
+    if base.parent != photos_dir:
         raise HTTPException(404, "Δεν υπάρχει αυτή η φωτογραφία")
-    return FileResponse(path, headers={"Cache-Control": "no-store"})
+    candidates = [base] + [base.with_suffix(ext) for ext in (".jpg", ".jpeg", ".png", ".webp")]
+    found = next((c for c in candidates if c.is_file()), None)
+    if not found:
+        raise HTTPException(404, "Δεν υπάρχει αυτή η φωτογραφία")
+    return FileResponse(found, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/links")

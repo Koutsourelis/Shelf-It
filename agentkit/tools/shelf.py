@@ -27,9 +27,18 @@ STATUS = {"ok": "σωστό", "missing": "λείπει από το ράφι", "l
 
 
 def find_photo(photo: str) -> Path:
-    """Δέχεται 'data/shelf/photos/x.png', 'workspace/photos/x.jpg' ή σκέτο όνομα αρχείου."""
+    """Δέχεται 'data/shelf/photos/x.png', 'workspace/photos/x.jpg', σκέτο όνομα αρχείου ή 'latest' (η πιο πρόσφατη
+    λήψη της κάμερας ή του κινητού). Αν λείπει η κατάληξη που ζητήθηκε, δοκιμάζει το ίδιο όνομα ως jpg/jpeg/png/webp."""
+    if photo.strip().lower() in ("latest", ""):
+        shots = [f for d in (config.WORKSPACE / "live", UPLOADS) if d.is_dir() for f in d.iterdir()
+                 if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")]
+        if not shots:
+            raise FileNotFoundError("Δεν υπάρχει ακόμη λήψη από την κάμερα ή το κινητό.")
+        return max(shots, key=lambda f: f.stat().st_mtime)
     name = photo.replace("\\", "/").split("/")[-1]
-    for candidate in (safe_path(photo), UPLOADS / name, demo_data.PHOTOS_DIR / name):
+    candidates = [safe_path(photo), UPLOADS / name, demo_data.PHOTOS_DIR / name]
+    candidates += [c.with_suffix(ext) for c in list(candidates) for ext in (".jpg", ".jpeg", ".png", ".webp")]
+    for candidate in candidates:
         if candidate.is_file():
             return candidate
     raise FileNotFoundError(f"Δεν βρέθηκε η φωτογραφία: {photo}")
@@ -353,6 +362,123 @@ async def layout_suggestions(ctx) -> str:
     out.append(f"\nΟι πωλήσεις είναι {DAYS} ημερών. Η θέση (Κ4, Κ5, Κ6) έχει προτεραιότητα έναντι των προσόψεων (Κ3). "
                "Αλλαγή πλανογράμματος αποφασίζει ο category manager. Αρχείο: workspace/suggestions.json")
     return "\n".join(out)
+
+
+ELASTICITY = 0.17          # ελαστικότητα χώρου, Eisend 2014 (planning/DECISION_RULES.md, Κ3)
+SOURCES = {
+    "K3": "Eisend 2014, ελαστικότητα χώρου 0,17",
+    "K4": "Drèze, Hoch & Purk 1994· Chandon κ.ά. 2009 (ύψος ματιών)",
+    "K5": "Atalay, Bodur & Rasolofoarison 2012 (οριζόντιο κέντρο)",
+}
+LEVEL_EL = {"top": "πάνω", "eye": "ύψος ματιών", "bottom": "κάτω"}
+
+
+def _layout_stats() -> dict[str, dict]:
+    """Ανά κωδικό του πλανογράμματος: θέση, χώρος, πωλήσεις και περιθώριο. Όλοι οι αριθμοί από SQL."""
+    _, rows = run_sql("""
+        with s as (select sku, sum(revenue) rev, sum(revenue - cost) margin, sum(qty) qty from sales group by 1)
+        select pl.sku, p.name, p.brand, p.category, pl.shelf, pl.level, pl.position, pl.facings,
+               coalesce(s.rev, 0), coalesce(s.margin, 0), coalesce(s.qty, 0)
+        from planogram pl join products p using (sku) left join s using (sku) order by pl.shelf, pl.position""")
+    total_facings = sum(r[7] for r in rows) or 1
+    total_rev = sum(r[8] for r in rows) or 1
+    per_shelf: dict[int, list[int]] = defaultdict(list)
+    for r in rows:
+        per_shelf[r[4]].append(r[6])
+    stats = {}
+    for sku, name, brand, category, shelf, level, position, facings, rev, margin, qty in rows:
+        slots = sorted(per_shelf[shelf])
+        center = len(slots) % 2 == 1 and len(slots) > 1 and position == slots[len(slots) // 2]
+        space, sales = 100 * facings / total_facings, 100 * rev / total_rev
+        stats[sku] = {"sku": sku, "name": name, "brand": brand, "category": category, "shelf": shelf, "level": level,
+                      "position": position, "center": center, "facings": facings, "space": round(space, 1),
+                      "sales": round(sales, 1), "index": round(sales / (space or 1), 2), "units": round(qty / DAYS, 1),
+                      "margin": round(margin / DAYS, 2), "per_facing": round(margin / DAYS / max(facings, 1), 2)}
+    return stats
+
+
+def _sku_boxes() -> dict[str, list[int]]:
+    """Πού φαίνεται κάθε κωδικός στην τελευταία ανάγνωση (ένωση των κουτιών του), για το βέλος στην οθόνη."""
+    _, rows = run_sql("select sku, min(ymin), min(xmin), max(ymax), max(xmax) from shelf_observation "
+                      "where sku is not null and ymin is not null group by 1")
+    return {r[0]: [int(v) for v in r[1:]] for r in rows}
+
+
+def _side(s: dict, boxes: dict) -> dict:
+    return {"sku": s["sku"], "name": s["name"], "shelf": s["shelf"], "level": s["level"], "position": s["position"],
+            "facings": s["facings"], "per_facing": s["per_facing"], "box": boxes.get(s["sku"])}
+
+
+@tool(
+    "propose_move",
+    "Καταχώρισε ΜΙΑ απόφασή σου για αλλαγή θέσης στο ράφι, ώστε να φανεί στην οθόνη του υπεύθυνου. "
+    "kind=swap: οι δύο κωδικοί ανταλλάσσουν θέση (ύψος ματιών ή κέντρο ραφιού). kind=facing: μία πρόσοψη φεύγει "
+    "από τον sku_from και πάει στον sku_to. Ο κώδικας υπολογίζει τους αριθμούς και απορρίπτει ό,τι δεν στηρίζεται· "
+    "αν απορριφθεί, διάλεξε άλλη αλλαγή ή καμία. Κάλεσε πρώτα το layout_suggestions.",
+    {"kind": {"type": "string", "enum": ["swap", "facing"], "description": "swap = ανταλλαγή θέσης, facing = μεταφορά μίας πρόσοψης"},
+     "sku_from": {"type": "string", "description": "Κωδικός, π.χ. C09. Στο facing: αυτός που χάνει την πρόσοψη."},
+     "sku_to": {"type": "string", "description": "Ο άλλος κωδικός. Στο facing: αυτός που παίρνει την πρόσοψη."},
+     "reason": {"type": "string", "description": "Το σκεπτικό σου σε μία πρόταση, για τον υπεύθυνο. Χωρίς ποσά και "
+                                                 "ποσοστά: τους αριθμούς τους γράφει ο κώδικας."}},
+)
+async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) -> str:
+    from .. import tasks
+    stats, boxes = await asyncio.to_thread(lambda: (_layout_stats(), _sku_boxes()))
+    sku_from, sku_to, reason = sku_from.strip().upper(), sku_to.strip().upper(), " ".join(reason.split())[:240]
+    unknown = [s for s in (sku_from, sku_to) if s not in stats]
+    if unknown or sku_from == sku_to:
+        return f"Δεν καταχωρήθηκε: {'άγνωστος κωδικός ' + ', '.join(unknown) if unknown else 'χρειάζονται δύο διαφορετικοί κωδικοί'}."
+    if "€" in reason or "%" in reason:
+        return "Δεν καταχωρήθηκε: το σκεπτικό δεν περιέχει ποσά ή ποσοστά. Ξαναγράψ' το χωρίς αριθμούς."
+    a, b = stats[sku_from], stats[sku_to]
+
+    if kind == "swap":
+        if a["level"] != b["level"] and "eye" in (a["level"], b["level"]):
+            rule, spot = "K4", "στο ύψος των ματιών"
+            inn, out = (a, b) if b["level"] == "eye" else (b, a)          # inn: αυτός που πάει στην καλή θέση
+        elif a["shelf"] == b["shelf"] and (a["center"] or b["center"]):
+            rule, spot = "K5", f"στο κέντρο του ραφιού {a['shelf']}"
+            inn, out = (a, b) if b["center"] else (b, a)
+        else:
+            return ("Δεν καταχωρήθηκε: αυτή η ανταλλαγή δεν φέρνει κωδικό ούτε στο ύψος των ματιών (Κ4) ούτε στο "
+                    "κέντρο ραφιού (Κ5), άρα καμία πηγή μας δεν τη στηρίζει. Διάλεξε άλλη αλλαγή ή καμία.")
+        if inn["per_facing"] <= out["per_facing"]:
+            return (f"Δεν καταχωρήθηκε: {spot} θα πήγαινε το {inn['sku']} με {inn['per_facing']} € περιθώριο ανά "
+                    f"πρόσοψη την ημέρα, λιγότερο από τα {out['per_facing']} € του {out['sku']} που είναι ήδη εκεί.")
+        diff = round(inn["per_facing"] - out["per_facing"], 2)
+        ctx.audit("compute", label=f"{rule}: περιθώριο ανά πρόσοψη ανά ημέρα (€), {inn['sku']} έναντι {out['sku']}",
+                  expression="margin / days / facings", result=diff,
+                  variables={inn["sku"]: inn["per_facing"], out["sku"]: out["per_facing"], "days": DAYS})
+        text = f"Άλλαξε θέση: {inn['name']} {spot}, {out['name']} στο ράφι {inn['shelf']}"
+        numbers = (f"{inn['name']}: {inn['per_facing']} € περιθώριο ανά πρόσοψη την ημέρα (ράφι {inn['shelf']}, "
+                   f"{LEVEL_EL.get(inn['level'], inn['level'])}) · {out['name']}: {out['per_facing']} € {spot}")
+        note = "Δείχνει τη σημερινή απόδοση του χώρου· δεν προβλέπει αύξηση πωλήσεων."
+    elif kind == "facing":
+        rule = "K3"
+        if a["facings"] <= 1:
+            return f"Δεν καταχωρήθηκε: το {a['sku']} έχει μία μόνο πρόσοψη και δεν μπορεί να δώσει άλλη."
+        gain = b["margin"] * (((b["facings"] + 1) / b["facings"]) ** ELASTICITY - 1)
+        loss = a["margin"] * (1 - ((a["facings"] - 1) / a["facings"]) ** ELASTICITY)
+        net = round(gain - loss, 2)
+        ctx.audit("compute", label=f"K3: μία πρόσοψη από {a['sku']} σε {b['sku']}, καθαρό περιθώριο ανά ημέρα (€)",
+                  expression="m_to * (((n_to + 1) / n_to) ^ 0.17 - 1) - m_from * (1 - ((n_from - 1) / n_from) ^ 0.17)",
+                  variables={"m_to": b["margin"], "n_to": b["facings"], "m_from": a["margin"], "n_from": a["facings"]},
+                  result=net)
+        if net <= 0:
+            return (f"Δεν καταχωρήθηκε: κέρδος {gain:.2f} € − απώλεια {loss:.2f} € = {net:.2f} € την ημέρα. "
+                    "Η μεταφορά δεν συμφέρει· διάλεξε άλλη αλλαγή ή καμία.")
+        text = f"Μία πρόσοψη από {a['name']} σε {b['name']}"
+        numbers = f"κέρδος {gain:.2f} € − απώλεια {loss:.2f} € = +{net:.2f} € περιθώριο την ημέρα"
+        note = "Εκτίμηση με τη μέση ελαστικότητα χώρου της βιβλιογραφίας, όχι μέτρηση σε αυτό το ράφι."
+    else:
+        return "Δεν καταχωρήθηκε: το kind είναι swap ή facing."
+
+    source = f"{SOURCES[rule]}· πωλήσεις {DAYS} ημερών"
+    await asyncio.to_thread(tasks.add_proposal, {
+        "kind": kind, "rule": rule, "text": text, "numbers": numbers, "reason": reason, "source": source, "note": note,
+        "a": _side(a, boxes), "b": _side(b, boxes)})
+    return (f"Καταχωρήθηκε και φαίνεται στην οθόνη του υπεύθυνου: {text}.\nΑριθμός: {numbers}.\nΠηγή: {source}.\n{note} "
+            "Την αλλαγή στο πλανόγραμμα την εγκρίνει ο category manager.")
 
 
 def _order_needs_approval(args: dict) -> bool:

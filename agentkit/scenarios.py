@@ -116,7 +116,7 @@ SHELF = Scenario(
 σωστά, πες το σε μία γραμμή και μην προτείνεις τίποτα άλλο.
 Αν το read_shelf δεν αναγνωρίσει προϊόντα ή βρει πολλά άγνωστα, ζήτα νέα φωτογραφία αντί να συνεχίσεις.
 """,
-    tools=COMMON_TOOLS + ["read_shelf", "check_planogram", "replenishment_plan", "layout_suggestions",
+    tools=COMMON_TOOLS + ["read_shelf", "check_planogram", "replenishment_plan", "layout_suggestions", "propose_move",
                           "order_from_warehouse", "product_evidence", "describe_data", "sql_query", "make_chart"],
     examples=[
         f"Έλεγξε το ράφι στη φωτογραφία {SAMPLE} και κάνε ό,τι χρειάζεται.",
@@ -164,8 +164,8 @@ LIVE = Scenario(
 
 Ποτέ μη ζητάς νέα φωτογραφία ή οδηγίες από τον χρήστη: η κάμερα θα στείλει μόνη της το επόμενο frame.
 """,
-    tools=["update_plan", "compute", "headline_result", "read_shelf", "check_planogram", "layout_suggestions",
-           "sql_query"],
+    tools=["update_plan", "compute", "headline_result", "read_shelf", "check_planogram", "replenishment_plan",
+           "layout_suggestions", "propose_move", "sql_query"],
     examples=[],
     mock_script=[
         ("Ελέγχω το ράφι.", [("read_shelf", {"photo": SAMPLE}), ("check_planogram", {})]),

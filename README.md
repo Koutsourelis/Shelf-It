@@ -25,9 +25,9 @@ The model only reads the photo. Every number comes from code and is written to a
 
 ## Status
 
-- The whole flow runs end to end with the offline mock model on two drawn sample shelves.
-- **Not tested yet:** reading a real shelf photo with a real vision model.
-- Product names, brands and sales in `data/shelf/` are invented placeholders. The warehouse portal is a simulation.
+- **End-to-end live & offline:** Tested and verified with **Google Gemini 3.8 Flash** (`gemini-3.8-flash`) on photorealistic and real supermarket shelf photos (`data/shelf/photos/newim1.jpeg`, `newim2.jpeg`, and `data/shelf/sets/trad/`), as well as fully offline with the deterministic `mock` provider.
+- **Zero-click live workflow:** Camera frames (`/shelf`) and single-tap phone scans (`/capture`) create worker tasks (`/tasks`) with cropped shelf regions, auto-order missing backroom stock within configured limits (`AUTO_ORDER_MAX_CASES`, `AUTO_ORDER_MAX_EUR`), and auto-close tasks when the camera sees the shelf fixed.
+- **Sourced category-management rules:** Rules K1–K6 (`agentkit/rules.py`, `data/shelf/rules.json`) and curated market evidence (`agentkit/tools/evidence.py`, `treg` / DuckDuckGo) ground every number in the audit trail.
 
 ## Demo
 

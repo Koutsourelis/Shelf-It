@@ -51,7 +51,8 @@ def _cases(only: str | None) -> list[tuple[str, Path, dict]]:
             continue
         truth = json.loads(truth_file.read_text(encoding="utf-8"))
         if truth.get("photo"):
-            photo = config.ROOT / truth["photo"]
+            base = config.ROOT / truth["photo"]
+            photo = next((c for c in ([base] + [base.with_suffix(ext) for ext in PHOTO_TYPES]) if c.exists()), None)
         else:
             photo = next((EVAL_DIR / (name + ext) for ext in PHOTO_TYPES if (EVAL_DIR / (name + ext)).exists()), None)
         if not photo or not photo.exists():

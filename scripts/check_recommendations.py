@@ -79,8 +79,9 @@ def check_location() -> None:
     default = store.default_db_path()
     report("default DB is outside workspace/ (served at /files)", not under(default, config.WORKSPACE), str(default))
     report("default DB is under the repo's state/ directory", default.parent == (ROOT / "state").resolve())
-    ignored = os.popen(f"git -C '{ROOT}' check-ignore -q state/recommendations.sqlite3-wal && echo yes").read().strip()
-    report("state/ (incl. SQLite sidecars) is gitignored", ignored == "yes")
+    import subprocess
+    ignored = subprocess.run(["git", "-C", str(ROOT), "check-ignore", "-q", "state/recommendations.sqlite3-wal"]).returncode == 0
+    report("state/ (incl. SQLite sidecars) is gitignored", ignored)
     report("demo reset target is a different file", default != config.DB_PATH.resolve(), str(config.DB_PATH))
 
     saved_path, saved_env = store.DB_PATH, os.environ.pop(store.DB_ENV, None)
@@ -229,7 +230,8 @@ def _static_mount_dirs_from_source() -> list[Path]:
             kw = {k.arg: k.value for k in node.keywords}
             expr = kw.get("directory") or (node.args[0] if node.args else None)
             dirs.append(Path(eval(compile(ast.Expression(expr), "server.py", "eval"),  # noqa: S307 — own source
-                                  {"__builtins__": {}}, {"config": config, "str": str, "Path": Path})))
+                                  {"__builtins__": {}},
+                                  {"config": config, "CONSOLE": config.ROOT / "console", "str": str, "Path": Path})))
     return dirs
 
 

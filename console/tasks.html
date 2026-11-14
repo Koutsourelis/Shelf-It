@@ -28,10 +28,11 @@
   .t.in_progress .n { background: var(--warn); }
   .t.in_progress { border-color: var(--warn); }
   .done { margin-top: 26px; }
-  .done h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--mut); }
+  .done h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--mut); margin-bottom: 10px; }
   .done li { color: var(--mut); padding: 6px 0; list-style: none; }
   .done ul { padding: 0; margin: 0; }
   #sound { width: 100%; justify-content: center; margin-bottom: 14px; }
+  #scan { display: flex; justify-content: center; padding: 16px; font-size: 17px; margin-bottom: 10px; text-decoration: none; box-sizing: border-box; }
   .foot { text-align: center; margin-top: 20px; font-size: 14px; }
   .foot a { color: var(--mut); }
 </style>
@@ -39,10 +40,11 @@
 <body>
 <main class="wrap">
   <div class="head"><h1>Εργασίες ραφιού</h1><span class="pill" id="state">…</span></div>
+  <a id="scan" class="btn" href="/capture">📷 Σκάναρε το ράφι</a>
   <button id="sound" class="ghost">🔔 Ειδοποίηση με ήχο</button>
   <div id="list"></div>
+  <div class="done"><h2>Αλλαγές θέσης που προτείνει το AI</h2><div id="proposals"></div></div>
   <div class="done"><h2>Έγιναν πρόσφατα</h2><ul id="done"></ul></div>
-  <p class="foot"><a href="/capture">Στείλε μία φωτογραφία του ραφιού</a></p>
 </main>
 <script>
 const $ = id => document.getElementById(id);
@@ -57,6 +59,12 @@ function beep() {
   const o = audio.createOscillator(), g = audio.createGain();
   o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination);
   o.start(); o.stop(audio.currentTime + 0.18);
+}
+const RULE = { K3: "Χώρος", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
+function propCard(p) {
+  return `<div class="prop"><span class="tag">💡 ${esc(RULE[p.rule] || "Διάταξη")}</span><b>${esc(p.text)}</b>
+    <p class="why">${esc(p.reason)}</p><p class="num">${esc(p.numbers)}</p>
+    <small>${esc(p.note)} Πηγή: ${esc(p.source)}.</small></div>`;
 }
 function card(t, i, fresh) {
   const order = t.order && t.order.order_no ? ` · παραγγέλθηκε (${esc(t.order.order_no)})` : "";
@@ -78,6 +86,9 @@ async function refresh() {
   $("state").className = "pill " + (d.tasks.length ? "bad" : "ok");
   $("list").innerHTML = d.tasks.length ? d.tasks.map((t, i) => card(t, i, fresh.includes(t.id))).join("")
     : `<div class="card empty"><div class="big">✅</div>Το ράφι είναι σωστό. Θα ειδοποιηθείς αν χρειαστεί κάτι.</div>`;
+  const ps = d.proposals || [];
+  $("proposals").innerHTML = ps.length ? ps.map(propCard).join("")
+    : `<div class="mut">${d.agent_status === "running" ? "Ο agent αναλύει τις πωλήσεις και τη διάταξη…" : "Καμία πρόταση ακόμη."}</div>`;
   $("done").innerHTML = (d.done || []).map(t => `<li>✓ ${esc(t.text)}</li>`).join("") || `<li>—</li>`;
 }
 document.addEventListener("click", async e => {

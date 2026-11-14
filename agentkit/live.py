@@ -147,15 +147,28 @@ async def _act(frame: Path, found: list[dict], sig: tuple) -> dict:
                 new=len(changed["new"]), resolved=len(changed["resolved"]))
 
     if changed["new"] and config.LIVE_START_AGENT:
-        running = STATE.agent_run and agent.RUNS.get(STATE.agent_run, {}).get("status") == "running"
-        if not running:
+        if agent_status() != "running":
             rel = frame.relative_to(config.ROOT).as_posix()
             listing = "\n".join(f"- {t['text']}" for t in changed["new"])
             STATE.agent_run = agent.start_run(
                 f"Η κάμερα του ραφιού βρήκε νέα ευρήματα στη φωτογραφία {rel}. Ο κώδικας έχει ήδη στείλει στον "
                 f"υπάλληλο αυτές τις εργασίες και έχει κάνει τις παραγγελίες:\n{listing}", "live", source="camera",
-                notifier=None)
+                notifier=_agent_to_timeline)
     return changed
+
+
+def agent_status() -> str | None:
+    """running | done | error | ... για την τελευταία εκτέλεση του agent που ξεκίνησε η κάμερα· None αν δεν έτρεξε."""
+    from . import agent
+    if STATE.agent_run in agent._tasks:
+        return "running"
+    return agent.RUNS.get(STATE.agent_run or "", {}).get("status")
+
+
+async def _agent_to_timeline(kind: str, text: str) -> None:
+    """Το τελικό μήνυμα του agent μπαίνει στο χρονολόγιο της οθόνης."""
+    if kind == "final" and text:
+        tasks.log("agent", text, run=STATE.agent_run)
 
 
 # --- είσοδος ------------------------------------------------------------------
@@ -170,15 +183,18 @@ def _save(data: bytes) -> Path:
     return path
 
 
-async def process_frame(data: bytes, force: bool = False) -> dict:
-    """Ένα frame από τη σελίδα του ραφιού. Επιστρέφει ό,τι χρειάζεται η σελίδα για να ζωγραφίσει."""
+async def process_frame(data: bytes, force: bool = False, single: bool = False) -> dict:
+    """Ένα frame από τη σελίδα του ραφιού. Επιστρέφει ό,τι χρειάζεται η σελίδα για να ζωγραφίσει.
+
+    single: σκόπιμη φωτογραφία από το κινητό (/capture). Διαβάζεται πάντα και μετράει ως επιβεβαιωμένη μόνη της.
+    """
     if STATE.busy:
         return {**status(), "status": "busy", "detail": "Το προηγούμενο frame διαβάζεται ακόμη"}
     STATE.busy = True
     try:
         STATE.frames += 1
         thumb = await asyncio.to_thread(_thumb, data)
-        if not force and STATE.prev_thumb is not None and STATE.last:
+        if not (force or single) and STATE.prev_thumb is not None and STATE.last:
             d = _diff(thumb, STATE.prev_thumb)
             if d < config.LIVE_DIFF_THRESHOLD:
                 return {**status(), "status": "unchanged", "diff": round(d, 1)}
@@ -201,7 +217,7 @@ async def process_frame(data: bytes, force: bool = False) -> dict:
         STATE.verdict = verdict
         found = to_findings(verdict)
         sig = _signature(found)
-        STATE.recent.append(sig)
+        STATE.recent.extend([sig] * ((STATE.recent.maxlen or 1) if single else 1))
         confirmed = len(STATE.recent) == STATE.recent.maxlen and len(set(STATE.recent)) == 1
         acted = False
         if confirmed and sig != STATE.reported_sig:
@@ -228,7 +244,7 @@ def status() -> dict:
             "provider": config.vision_provider(), "model": config.vision_model(),
             "auto_order": config.AUTO_ORDER, "max_cases": config.AUTO_ORDER_MAX_CASES,
             "max_eur": config.AUTO_ORDER_MAX_EUR, "frames": STATE.frames, "model_calls": STATE.model_calls,
-            "agent_run": STATE.agent_run,
+            "agent_run": STATE.agent_run, "agent_status": agent_status(),
             **(STATE.last or {"status": "idle", "findings": [], "shelves": [], "summary": "",
                               "suggested_layout": [], "shelf_ok": True}), **tasks.summary()}
 
