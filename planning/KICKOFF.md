@@ -75,7 +75,7 @@
 
 | Track | Με ποιον | Σημείωση |
 |---|---|---|
-| Voice & Enterprise Agents | Wonderful | Εγγραφή στη σελίδα credits. Ό,τι χτίζεται στην πλατφόρμα τους ανήκει σε εκείνους (`SITE_MAP.md`) |
+| Voice & Enterprise Agents | Wonderful | Εγγραφή στη σελίδα credits. Ό,τι χτίζεται στην πλατφόρμα τους ανήκει σε εκείνους |
 | Biotech & AI | Athens LifeTech Park | |
 | Content & Digital Art | fal | 1.500 $ σε credits fal για το track |
 | Open Track | – | Δική σας ιδέα. **Hardware = επιπλέον πόντοι** |

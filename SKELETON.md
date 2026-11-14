@@ -1,8 +1,7 @@
 # agentkit
 
 A small, generic skeleton for building an agent that takes a goal, plans, uses tools and delivers
-real work, with a live console that shows every step. This is the boilerplate the project started
-from (the commits up to the `boilerplate` tag). See the README for what was built on top of it.
+real work, with a live console that shows every step. This is the boilerplate the project started from (the commits up to the `boilerplate` tag). The shelf-specific parts built on top of it are listed in the README.
 
 Code comments and agent prompts are in Greek. The structure is small enough to follow regardless.
 
@@ -55,7 +54,7 @@ and no internet, using scripted steps. Set a real provider in `.env` to use a re
 |---|---|---|
 | Agent loop | `agentkit/agent.py` | goal → plan → tool calls → result, with human approval gates |
 | Model providers | `agentkit/llm/` | Claude, any OpenAI-compatible API (Gemini, Groq, OpenRouter…), offline mock; switch in `.env` |
-| Tools | `agentkit/tools/` | files, SQL + charts, web search/fetch, browser (Playwright), email, PDF |
+| Tools | `agentkit/tools/` | files, SQL + charts, web search/fetch, browser (Playwright), email |
 | Extract, then compute | `agentkit/tools/verify.py` | the model only extracts fields from documents; every number is computed by code; both are logged to an audit trail shown in the console and saved as `audit_<run>.json` |
 | Scenarios | `agentkit/scenarios.py` | a role prompt + a tool list + example goals; add one for the challenge |
 | Proactive triggers | `agentkit/watchers.py` | cheap checks that start the agent on their own when something changes |
@@ -66,7 +65,7 @@ and no internet, using scripted steps. Set a real provider in `.env` to use a re
 | Headline result | `headline_result` tool | the agent states its one key number; the console shows it as a large card at the end of the run |
 | Pitch kit | `pitch/` | slide template (`pitch.pptx`, rebuilt by `build_deck.py`), demo script and stage checklist, judge Q&A prep |
 | Demo video | `scripts/record_demo.py` | records the console to a .webm while a run (live or replayed) plays |
-| Demo material | `agentkit/demo_data.py`, `agentkit/portal.py` | synthetic wholesale data, invoices, bank statement, a fake supplier portal at `/portal` |
+| Demo material | `agentkit/demo_data.py`, `agentkit/portal.py` | sample data and a simulated ordering portal at `/portal` (the original wholesale, invoice and bank samples were replaced by the shelf data) |
 
 All demo data is synthetic. No real company, price or customer.
 
@@ -93,7 +92,7 @@ imported in `load_all()` in `agentkit/tools/__init__.py`.
 agentkit/     core package (agent loop, llm providers, tools, server)
 console/      the web console
 scripts/      make_demo_data.py, check_setup.py
-data/         demo inputs (generated; PDFs are committed, the database is rebuilt locally)
+data/         demo inputs (CSV files and photos are committed, the database is rebuilt locally)
 workspace/    what the agent produces (not committed)
 runs/         recorded runs for replay (not committed)
 ```
