@@ -17,7 +17,7 @@ import asyncio
 import hashlib
 import json
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import httpx
 
@@ -78,8 +78,9 @@ def _harvest(node, out: list[dict]) -> None:
                 "title": title, "url": url,
                 "snippet": next((node[k] for k in ("snippet", "description", "body", "content", "text")
                                  if isinstance(node.get(k), str)), ""),
-                "published": next((node[k] for k in ("date", "published", "publishedDate", "published_at", "published_date")
-                                   if isinstance(node.get(k), str)), None)})
+                "published": next((when(node[k]) for k in ("date", "published", "publishedDate", "published_at", "published_date")
+                                   if isinstance(node.get(k), str) and when(node[k])), None),
+                "publisher": next((node[k] for k in ("publisher", "site_name", "source") if isinstance(node.get(k), str)), None)})
         else:
             for value in node.values():
                 _harvest(value, out)
@@ -107,8 +108,13 @@ async def treg_call(tool_id: str, body: dict, log: list | None = None):
     except Exception as e:
         entry["error"] = f"{type(e).__name__}: {str(e)[:200]}"
         raise
+    meta = data.get("_treg") if isinstance(data, dict) else None
+    if isinstance(meta, dict):                      # κάθε απάντηση του treg είναι {output, raw, _treg}
+        entry["served_by"] = meta.get("served_by")
+        if isinstance(meta.get("charged_micro"), int):
+            entry["cost_usd"] = round(meta["charged_micro"] / 1_000_000, 6)
     entry["ok"] = True
-    return data
+    return data.get("output", data) if isinstance(data, dict) else data
 
 
 async def _search_treg(query: str, log: list | None = None) -> list[dict]:
@@ -164,8 +170,8 @@ def _series(node, best: list | None = None) -> list[tuple[str, float]]:
         for item in node:
             if not isinstance(item, dict):
                 continue
-            day = next((_iso(item[k]) for k in ("date_from", "date", "time", "timestamp")
-                        if item.get(k) is not None and _iso(item[k])), None)
+            day = next((when(item[k]) for k in ("timestamp", "date_from", "date", "time")
+                        if item.get(k) is not None and when(item[k])), None)
             raw = next((item[k] for k in ("value", "values", "interest", "extracted_value") if k in item), None)
             if isinstance(raw, list) and raw:
                 raw = raw[0].get("extracted_value", raw[0].get("value")) if isinstance(raw[0], dict) else raw[0]
@@ -196,13 +202,27 @@ def trend_change(points: list[tuple[str, float]]) -> dict | None:
 
 
 async def search_trend(keyword: str, log: list | None = None) -> dict:
-    """Δείκτης ενδιαφέροντος αναζήτησης για μια λέξη. Αν δεν διαβάζεται χρονοσειρά, επιστρέφει μόνο τον λόγο."""
-    base = {"keyword": keyword, "source": "Google Trends μέσω treg", "tool": config.TREG_TRENDS_TOOL}
+    """Δείκτης ενδιαφέροντος αναζήτησης για μια λέξη. Αν δεν διαβάζεται χρονοσειρά, επιστρέφει μόνο τον λόγο.
+
+    Η αποτυχία της κλήσης γράφεται στο log από το treg_call· εδώ γυρίζει ως σημείωση, δεν ρίχνει το πακέτο.
+    """
+    base = {"keyword": keyword, "country": config.EVIDENCE_COUNTRY, "source": "δείκτης αναζητήσεων μέσω treg",
+            "tool": config.TREG_TRENDS_TOOL,
+            "method": "μέσος όρος του τελευταίου τετάρτου της περιόδου έναντι του πρώτου· η εποχικότητα δεν αφαιρείται"}
     if not (config.TREG_TOKEN and config.TREG_TRENDS_TOOL):
         return {**base, "change": None, "note": "Δεν έχει ρυθμιστεί token ή εργαλείο τάσεων."}
     try:
-        body = {"keywords": keyword, **json.loads(config.TREG_TRENDS_EXTRA or "{}")}
-        change = trend_change(_series(await treg_call(config.TREG_TRENDS_TOOL, body, log)))
+        body = {"keywords": [keyword], "country": config.EVIDENCE_COUNTRY, **json.loads(config.TREG_TRENDS_EXTRA or "{}")}
+        own: list[dict] = []
+        points = _series(await treg_call(config.TREG_TRENDS_TOOL, body, own))
+        if log is not None:
+            log.extend(own)
+        if own and own[-1].get("served_by"):          # ποιος πάροχος απάντησε: Google Trends ή δείκτης της DataForSEO
+            base["source"] = f"δείκτης αναζητήσεων μέσω treg ({own[-1]['served_by']})"
+        if points and not any(v for _, v in points):
+            return {**base, "country": config.EVIDENCE_COUNTRY, "change": None,
+                    "note": "Ο δείκτης είναι μηδέν σε όλη την περίοδο: πολύ λίγες αναζητήσεις για αυτή τη λέξη."}
+        change = trend_change(points)
     except Exception as e:
         return {**base, "change": None, "note": f"Η κλήση απέτυχε: {str(e)[:160]}"}
     return {**base, "change": change, "note": None if change else "Η απάντηση δεν είχε χρονοσειρά που να διαβάζεται."}
@@ -223,6 +243,36 @@ async def _page_text(url: str) -> str:
 
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text or "").strip().lower()
+
+
+_UNITS = {"minute": 0, "hour": 0, "day": 1, "week": 7, "month": 30, "year": 365}
+_MONTHS = {m: n for n, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"), 1)}
+
+
+def when(value) -> str | None:
+    """Ημερομηνία YYYY-MM-DD από ό,τι γράφουν οι πάροχοι: ISO, epoch, «Apr 29, 2026», «2 weeks ago».
+
+    Το «πριν από Ν εβδομάδες / μήνες» γίνεται ημερομηνία κατά προσέγγιση (μήνας = 30 ημέρες).
+    """
+    text = str(value).strip()
+    if re.fullmatch(r"\d{9,13}", text):
+        try:
+            return _iso(datetime.fromtimestamp(int(text[:10])).date().isoformat())
+        except (ValueError, OSError):
+            return None
+    m = re.fullmatch(r"(an?|\d+)\s+(minute|hour|day|week|month|year)s?\s+ago", text.lower())
+    if m:
+        n = 1 if m.group(1) in ("a", "an") else int(m.group(1))
+        return (date.today() - timedelta(days=n * _UNITS[m.group(2)])).isoformat()
+    if text.lower() == "yesterday":
+        return (date.today() - timedelta(days=1)).isoformat()
+    m = re.fullmatch(r"([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})", text)
+    if m and m.group(1).lower() in _MONTHS:
+        try:
+            return _iso(date(int(m.group(3)), _MONTHS[m.group(1).lower()], int(m.group(2))).isoformat())
+        except ValueError:
+            return None
+    return _iso(text)
 
 
 def _iso(value) -> str | None:
@@ -369,8 +419,8 @@ async def build_pack(sku: str, audience: str = "", refresh: bool = False) -> dic
     "για την κατηγορία του (ζήτηση, τάσεις, προτιμήσεις) με URL, ημερομηνία και αυτούσιο απόσπασμα. Αν το status "
     "είναι «insufficient», πες ρητά ότι δεν βρέθηκαν επαρκή δεδομένα και μη χρησιμοποιήσεις εξωτερικούς ισχυρισμούς. "
     "Αριθμούς τάσης αναφέρεις μόνο όσους έχουν value στο πακέτο, πάντα μαζί με την πηγή και την ημερομηνία τους. "
-    "Το search_trend, αν έχει change, είναι η μεταβολή του ενδιαφέροντος αναζήτησης στο Google για την κατηγορία: "
-    "ανέφερέ το ως ενδιαφέρον αναζήτησης με την περίοδό του, ποτέ ως πωλήσεις.",
+"Το search_trend, αν έχει change, είναι η μεταβολή ενός δείκτη αναζητήσεων στο διαδίκτυο για την κατηγορία: "
+    "ανέφερέ το ως ενδιαφέρον αναζήτησης, με την περίοδο και την πηγή του, ποτέ ως πωλήσεις ή ζήτηση στο κατάστημα.",
     {"sku": {"type": "string", "description": "Κωδικός προϊόντος, π.χ. C04"},
      "audience": {"type": "string", "description": "Προαιρετικά: το κοινό που μας ενδιαφέρει, π.χ. «φοιτητές»"},
      "refresh": {"type": "boolean", "description": "true = νέα αναζήτηση αντί για τις αποθηκευμένες πηγές"}},

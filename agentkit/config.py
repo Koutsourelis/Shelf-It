@@ -47,12 +47,13 @@ SMTP_FROM = _env("SMTP_FROM") or SMTP_USER
 TREG_TOKEN = _env("TREG_TOKEN")
 TREG_ORG = _env("TREG_ORG")
 # Εργαλεία του treg (ids από τον δημόσιο κατάλογο, https://treg.to/catalog). Καλούνται με POST και σώμα JSON.
-TREG_SEARCH_TOOL = _env("TREG_SEARCH_TOOL", "treg.web.search")
-TREG_NEWS_TOOL = _env("TREG_NEWS_TOOL", "treg.web.search.news")
-TREG_TRENDS_TOOL = _env("TREG_TRENDS_TOOL", "treg.google.keywords.trends")
-TREG_QUERY_PARAM = _env("TREG_QUERY_PARAM", "q")     # όνομα του πεδίου του ερωτήματος στα εργαλεία αναζήτησης
+TREG_SEARCH_TOOL = _env("TREG_SEARCH_TOOL") or "treg.web.search"
+TREG_NEWS_TOOL = _env("TREG_NEWS_TOOL") or "treg.web.search.news"
+TREG_TRENDS_TOOL = _env("TREG_TRENDS_TOOL") or "treg.google.keywords.trends"
+TREG_QUERY_PARAM = _env("TREG_QUERY_PARAM") or "q"     # όνομα του πεδίου του ερωτήματος στα εργαλεία αναζήτησης
 TREG_TRENDS_EXTRA = _env("TREG_TRENDS_EXTRA")         # προαιρετικά επιπλέον πεδία σε JSON, π.χ. {"location_name": "Greece"}
 EVIDENCE_REGION = _env("EVIDENCE_REGION", "Ελλάδα")
+EVIDENCE_COUNTRY = _env("EVIDENCE_COUNTRY") or "gr"      # κωδικός χώρας ISO για το εργαλείο τάσεων
 EVIDENCE_MIN_SOURCES = int(_env("EVIDENCE_MIN_SOURCES", "2"))
 
 # --- Ταυτότητα του project (φαίνεται στην κονσόλα) --------------------------
