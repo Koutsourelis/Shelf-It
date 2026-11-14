@@ -17,6 +17,7 @@ from agentkit import config, demo_data                      # noqa: E402
 
 # Τα tests τρέχουν πάντα στο βασικό σετ (data/shelf), ό,τι SHELF_SET κι αν έχει το τερματικό.
 config.SHELF_SET = ""
+config.VISION_PROVIDER = "mock"      # ποτέ πραγματικό μοντέλο στα tests
 config.SHELF_DIR = config.DATA_DIR / "shelf"
 demo_data.SHELF_DIR = config.SHELF_DIR
 demo_data.PHOTOS_DIR = demo_data.SHELF_DIR / "photos"
@@ -189,7 +190,7 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(self.requests, [])
 
     def test_mock_provider_still_reads_the_sidecar_file(self):
-        config.VISION_PROVIDER = ""
+        config.VISION_PROVIDER = "mock"
         self.serve((200, answer(READING)))
         reading = self.read()
         self.assertEqual(self.requests, [])

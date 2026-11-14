@@ -91,7 +91,10 @@ def to_findings(verdict: dict) -> list[dict]:
     for f in verdict["foreign"]:
         out.append({"type": "unknown", "sku": None, "label": f["label"], "level": f["level"],
                     "shelf": LEVEL_TO_SHELF[f["level"]], "boxes": [f["box_2d"]] if f.get("box_2d") else []})
+    covered = {f["sku"] for f in out if f["sku"]}          # κωδικοί που έχουν ήδη εργασία
     for v in verdict["visual_issues"]:
+        if any(sku and sku in v["detail"] for sku in covered):
+            continue        # π.χ. «ο C02 έχει 1 πρόσοψη» — έχει ήδη εργασία αναπλήρωσης, όχι δεύτερη
         out.append({"type": "visual", "sku": None, "label": v["type"], "level": v["level"],
                     "shelf": LEVEL_TO_SHELF[v["level"]], "detail": v["detail"], "boxes": []})
     out.sort(key=lambda f: (PRIORITY[f["type"]], f["shelf"]))

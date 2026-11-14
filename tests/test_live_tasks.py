@@ -15,6 +15,7 @@ from agentkit import config, demo_data, live, portal, tasks, vision   # noqa: E4
 
 # Τα tests τρέχουν πάντα στο βασικό σετ (data/shelf), ό,τι SHELF_SET κι αν έχει το τερματικό.
 config.SHELF_SET = ""
+config.VISION_PROVIDER = "mock"      # ποτέ πραγματικό μοντέλο στα tests
 config.SHELF_DIR = config.DATA_DIR / "shelf"
 demo_data.SHELF_DIR = config.SHELF_DIR
 demo_data.PHOTOS_DIR = demo_data.SHELF_DIR / "photos"
@@ -35,7 +36,7 @@ class LiveTasksTest(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         config.DB_PATH = Path(self._tmp.name) / "test.duckdb"
         demo_data.build()
-        config.LLM_PROVIDER, config.VISION_PROVIDER = "mock", ""
+        config.LLM_PROVIDER, config.VISION_PROVIDER = "mock", "mock"
         config.LIVE_START_AGENT, config.AUTO_ORDER = False, True
         config.AUTO_ORDER_MAX_CASES, config.AUTO_ORDER_MAX_EUR, config.LIVE_CONFIRM_FRAMES = 3, 50.0, 2
         portal.orders.clear()

@@ -37,12 +37,25 @@ GEMINI_API_KEY = _env("GEMINI_API_KEY") or (OPENAI_COMPAT_API_KEY if _GOOGLE_COM
 GEMINI_MODEL = _env("GEMINI_MODEL") or (OPENAI_COMPAT_MODEL if _GOOGLE_COMPAT else "")
 GEMINI_MEDIA_RESOLUTION = _env("GEMINI_MEDIA_RESOLUTION")          # empty (model default) | low | medium | high
 GEMINI_MAX_OUTPUT_TOKENS = int(_env("GEMINI_MAX_OUTPUT_TOKENS", "0"))   # 0 = model default
+# low | medium | high · low = γρήγορο (για ζωντανή κάμερα), high = πιο προσεκτικό αλλά αργό
+GEMINI_THINKING_LEVEL = _env("GEMINI_THINKING_LEVEL", "low").lower()
 VISION_MAX_IMAGE_SIDE = int(_env("VISION_MAX_IMAGE_SIDE", "1600"))  # longest side in pixels sent to Gemini
 
 
+# Αν έχει μπει μόνο κλειδί Gemini (GEMINI_API_KEY / GEMINI_MODEL), χρησιμοποίησέ το και για τον agent.
+# Αλλιώς κάθε κλήση πέφτει με άδειο base url, ενώ στο .env φαίνεται σωστό κλειδί.
+if LLM_PROVIDER in ("openai_compat", "gemini") and not OPENAI_COMPAT_API_KEY and GEMINI_API_KEY:
+    OPENAI_COMPAT_BASE_URL = OPENAI_COMPAT_BASE_URL or "https://generativelanguage.googleapis.com/v1beta/openai/"
+    OPENAI_COMPAT_API_KEY = GEMINI_API_KEY
+    OPENAI_COMPAT_MODEL = OPENAI_COMPAT_MODEL or GEMINI_MODEL
+
+
 def vision_provider() -> str:
-    """Who reads the photos: VISION_PROVIDER if set, otherwise LLM_PROVIDER."""
-    return VISION_PROVIDER or LLM_PROVIDER
+    """Ποιος διαβάζει τις φωτογραφίες: VISION_PROVIDER αν έχει οριστεί. Αλλιώς, αν υπάρχει κλειδί Gemini,
+    η native Gemini API με επιβεβαιωμένο schema· σε κάθε άλλη περίπτωση ό,τι ορίζει το LLM_PROVIDER."""
+    if VISION_PROVIDER:
+        return VISION_PROVIDER
+    return "gemini" if GEMINI_API_KEY else LLM_PROVIDER
 
 
 def vision_model() -> str:

@@ -45,7 +45,7 @@ async def main() -> None:
 
     # Βρόχος agent με το ψεύτικο μοντέλο (χωρίς κλειδί, χωρίς internet): όλη η ροή του ραφιού.
     real_provider, config.LLM_PROVIDER = config.LLM_PROVIDER, "mock"
-    real_vision, config.VISION_PROVIDER = config.VISION_PROVIDER, ""
+    real_vision, config.VISION_PROVIDER = config.VISION_PROVIDER, "mock"
     config.AUTO_APPROVE = True
     await agent.run_agent("Δοκιμή", "shelf", source="check")
     run = list(agent.RUNS.values())[-1]

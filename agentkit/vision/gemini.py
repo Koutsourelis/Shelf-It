@@ -77,6 +77,9 @@ def build_request(system: str, user: str, schema: dict, pictures: list[str]) -> 
         generation["maxOutputTokens"] = config.GEMINI_MAX_OUTPUT_TOKENS
     if config.GEMINI_MEDIA_RESOLUTION:
         generation["mediaResolution"] = "MEDIA_RESOLUTION_" + config.GEMINI_MEDIA_RESOLUTION.upper()
+    if config.GEMINI_THINKING_LEVEL in ("low", "medium", "high"):
+        # Χρόνος απόκρισης: το medium (προεπιλογή του μοντέλου) αργεί πολύ για ζωντανή κάμερα.
+        generation["thinkingConfig"] = {"thinkingLevel": config.GEMINI_THINKING_LEVEL}
     return {"systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": parts}],
             "generationConfig": generation}

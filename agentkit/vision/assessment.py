@@ -127,13 +127,22 @@ SYSTEM = (
 )
 
 RULES = [
-    "Το ύψος των ματιών (eye) είναι το πολυτιμότερο: εκεί πάνε οι κωδικοί με το μεγαλύτερο περιθώριο κέρδους "
-    "και οι κωδικοί που θέλουμε να αγοραστούν παρορμητικά.",
-    "Τα βαριά ή ογκώδη πάνε κάτω (bottom), τα ελαφριά και μικρά πάνω (top).",
+    "Το ύψος των ματιών (eye) είναι το πολυτιμότερο. Εκεί πάνε οι κωδικοί με το μεγαλύτερο περιθώριο σε ΕΥΡΩ "
+    "ανά πρόσοψη ανά ημέρα: (τιμή − κόστος) × ημερήσιες πωλήσεις ÷ προσόψεις. Μη συγκρίνεις μόνο ποσοστά "
+    "περιθωρίου — ένα φθηνό προϊόν με υψηλό ποσοστό μπορεί να αποδίδει λιγότερα ευρώ από ένα ακριβότερο.",
+    "Τα βαριά ή ογκώδη πάνε κάτω (bottom), τα ελαφριά και μικρά πάνω (top). Το βάρος όμως έρχεται δεύτερο: "
+    "αν ένα βαρύ προϊόν αποδίδει πολύ περισσότερα ευρώ ανά πρόσοψη, μένει στα μάτια.",
     "Ίδια μάρκα μαζί, κάθετα αν γίνεται· μην ανακατεύεις ανταγωνιστές στο ίδιο μπλοκ.",
     "Κάθε κωδικός θέλει τουλάχιστον δύο προσόψεις· ο ηγέτης της κατηγορίας περισσότερες.",
     "Οι ετικέτες κοιτάνε προς τα έξω και τα προϊόντα είναι τραβηγμένα στην άκρη του ραφιού.",
-    "Ένα κενό στο ράφι είναι χαμένη πώληση: αν λείπει κωδικός του καταλόγου, είναι πρόβλημα.",
+    "Κενός χώρος στο ράφι δεν είναι από μόνος του λάθος: σημαίνει ότι υπάρχει χώρος. Αν λείπει κωδικός του "
+    "καταλόγου, το πρόβλημα είναι ότι λείπει ο κωδικός — όχι το κενό. Αν δεν λείπει τίποτα, ανέφερε τον κενό "
+    "χώρο μόνο στη σύνοψη.",
+    "Στο misplaced βάλε ΜΟΝΟ προϊόντα σε επίπεδο που δεν βγάζει νόημα: πολύ βαρύ ή ογκώδες πάνω, ή προϊόν έξω "
+    "από την κατηγορία του. Η καλύτερη θέση για περισσότερο κέρδος ΔΕΝ είναι misplaced· γι' αυτήν υπάρχει το "
+    "suggested_layout.",
+    "Στο visual_issues βάλε μόνο πραγματικά ελαττώματα παρουσίας: ετικέτα γυρισμένη, προϊόν πίσω από την άκρη, "
+    "σπασμένη συσκευασία, ανακατεμένα διαφορετικά προϊόντα.",
 ]
 
 
@@ -146,6 +155,11 @@ def user_prompt(catalog: list[dict], has_reference: bool) -> str:
                 margin = f", περιθώριο {100 * (float(p['unit_price']) - float(p['unit_cost'])) / float(p['unit_price']):.0f}%"
             except (TypeError, ValueError, ZeroDivisionError):
                 margin = ""
+        try:
+            per_day = (float(p["unit_price"]) - float(p["unit_cost"])) * float(p.get("daily_units") or 0)
+            margin += f", {per_day:.2f} € περιθώριο/ημέρα"
+        except (TypeError, ValueError, KeyError):
+            pass
         rows.append(f"- {p['sku']} | {p['name']} | {p['brand']} | {p.get('category') or 'χωρίς κατηγορία'}{margin}")
     ref = ("Η ΠΡΩΤΗ εικόνα δείχνει το ίδιο ράφι σε καλή κατάσταση (αναφορά). Η ΔΕΥΤΕΡΗ είναι η σημερινή. "
            "Σύγκρινε νοητά, αλλά αξιολόγησε μόνο τη δεύτερη.\n\n" if has_reference else "")
@@ -159,8 +173,10 @@ def user_prompt(catalog: list[dict], has_reference: bool) -> str:
         "3. Στο misplaced ό,τι είναι σε λάθος επίπεδο, με το επίπεδο που του ταιριάζει.\n"
         "4. Στο foreign ό,τι δεν ανήκει στον κατάλογο. Στο visual_issues τις παραβάσεις παρουσίασης.\n"
         "5. Στο suggested_layout δώσε τη διάταξη που προτείνεις, ανά επίπεδο, με σειρά από αριστερά, και το γιατί.\n"
-        "6. shelf_ok = true μόνο αν δεν λείπει τίποτα, δεν είναι τίποτα σε λάθος επίπεδο και δεν υπάρχει πρόβλημα "
-        "παρουσίασης.\n\nΚανόνες κατηγορίας:\n" + rules
+        "6. shelf_ok = true αν (α) δεν λείπει κανένας κωδικός, (β) δεν υπάρχει ξένο προϊόν, (γ) δεν υπάρχει "
+        "πραγματικό ελάττωμα παρουσίας και (δ) δεν υπάρχει προϊόν σε επίπεδο που δεν βγάζει νόημα. Κενός χώρος "
+        "και «θα ήταν καλύτερα αλλού για κέρδος» ΔΕΝ κάνουν το ράφι λάθος: τα λέει το suggested_layout.\n\n"
+        "Κανόνες κατηγορίας:\n" + rules
     )
 
 
@@ -229,7 +245,9 @@ def normalize(raw: dict, known: set[str]) -> dict:
               for v in raw.get("visual_issues") or [] if isinstance(v, dict)]
     layout = [{"level": level(s.get("level")), "order": [str(x) for x in s.get("order") or []],
                "why": str(s.get("why") or "")} for s in raw.get("suggested_layout") or [] if isinstance(s, dict)]
-    return {"shelf_ok": bool(raw.get("shelf_ok")), "occluded": bool(raw.get("occluded")), "shelves": shelves,
+    # Το shelf_ok του μοντέλου δεν μπορεί να είναι true όταν το ίδιο δήλωσε πρόβλημα: το κρατάει ο κώδικας συνεπές.
+    shelf_ok = bool(raw.get("shelf_ok")) and not (missing or misplaced or foreign or visual)
+    return {"shelf_ok": shelf_ok, "occluded": bool(raw.get("occluded")), "shelves": shelves,
             "missing": missing, "misplaced": misplaced, "foreign": foreign, "visual_issues": visual,
             "suggested_layout": layout, "summary": str(raw.get("summary") or "")}
 
@@ -237,8 +255,11 @@ def normalize(raw: dict, known: set[str]) -> dict:
 def _catalog() -> list[dict]:
     from ..tools.data import run_sql
     _, rows = run_sql("select sku, name, brand, unit_cost, unit_price, category from products order by sku")
-    return [{"sku": r[0], "name": r[1], "brand": r[2], "unit_cost": r[3], "unit_price": r[4], "category": r[5]}
-            for r in rows]
+    # Ημερήσιες πωλήσεις από τις συνθετικές πωλήσεις 28 ημερών (ο μέσος όρος ανά ημέρα).
+    _, daily = run_sql("select sku, sum(qty) / count(distinct date) from sales group by 1")
+    units = {r[0]: r[1] for r in daily}
+    return [{"sku": r[0], "name": r[1], "brand": r[2], "unit_cost": r[3], "unit_price": r[4], "category": r[5],
+             "daily_units": units.get(r[0]) or 0} for r in rows]
 
 
 def _reference() -> Path | None:
