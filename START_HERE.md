@@ -34,6 +34,7 @@
 |---|---|
 | [`planning/SOLUTION.md`](planning/SOLUTION.md) | Η λύση: άνθρωπος, θεωρία, ροή, δεδομένα, demo |
 | [`planning/BUILD_PLAN.md`](planning/BUILD_PLAN.md) | Εργασίες, ρόλοι, χρονοδιάγραμμα |
+| [`planning/WORKFLOW.md`](planning/WORKFLOW.md) | Πώς δουλεύουμε στο git: κλάδος, pull request, αυτόματος έλεγχος |
 | [`planning/DECISIONS.md`](planning/DECISIONS.md) | Κάθε απόφαση, με μία γραμμή |
 | [`planning/KICKOFF.md`](planning/KICKOFF.md) | Κανόνες, έπαθλα, οδηγίες της Quintessential |
 | [`planning/APIS.md`](planning/APIS.md) | Credits και πώς συνδέεται κάθε πάροχος |
@@ -119,5 +120,7 @@ OPENAI_COMPAT_MODEL=το μοντέλο Gemini που θα διαλέξουμε
 - Κλειδιά και κωδικοί μόνο στο `.env`. Ποτέ στο GitHub, ποτέ σε chat.
 - Μόνο συνθετικά, δημόσια ή δικά μας δεδομένα. Πλανόγραμμα, πωλήσεις ή φωτογραφίες εργοδότη δεν μπαίνουν.
 - Ό,τι υπήρχε πριν το Σάββατο δηλώνεται ως προετοιμασία στο README. Κρίνεται μόνο η δουλειά του διημέρου.
+- Κώδικας μπαίνει στο `main` μόνο με pull request που έχει πράσινο έλεγχο. Βήμα βήμα στο
+  [`planning/WORKFLOW.md`](planning/WORKFLOW.md).
 - Κάθε απόφαση γράφεται στο `planning/DECISIONS.md` τη στιγμή που παίρνεται.
 - Πάγωμα λειτουργιών Κυριακή 13:00. Υποβολή Κυριακή 17:30.

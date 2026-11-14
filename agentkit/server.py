@@ -170,6 +170,16 @@ async def shelf_photo(file: UploadFile):
     return {"ok": True, "photo": name, "run_id": run_id}
 
 
+@app.get("/api/evidence/{sku}")
+async def evidence(sku: str, audience: str = "", refresh: bool = False):
+    """Το πακέτο τεκμηρίων ενός κωδικού, για την οθόνη. Μορφή: planning/EVIDENCE.md."""
+    from .tools.evidence import build_pack
+    try:
+        return await build_pack(sku.strip().upper(), audience.strip(), refresh)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
 # --- Live κάμερα (agentkit/live.py) ------------------------------------------
 
 @app.get("/live")

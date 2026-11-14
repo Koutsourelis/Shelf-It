@@ -14,8 +14,12 @@ Point your assistant at this file first.
 - **Secrets:** API keys, passwords and tokens never go in a file in this repo, in a commit message or in an issue.
   They live only in each person's local `.env`, which `.gitignore` already excludes. Never print `.env`.
 - **Data:** synthetic or public only. Never data from anyone's employer.
-- **Git:** `git pull --rebase` before every change, small commits, never `push --force`, never delete branches or the
-  `boilerplate` tag. Do not commit the files `scripts/make_demo_data.py` regenerates in `data/`.
+- **Git:** code reaches `main` only through a pull request with a green `check`; steps in
+  [`planning/WORKFLOW.md`](planning/WORKFLOW.md). Work on a short branch named `p<role number>/<topic>` cut from fresh
+  `main`, run `python scripts/check_setup.py` before each commit, keep commits small, merge every 1–2 hours. Notes
+  (`.md` in `planning/` and `pitch/`) may go straight to `main` after `git pull --rebase`. Never `push --force`, never
+  delete someone else's branch or the `boilerplate` tag. Do not commit the files `scripts/make_demo_data.py`
+  regenerates in `data/`.
 - **Numbers come from code:** the model extracts and plans; every figure is computed by SQL or the `compute` tool and
   shows up in the audit trail.
 - **Outward actions need approval:** tools that send, order or pay use `needs_approval=True`.

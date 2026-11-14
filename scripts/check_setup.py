@@ -55,6 +55,12 @@ async def main() -> None:
            f"παραγγελίες: {len(portal.orders)}, παραδοτέα: {', '.join(run['artifacts'])}")
     portal.orders.clear()
 
+    # Πακέτο τεκμηρίων: με το ψεύτικο μοντέλο δεν γίνεται αναζήτηση· ελέγχουμε μορφή και περιθώριο από κώδικα.
+    from agentkit.tools.evidence import build_pack
+    pack = await build_pack("C01")
+    report("Πακέτο τεκμηρίων", pack["margin_pct"] is not None and pack["status"] in ("sufficient", "insufficient"),
+           f"{pack['sku']}: περιθώριο {pack['margin_pct']}%, status {pack['status']}, πηγές {pack['sources']}")
+
     # Προληπτικός έλεγχος: ήσυχος όσο δεν υπάρχει νέα φωτογραφία, χτυπά μόλις πέσει μία στο workspace/photos.
     watchers.reset()
     quiet = watchers.new_photo() is None and watchers.new_photo() is None

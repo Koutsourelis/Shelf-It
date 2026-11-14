@@ -5,7 +5,7 @@ After every edit run `python scripts/make_demo_data.py` to rebuild the database.
 
 | File | One row is | Columns |
 |---|---|---|
-| `catalog.csv` | a product | `sku`, `name`, `brand`, `unit_cost`, `unit_price`, `daily_units` (average units sold per day, used to generate sales), `case_size` (units per case when ordering) |
+| `catalog.csv` | a product | `sku`, `name`, `brand`, `category` (web evidence is searched per category), `unit_cost`, `unit_price`, `price_source` and `cost_source` (where each figure comes from, e.g. "store receipt 14 Nov"), `daily_units` (average units sold per day, used to generate sales), `case_size` (units per case when ordering) |
 | `planogram.csv` | a slot on the shelf | `shelf` (1 = top), `level` (`top` / `eye` / `bottom`), `position` (1 = leftmost), `sku`, `facings` (units side by side in the front row), `depth` (units behind each facing) |
 | `backroom.csv` | stock in the backroom | `sku`, `on_hand` |
 

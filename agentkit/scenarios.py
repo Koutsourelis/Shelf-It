@@ -40,7 +40,7 @@ class Scenario:
 
 SCHEMA_HINT = """
 Βάση δεδομένων (DuckDB) του τμήματος:
-- products(sku, name, brand, unit_cost, unit_price, case_size): ο κατάλογος.
+- products(sku, name, brand, category, unit_cost, unit_price, case_size, price_source, cost_source): ο κατάλογος.
 - planogram(shelf, level, position, sku, facings, depth): πού ανήκει κάθε κωδικός. shelf 1 = το πάνω ράφι,
   level = top / eye / bottom, facings = προσόψεις, depth = τεμάχια πίσω από κάθε πρόσοψη.
 - backroom(sku, on_hand): απόθεμα στην αποθήκη του καταστήματος.
@@ -79,7 +79,9 @@ SHELF = Scenario(
    σειρά που θα τις κάνει: πρώτα «φέρε από την αποθήκη» (κωδικός, προϊόν, τεμάχια, ράφι), μετά «μετακίνησε».
 5. Αν κάποιος κωδικός δεν καλύπτεται από την αποθήκη, κάλεσε order_from_warehouse με τα κιβώτια του replenishment_plan.
 6. layout_suggestions: ανέφερε το πολύ δύο προτάσεις, με τους αριθμούς τους. Είναι προτάσεις για τον category
-   manager· δεν αλλάζεις εσύ το πλανόγραμμα.
+   manager· δεν αλλάζεις εσύ το πλανόγραμμα. Αν θέλεις να στηρίξεις μια πρόταση και με εξωτερικά στοιχεία, κάλεσε
+   product_evidence για τον κωδικό: με status «insufficient» γράφεις «δεν βρέθηκαν επαρκή δεδομένα» και τίποτα άλλο·
+   αριθμό τάσης αναφέρεις μόνο αν έχει value, μαζί με την πηγή και την ημερομηνία του.
 7. Γράψε «shelf_report.md»: συμμόρφωση, πίνακας ευρημάτων, λίστα αναπλήρωσης, παραγγελία, προτάσεις διάταξης,
    και τη σημειωμένη φωτογραφία ως εικόνα.
 8. headline_result: αν λείπουν κωδικοί εντελώς, οι πωλήσεις σε κίνδυνο ανά ημέρα· αλλιώς το ποσοστό συμμόρφωσης.
@@ -89,7 +91,7 @@ SHELF = Scenario(
 Αν το read_shelf δεν αναγνωρίσει προϊόντα ή βρει πολλά άγνωστα, ζήτα νέα φωτογραφία αντί να συνεχίσεις.
 """,
     tools=COMMON_TOOLS + ["read_shelf", "check_planogram", "replenishment_plan", "layout_suggestions",
-                          "order_from_warehouse", "describe_data", "sql_query", "make_chart"],
+                          "order_from_warehouse", "product_evidence", "describe_data", "sql_query", "make_chart"],
     examples=[
         f"Έλεγξε το ράφι στη φωτογραφία {SAMPLE} και κάνε ό,τι χρειάζεται.",
         "Το ράφι διορθώθηκε. Ξαναέλεγξέ το με τη φωτογραφία data/shelf/photos/sample_after.png.",
