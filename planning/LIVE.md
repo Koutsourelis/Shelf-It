@@ -78,6 +78,21 @@ http://127.0.0.1:8000/tasks σε άλλο παράθυρο → «mock: σωστ�
 `VISION_PROVIDER=gemini` (κλειδί και μοντέλο παίρνονται από τα `OPENAI_COMPAT_*`). Μετά:
 `python scripts/eval_vision.py --runs 3`. Tests χωρίς κλειδί: `python -m unittest discover tests`.
 
+## Σετ δεδομένων
+
+Δύο ράφια ζουν δίπλα-δίπλα. Το βασικό (`data/shelf/`) έχει τις ζωγραφιστές φωτογραφίες δοκιμής· το
+`data/shelf/sets/trad/` είναι στημένο πάνω σε **μία πραγματική φωτογραφία** ραφιού supermarket («ΠΑΡΑΔΟΣΙΑΚΑ
+ΠΡΟΪΟΝΤΑ», 13 κωδικοί, 3 ράφια).
+
+```bash
+SHELF_SET=trad python scripts/make_demo_data.py
+SHELF_SET=trad python -m agentkit.server
+SHELF_SET=trad python scripts/eval_vision.py --runs 3
+```
+
+Λεπτομέρειες, πίνακας προϊόντων και ό,τι είναι κατά προσέγγιση: [`data/shelf/sets/trad/README.md`](../data/shelf/sets/trad/README.md).
+Τα tests τρέχουν πάντα στο βασικό σετ, ό,τι `SHELF_SET` κι αν έχει το τερματικό.
+
 ## Κινητό
 
 `HOST=0.0.0.0` στο `.env`, κινητό και laptop στο ίδιο δίκτυο, σκανάρεις το QR της αρχικής. Η σελίδα `/tasks` δεν

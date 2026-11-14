@@ -15,7 +15,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from .. import config
-from ..demo_data import DAYS, PHOTOS_DIR
+from .. import demo_data
+from ..demo_data import DAYS
 from . import tool
 from .core import safe_path
 from .data import _table, run_sql
@@ -29,7 +30,7 @@ STATUS = {"ok": "σωστό", "missing": "λείπει από το ράφι", "l
 def find_photo(photo: str) -> Path:
     """Δέχεται 'data/shelf/photos/x.png', 'workspace/photos/x.jpg' ή σκέτο όνομα αρχείου."""
     name = photo.replace("\\", "/").split("/")[-1]
-    for candidate in (safe_path(photo), UPLOADS / name, PHOTOS_DIR / name):
+    for candidate in (safe_path(photo), UPLOADS / name, demo_data.PHOTOS_DIR / name):
         if candidate.is_file():
             return candidate
     raise FileNotFoundError(f"Δεν βρέθηκε η φωτογραφία: {photo}")

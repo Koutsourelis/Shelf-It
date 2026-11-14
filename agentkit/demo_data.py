@@ -12,7 +12,7 @@ import duckdb
 
 from . import config
 
-SHELF_DIR = config.DATA_DIR / "shelf"
+SHELF_DIR = config.SHELF_DIR          # data/shelf ή data/shelf/sets/<SHELF_SET>
 PHOTOS_DIR = SHELF_DIR / "photos"
 DAYS = 28
 

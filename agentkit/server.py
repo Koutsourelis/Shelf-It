@@ -287,7 +287,7 @@ async def set_reference(file: UploadFile | None = None):
     data = await file.read() if file else b""
     if not data:
         raise HTTPException(400, "Χρειάζεται frame")
-    refs = config.DATA_DIR / "shelf" / "refs"
+    refs = config.SHELF_DIR / "refs"
     refs.mkdir(parents=True, exist_ok=True)
     (refs / "shelf_ok.jpg").write_bytes(data)
     config.VISION_REFERENCE = "data/shelf/refs/shelf_ok.jpg"     # ισχύει αμέσως, μέχρι το επόμενο restart
@@ -312,6 +312,15 @@ def _phone_url(path: str) -> dict:
     ip = _lan_ip()
     reachable = config.HOST not in ("127.0.0.1", "localhost") and bool(ip)
     return {"url": f"http://{ip or config.HOST}:{config.PORT}{path}", "reachable": reachable}
+
+
+@app.get("/photo/{name}")
+async def photo(name: str):
+    """Φωτογραφία του ενεργού σετ (data/shelf[/sets/<set>]/photos). Χρήσιμο για δοκιμές και για το demo."""
+    path = (config.SHELF_DIR / "photos" / name).resolve()
+    if path.parent != (config.SHELF_DIR / "photos").resolve() or not path.is_file():
+        raise HTTPException(404, "Δεν υπάρχει αυτή η φωτογραφία")
+    return FileResponse(path, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/links")
@@ -348,12 +357,13 @@ async def system():
     """Για το /dev: τι είναι ρυθμισμένο, τι λείπει και τι να κάνεις γι\' αυτό. Κανένα κλειδί δεν επιστρέφεται."""
     from .tools import REGISTRY
     ref = (config.ROOT / config.VISION_REFERENCE) if config.VISION_REFERENCE else None
-    eval_cases = sorted(p.name[: -len(".truth.json")] for p in (config.DATA_DIR / "shelf" / "eval").glob("*.truth.json"))
+    eval_cases = sorted(p.name[: -len(".truth.json")] for p in (config.SHELF_DIR / "eval").glob("*.truth.json"))
     evals = sorted((config.WORKSPACE / "eval").glob("eval_*.json"))
     phone = _phone_url("/tasks")
     def check(ok: bool, text: str, fix: str = "", level: str = "no") -> dict:
         return {"ok": ok, "text": text, "fix": "" if ok else fix, "level": "ok" if ok else level}
     return {
+        "shelf_set": config.SHELF_SET or "shelf",
         "vision": {
             "provider": config.vision_provider(), "model": config.vision_model(),
             "prompt": __import__("agentkit.vision.prompts", fromlist=["PROMPT_VERSION"]).PROMPT_VERSION,

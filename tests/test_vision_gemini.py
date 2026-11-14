@@ -14,6 +14,12 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agentkit import config, demo_data                      # noqa: E402
+
+# Τα tests τρέχουν πάντα στο βασικό σετ (data/shelf), ό,τι SHELF_SET κι αν έχει το τερματικό.
+config.SHELF_SET = ""
+config.SHELF_DIR = config.DATA_DIR / "shelf"
+demo_data.SHELF_DIR = config.SHELF_DIR
+demo_data.PHOTOS_DIR = demo_data.SHELF_DIR / "photos"
 from agentkit.vision import gemini, prompts, reader         # noqa: E402
 from agentkit.vision.schema import READING_SCHEMA           # noqa: E402
 

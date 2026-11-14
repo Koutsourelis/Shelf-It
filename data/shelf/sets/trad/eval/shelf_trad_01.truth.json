@@ -1,0 +1,72 @@
+{
+  "photo": "data/shelf/sets/trad/photos/shelf_trad_01.jpg",
+  "note": "Μετρημένο πάνω στη φωτογραφία shelf_trad_01.jpg (ράφι 1 = πάνω). Οι προσόψεις είναι η μπροστινή σειρά· διορθώστε αν βλέπετε άλλο.",
+  "items": [
+    {
+      "sku": "T01",
+      "shelf": 1,
+      "facings": 4
+    },
+    {
+      "sku": "T02",
+      "shelf": 1,
+      "facings": 6
+    },
+    {
+      "sku": "T03",
+      "shelf": 1,
+      "facings": 4
+    },
+    {
+      "sku": "T04",
+      "shelf": 2,
+      "facings": 3
+    },
+    {
+      "sku": "T05",
+      "shelf": 2,
+      "facings": 3
+    },
+    {
+      "sku": "T06",
+      "shelf": 2,
+      "facings": 5
+    },
+    {
+      "sku": "T07",
+      "shelf": 2,
+      "facings": 2
+    },
+    {
+      "sku": "T08",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "T09",
+      "shelf": 3,
+      "facings": 3
+    },
+    {
+      "sku": "T10",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "T11",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "T12",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "T13",
+      "shelf": 3,
+      "facings": 3
+    }
+  ],
+  "occluded": false
+}

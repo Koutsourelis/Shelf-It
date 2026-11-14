@@ -103,7 +103,11 @@ PUBLIC_URL = _env("PUBLIC_URL")
 
 # --- Φάκελοι -----------------------------------------------------------
 DATA_DIR = ROOT / "data"
-DB_PATH = DATA_DIR / "demo.duckdb"
+# SHELF_SET: κενό = data/shelf (το ράφι του καφέ) · αλλιώς data/shelf/sets/<set>, με δική του βάση.
+# Ισχύει για server, make_demo_data, eval_vision: SHELF_SET=trad python ...
+SHELF_SET = _env("SHELF_SET")
+SHELF_DIR = DATA_DIR / ("shelf/sets/" + SHELF_SET if SHELF_SET else "shelf")
+DB_PATH = DATA_DIR / (f"demo_{SHELF_SET}.duckdb" if SHELF_SET else "demo.duckdb")
 WORKSPACE = ROOT / "workspace"      # ό,τι παράγει ο agent (αναφορές, γραφήματα, στιγμιότυπα)
 OUTBOX = WORKSPACE / "outbox"       # email που «στάλθηκαν» όταν δεν υπάρχει SMTP
 RUNS_DIR = ROOT / "runs"            # ιστορικό κάθε εκτέλεσης (για replay)

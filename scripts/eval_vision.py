@@ -32,7 +32,7 @@ from agentkit import config                       # noqa: E402
 from agentkit.vision import read_photo            # noqa: E402
 from agentkit.vision.prompts import PROMPT_VERSION  # noqa: E402
 
-EVAL_DIR = config.DATA_DIR / "shelf" / "eval"
+EVAL_DIR = config.SHELF_DIR / "eval"          # ακολουθεί το SHELF_SET
 PHOTO_TYPES = (".jpg", ".jpeg", ".png", ".webp")
 
 

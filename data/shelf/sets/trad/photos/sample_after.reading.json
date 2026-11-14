@@ -1,0 +1,176 @@
+{
+  "occluded": false,
+  "items": [
+    {
+      "sku": "T01",
+      "label": "",
+      "shelf": 1,
+      "position": 1,
+      "facings": 4,
+      "box_2d": [
+        250,
+        104,
+        555,
+        369
+      ]
+    },
+    {
+      "sku": "T02",
+      "label": "",
+      "shelf": 1,
+      "position": 2,
+      "facings": 6,
+      "box_2d": [
+        250,
+        377,
+        555,
+        642
+      ]
+    },
+    {
+      "sku": "T03",
+      "label": "",
+      "shelf": 1,
+      "position": 3,
+      "facings": 4,
+      "box_2d": [
+        250,
+        650,
+        555,
+        916
+      ]
+    },
+    {
+      "sku": "T04",
+      "label": "",
+      "shelf": 2,
+      "position": 4,
+      "facings": 3,
+      "box_2d": [
+        600,
+        104,
+        855,
+        301
+      ]
+    },
+    {
+      "sku": "T05",
+      "label": "",
+      "shelf": 2,
+      "position": 5,
+      "facings": 3,
+      "box_2d": [
+        600,
+        309,
+        855,
+        506
+      ]
+    },
+    {
+      "sku": "T06",
+      "label": "",
+      "shelf": 2,
+      "position": 6,
+      "facings": 5,
+      "box_2d": [
+        600,
+        514,
+        855,
+        711
+      ]
+    },
+    {
+      "sku": "T07",
+      "label": "",
+      "shelf": 2,
+      "position": 7,
+      "facings": 2,
+      "box_2d": [
+        600,
+        719,
+        855,
+        916
+      ]
+    },
+    {
+      "sku": "T08",
+      "label": "",
+      "shelf": 3,
+      "position": 8,
+      "facings": 2,
+      "box_2d": [
+        880,
+        104,
+        1095,
+        232
+      ]
+    },
+    {
+      "sku": "T09",
+      "label": "",
+      "shelf": 3,
+      "position": 9,
+      "facings": 3,
+      "box_2d": [
+        880,
+        240,
+        1095,
+        369
+      ]
+    },
+    {
+      "sku": "T10",
+      "label": "",
+      "shelf": 3,
+      "position": 10,
+      "facings": 2,
+      "box_2d": [
+        880,
+        377,
+        1095,
+        506
+      ]
+    },
+    {
+      "sku": "T11",
+      "label": "",
+      "shelf": 3,
+      "position": 11,
+      "facings": 2,
+      "box_2d": [
+        880,
+        514,
+        1095,
+        642
+      ]
+    },
+    {
+      "sku": "T12",
+      "label": "",
+      "shelf": 3,
+      "position": 12,
+      "facings": 2,
+      "box_2d": [
+        880,
+        650,
+        1095,
+        779
+      ]
+    },
+    {
+      "sku": "T13",
+      "label": "",
+      "shelf": 3,
+      "position": 13,
+      "facings": 3,
+      "box_2d": [
+        880,
+        787,
+        1095,
+        916
+      ]
+    }
+  ],
+  "gaps": [],
+  "visual_issues": []
+}

@@ -49,9 +49,35 @@ SCHEMA_HINT = """
 - shelf_issues, replenishment, shelf_checks: τα αποτελέσματα των check_planogram και replenishment_plan.
 """
 
-SAMPLE = "data/shelf/photos/sample_before.png"
+def _sample() -> str:
+    """Η φωτογραφία δοκιμής του ενεργού σετ (SHELF_SET), για το ψεύτικο μοντέλο."""
+    for ext in ("png", "jpg"):
+        p = config.SHELF_DIR / "photos" / f"sample_before.{ext}"
+        if p.exists():
+            return p.relative_to(config.ROOT).as_posix()
+    return "data/shelf/photos/sample_before.png"
+
+
+SAMPLE = _sample()
 
 _PLAN = ["Ανάγνωση φωτογραφίας", "Σύγκριση με το πλανόγραμμα", "Αναπλήρωση και παραγγελία", "Πρόταση διάταξης", "Αναφορά"]
+
+
+def _mock_order_line() -> list:
+    """Γραμμή παραγγελίας για το ψεύτικο μοντέλο: ο πρώτος κωδικός που δεν υπάρχει στην αποθήκη.
+
+    Χωρίς αυτό, το ψεύτικο σενάριο θα παρήγγειλε κωδικό άλλου σετ (SHELF_SET) και η παραγγελία θα έπεφτε.
+    """
+    try:
+        from .tools.data import run_sql
+        _, rows = run_sql("select pl.sku, p.case_size from planogram pl join products p using (sku) "
+                          "left join backroom b using (sku) where coalesce(b.on_hand, 0) = 0 "
+                          "order by pl.shelf limit 1")
+        if rows:
+            return [{"sku": rows[0][0], "cases": 1}]
+    except Exception:
+        pass
+    return [{"sku": "C04", "cases": 1}]
 
 
 def _plan(done: int) -> tuple:
@@ -94,7 +120,7 @@ SHELF = Scenario(
                           "order_from_warehouse", "product_evidence", "describe_data", "sql_query", "make_chart"],
     examples=[
         f"Έλεγξε το ράφι στη φωτογραφία {SAMPLE} και κάνε ό,τι χρειάζεται.",
-        "Το ράφι διορθώθηκε. Ξαναέλεγξέ το με τη φωτογραφία data/shelf/photos/sample_after.png.",
+        "Το ράφι διορθώθηκε. Ξαναέλεγξέ το με τη φωτογραφία " + SAMPLE.replace("sample_before", "sample_after") + ".",
         "Ποιοι κωδικοί έχουν λιγότερο χώρο από όσο δικαιολογούν οι πωλήσεις τους;",
     ],
     mock_script=[
@@ -103,10 +129,10 @@ SHELF = Scenario(
         ("Συγκρίνω με το πλανόγραμμα.", [_plan(1), ("check_planogram", {})]),
         ("Υπολογίζω την αναπλήρωση.", [_plan(2), ("replenishment_plan", {})]),
         ("Στέλνω τις εργασίες στον υπάλληλο.", [("notify_user", {"message":
-            "Εργασίες για το ράφι καφέ:\n1. Φέρε από την αποθήκη: C02 Ελληνικός καφές 200g, 8 τεμάχια, ράφι 1.\n"
-            "2. Μετακίνησε: C08 Τσάι του βουνού από το ράφι 1 στο ράφι 3.\n"
-            "3. C04 Κάψουλες espresso: δεν υπάρχει στην αποθήκη, έγινε παραγγελία."})]),
-        ("Παραγγέλνω ό,τι δεν υπάρχει στην αποθήκη.", [("order_from_warehouse", {"lines": [{"sku": "C04", "cases": 1}]})]),
+            "Εργασίες για το ράφι (δοκιμαστικό κείμενο του ψεύτικου μοντέλου):\n1. Φέρε από την αποθήκη ό,τι λείπ"
+            "ει, στη θέση που λέει το πλανόγραμμα.\n2. Μετακίνησε ό,τι είναι σε λάθος ράφι.\n"
+            "3. Ό,τι δεν υπάρχει στην αποθήκη παραγγέλνεται αυτόματα."})]),
+        ("Παραγγέλνω ό,τι δεν υπάρχει στην αποθήκη.", [("order_from_warehouse", {"lines": _mock_order_line()})]),
         ("Ελέγχω τη διάταξη.", [_plan(3), ("layout_suggestions", {})]),
         ("Γράφω την αναφορά.", [_plan(4), ("write_file", {"path": "shelf_report.md", "content":
             "# Έλεγχος ραφιού (δοκιμαστική αναφορά)\n\nΑναφορά από το ψεύτικο μοντέλο, για έλεγχο της ροής.\n\n"

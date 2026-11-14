@@ -34,7 +34,11 @@ async def main() -> None:
     # Ο έλεγχος δουλεύει σε δικό του αντίγραφο της βάσης, ώστε να τρέχει και όσο είναι ανοιχτός ο server.
     config.DB_PATH = config.DATA_DIR / "_check.duckdb"
     summary = demo_data.build()
-    sample = demo_data.PHOTOS_DIR / "sample_before.png"
+    sample = next((demo_data.PHOTOS_DIR / f"sample_before.{ext}" for ext in ("png", "jpg")
+                   if (demo_data.PHOTOS_DIR / f"sample_before.{ext}").exists()), None)
+    if sample is None:
+        report("Φωτογραφία δοκιμής", False, f"λείπει το sample_before.png ή .jpg από το {demo_data.PHOTOS_DIR}")
+        sys.exit(1)
     report("Δεδομένα demo", config.DB_PATH.exists() and sample.exists(),
            f"{summary['products']} κωδικοί, {summary['planogram_slots']} θέσεις πλανογράμματος" if sample.exists()
            else "λείπουν οι δοκιμαστικές φωτογραφίες → τρέξε: python scripts/make_demo_data.py --samples")
@@ -57,7 +61,9 @@ async def main() -> None:
 
     # Πακέτο τεκμηρίων: με το ψεύτικο μοντέλο δεν γίνεται αναζήτηση· ελέγχουμε μορφή και περιθώριο από κώδικα.
     from agentkit.tools.evidence import build_pack
-    pack = await build_pack("C01")
+    from agentkit.tools.data import run_sql
+    _, first = run_sql("select sku from products order by sku limit 1")
+    pack = await build_pack(first[0][0])          # ο πρώτος κωδικός του ενεργού σετ
     report("Πακέτο τεκμηρίων", pack["margin_pct"] is not None and pack["status"] in ("sufficient", "insufficient"),
            f"{pack['sku']}: περιθώριο {pack['margin_pct']}%, status {pack['status']}, πηγές {pack['sources']}")
 

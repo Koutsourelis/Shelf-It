@@ -6,6 +6,8 @@ workspace/
 runs/
 data/demo.duckdb
 data/demo.duckdb.wal
+data/demo_*.duckdb
+data/demo_*.duckdb.wal
 .claude/
 team-repo/
 data/_check.duckdb*

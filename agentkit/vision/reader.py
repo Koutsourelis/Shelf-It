@@ -17,7 +17,7 @@ from collections import OrderedDict
 from pathlib import Path
 
 from .. import config
-from ..demo_data import PHOTOS_DIR
+from .. import demo_data
 from ..llm.structured import structured
 from . import gemini, prompts
 from .schema import READING_SCHEMA
@@ -30,7 +30,7 @@ _mock_name = "sample_before"
 def set_mock_reading(name: str) -> None:
     """Για mock: τι «βλέπει» το μοντέλο σε frames χωρίς .reading.json (π.χ. 'sample_before', 'sample_after')."""
     global _mock_name
-    if not (PHOTOS_DIR / f"{name}.reading.json").exists():
+    if not (demo_data.PHOTOS_DIR / f"{name}.reading.json").exists():
         raise FileNotFoundError(f"Δεν υπάρχει data/shelf/photos/{name}.reading.json")
     _mock_name = name
 
@@ -106,7 +106,7 @@ async def read_photo(path: Path) -> dict:
     if config.vision_provider() == "mock":
         side = path.with_suffix(".reading.json")
         if not side.exists():
-            side = PHOTOS_DIR / f"{_mock_name}.reading.json"
+            side = demo_data.PHOTOS_DIR / f"{_mock_name}.reading.json"
         return normalize(json.loads(side.read_text(encoding="utf-8")), known)
 
     ref = _reference()
