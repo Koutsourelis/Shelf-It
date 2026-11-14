@@ -38,10 +38,11 @@ def build(today: date | None = None, seed: int = 42) -> dict:
 
     catalog = _rows("catalog.csv")
     con.execute("create table products(sku varchar, name varchar, brand varchar, unit_cost double, "
-                "unit_price double, case_size int)")
-    con.executemany("insert into products values (?,?,?,?,?,?)",
+                "unit_price double, case_size int, category varchar, price_source varchar, cost_source varchar)")
+    con.executemany("insert into products values (?,?,?,?,?,?,?,?,?)",
                     [(p["sku"], p["name"], p["brand"], float(p["unit_cost"]), float(p["unit_price"]),
-                      int(p["case_size"])) for p in catalog])
+                      int(p["case_size"]), p.get("category") or "", p.get("price_source") or "",
+                      p.get("cost_source") or "") for p in catalog])
 
     planogram = _rows("planogram.csv")
     con.execute("create table planogram(shelf int, level varchar, position int, sku varchar, facings int, depth int)")

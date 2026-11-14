@@ -42,6 +42,15 @@ SMTP_USER = _env("SMTP_USER")
 SMTP_PASSWORD = _env("SMTP_PASSWORD")
 SMTP_FROM = _env("SMTP_FROM") or SMTP_USER
 
+# --- Τεκμήρια από το διαδίκτυο (agentkit/tools/evidence.py) -----------------
+# Χωρίς token treg η αναζήτηση γίνεται με DuckDuckGo, χωρίς κλειδί.
+TREG_TOKEN = _env("TREG_TOKEN")
+TREG_ORG = _env("TREG_ORG")
+TREG_SEARCH_TOOL = _env("TREG_SEARCH_TOOL")          # id εργαλείου αναζήτησης από το `treg catalog search`
+TREG_QUERY_PARAM = _env("TREG_QUERY_PARAM", "q")     # όνομα της παραμέτρου του ερωτήματος σε αυτό το εργαλείο
+EVIDENCE_REGION = _env("EVIDENCE_REGION", "Ελλάδα")
+EVIDENCE_MIN_SOURCES = int(_env("EVIDENCE_MIN_SOURCES", "2"))
+
 # --- Ταυτότητα του project (φαίνεται στην κονσόλα) --------------------------
 PROJECT_NAME = _env("PROJECT_NAME", "Agent Console")
 PROJECT_TAGLINE = _env("PROJECT_TAGLINE")
