@@ -17,7 +17,8 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.58 cannot install its browser on Ubuntu 26, where ubuntu-latest now points.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       LLM_PROVIDER: mock
