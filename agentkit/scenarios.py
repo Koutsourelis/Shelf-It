@@ -1,7 +1,7 @@
 """Σενάρια: κάθε σενάριο = ρόλος (prompt) + λίστα εργαλείων + παραδείγματα στόχων.
 
-Για νέο σενάριο στο hackathon: αντίγραψε ένα από τα παρακάτω, άλλαξε το prompt και τα
-εργαλεία, πρόσθεσέ το στο SCENARIOS. Δεν χρειάζεται αλλαγή πουθενά αλλού.
+Το project έχει ένα σενάριο, τον υπεύθυνο ραφιού. Για δεύτερο ρόλο (π.χ. category manager):
+αντίγραψε το SHELF, άλλαξε το prompt και τα εργαλεία, πρόσθεσέ το στο SCENARIOS.
 """
 from dataclasses import dataclass, field
 from datetime import date
@@ -15,10 +15,9 @@ COMMON_RULES = """
 - Ξεκίνα πάντα με το update_plan (3 έως 6 βήματα) και ενημέρωνέ το όσο προχωράς.
 - Δούλεψε αυτόνομα μέχρι το τέλος. Μη ρωτάς τον χρήστη κάτι που μπορείς να βρεις με τα εργαλεία σου.
 - Στήριξε κάθε ισχυρισμό σε αριθμούς που πήρες από εργαλείο. Μην επινοείς στοιχεία.
-- Μην κάνεις πράξεις νοερά. Κάθε αριθμός που δεν διάβασες αυτούσιο (διαφορά, ποσοστό, άθροισμα, επίπτωση) βγαίνει
-  από SQL ή από το compute. Στοιχεία από έγγραφα τα παίρνεις με το extract_fields όπου είναι διαθέσιμο.
+- Μην κάνεις πράξεις νοερά. Κάθε αριθμός που δεν διάβασες αυτούσιο από εργαλείο βγαίνει από SQL ή από το compute.
 - Αν ένα εργαλείο αποτύχει, δοκίμασε άλλον δρόμο πριν τα παρατήσεις.
-- Ενέργειες προς τα έξω (email, παραγγελία) περνούν από έγκριση ανθρώπου· ετοίμασέ τες πλήρως ώστε να αρκεί ένα «ναι».
+- Ενέργειες προς τα έξω (παραγγελία, email) περνούν από έγκριση ανθρώπου· ετοίμασέ τες πλήρως ώστε να αρκεί ένα «ναι».
 - Πριν το τελικό μήνυμα κάλεσε μία φορά το headline_result με το ένα πιο σημαντικό αποτέλεσμα σε αριθμό.
 - Το τελικό σου μήνυμα είναι σύντομο (έως 8 γραμμές), στα ελληνικά: τι βρήκες, τι έκανες, ποια αρχεία παρέδωσες, τι μένει.
 """
@@ -40,177 +39,86 @@ class Scenario:
 
 
 SCHEMA_HINT = """
-Βάση δεδομένων (DuckDB) της «Αγορά Plus», αλυσίδας χονδρικής με 4 καταστήματα:
-- sales(date, store_id, sku, qty, revenue, cost): ημερήσιες πωλήσεις. Περιθώριο = revenue - cost.
-- products(sku, name, category, supplier_id, unit_cost, unit_price)
-- suppliers(supplier_id, name, email, lead_days)
-- stores(store_id, name, city)
-- stock(store_id, sku, on_hand, reorder_point)
-- supplier_prices(supplier_id, sku, price, min_qty, valid_from): τιμοκατάλογοι όλων των προμηθευτών.
-- customer_weekly_needs(customer, sku, weekly_qty)
-- invoices(...), bank_transactions(date, description, counterparty, amount)
+Βάση δεδομένων (DuckDB) του τμήματος:
+- products(sku, name, brand, unit_cost, unit_price, case_size): ο κατάλογος.
+- planogram(shelf, level, position, sku, facings, depth): πού ανήκει κάθε κωδικός. shelf 1 = το πάνω ράφι,
+  level = top / eye / bottom, facings = προσόψεις, depth = τεμάχια πίσω από κάθε πρόσοψη.
+- backroom(sku, on_hand): απόθεμα στην αποθήκη του καταστήματος.
+- sales(date, sku, qty, revenue, cost): ημερήσιες πωλήσεις 28 ημερών.
+- shelf_observation, shelf_gaps: τι διάβασε το read_shelf από την τελευταία φωτογραφία.
+- shelf_issues, replenishment, shelf_checks: τα αποτελέσματα των check_planogram και replenishment_plan.
 """
 
+SAMPLE = "data/shelf/photos/sample_before.png"
+
+_PLAN = ["Ανάγνωση φωτογραφίας", "Σύγκριση με το πλανόγραμμα", "Αναπλήρωση και παραγγελία", "Πρόταση διάταξης", "Αναφορά"]
+
+
+def _plan(done: int) -> tuple:
+    """Βήμα update_plan για το ψεύτικο μοντέλο: τα πρώτα `done` βήματα τελειωμένα, το επόμενο σε εξέλιξη."""
+    return ("update_plan", {"steps": [
+        {"title": t, "status": "done" if i < done else "in_progress" if i == done else "pending"}
+        for i, t in enumerate(_PLAN)]})
+
+
 # ---------------------------------------------------------------------------
-ANALYST = Scenario(
-    name="analyst",
-    title="Εμπορικός αναλυτής",
-    description="Εντοπίζει μόνος του τι άλλαξε στα νούμερα, βρίσκει την αιτία και ετοιμάζει την ενέργεια.",
+SHELF = Scenario(
+    name="shelf",
+    title="Υπεύθυνος ραφιού",
+    description="Από μια φωτογραφία ραφιού: τι λείπει, τι είναι σε λάθος θέση, τι έρχεται από την αποθήκη, τι παραγγέλνεται.",
     prompt=f"""
-Είσαι ο εμπορικός αναλυτής της «Αγορά Plus». Δεν γράφεις απλώς αναφορές: βρίσκεις την αιτία ενός
-προβλήματος και ετοιμάζεις τη διορθωτική ενέργεια.
+Είσαι ο βοηθός του υπεύθυνου τμήματος σε ένα supermarket. Ο υπεύθυνος φωτογραφίζει ένα ράφι με το κινητό και
+εσύ κάνεις όλη τη δουλειά ως το τέλος: βρίσκεις τι δεν πάει καλά, ετοιμάζεις την αναπλήρωση, παραγγέλνεις ό,τι
+δεν υπάρχει στην αποθήκη και ελέγχεις ξανά όταν το ράφι διορθωθεί.
 {SCHEMA_HINT}
-Μέθοδος:
-1. Μέτρησε το πρόβλημα (πόσο, από πότε, σε σχέση με τον μέσο όρο των προηγούμενων 14 ημερών).
-2. Κατέβα επίπεδα μέχρι να βρεις την αιτία: κατηγορία → προϊόν → προμηθευτής → κατάστημα. Ξεχώρισε αν
-   άλλαξε ο όγκος, η τιμή πώλησης ή το κόστος.
-3. Υπολόγισε την επίπτωση σε ευρώ ανά ημέρα και ανά μήνα αν δεν γίνει τίποτα.
-4. Πρότεινε συγκεκριμένη ενέργεια με αριθμούς (π.χ. νέα τιμή ανά προϊόν ή εναλλακτικός προμηθευτής από το supplier_prices).
-5. Παράδωσε: (α) αναφορά μίας σελίδας «report.html» με 1-2 γραφήματα (make_chart) και πίνακα ενεργειών,
-   (β) έτοιμο email προς τον προμηθευτή ή τη διοίκηση με send_email.
+Μέθοδος για κάθε νέα φωτογραφία:
+1. read_shelf με τη φωτογραφία. Εσύ δεν βλέπεις την εικόνα· δουλεύεις μόνο με ό,τι επιστρέφει το εργαλείο.
+2. check_planogram: ευρήματα ανά κωδικό και ποσοστό συμμόρφωσης. Αν δείχνει προηγούμενο έλεγχο, ανέφερε τη διαφορά.
+3. replenishment_plan: τεμάχια από την αποθήκη και κιβώτια προς παραγγελία.
+4. Αν υπάρχουν ευρήματα, στείλε με notify_user τη λίστα εργασιών για τον υπάλληλο, μία γραμμή ανά εργασία, με τη
+   σειρά που θα τις κάνει: πρώτα «φέρε από την αποθήκη» (κωδικός, προϊόν, τεμάχια, ράφι), μετά «μετακίνησε».
+5. Αν κάποιος κωδικός δεν καλύπτεται από την αποθήκη, κάλεσε order_from_warehouse με τα κιβώτια του replenishment_plan.
+6. layout_suggestions: ανέφερε το πολύ δύο προτάσεις, με τους αριθμούς τους. Είναι προτάσεις για τον category
+   manager· δεν αλλάζεις εσύ το πλανόγραμμα.
+7. Γράψε «shelf_report.md»: συμμόρφωση, πίνακας ευρημάτων, λίστα αναπλήρωσης, παραγγελία, προτάσεις διάταξης,
+   και τη σημειωμένη φωτογραφία ως εικόνα.
+8. headline_result: αν λείπουν κωδικοί εντελώς, οι πωλήσεις σε κίνδυνο ανά ημέρα· αλλιώς το ποσοστό συμμόρφωσης.
+
+Αν ο στόχος είναι επανέλεγχος μετά από διόρθωση, κάνε τα βήματα 1 έως 3 και ανέφερε πριν και μετά. Αν όλα είναι
+σωστά, πες το σε μία γραμμή και μην προτείνεις τίποτα άλλο.
+Αν το read_shelf δεν αναγνωρίσει προϊόντα ή βρει πολλά άγνωστα, ζήτα νέα φωτογραφία αντί να συνεχίσεις.
 """,
-    tools=COMMON_TOOLS + ["describe_data", "sql_query", "make_chart", "send_email", "web_search", "fetch_url"],
+    tools=COMMON_TOOLS + ["read_shelf", "check_planogram", "replenishment_plan", "layout_suggestions",
+                          "order_from_warehouse", "describe_data", "sql_query", "make_chart"],
     examples=[
-        "Γιατί έπεσε το περιθώριο χθες; Βρες την αιτία και ετοίμασε ό,τι χρειάζεται για να διορθωθεί.",
-        "Ποια 5 προϊόντα αξίζει να αλλάξουν προμηθευτή; Υπολόγισε το ετήσιο όφελος.",
-        "Ετοίμασε την εβδομαδιαία εμπορική αναφορά για τη διοίκηση.",
+        f"Έλεγξε το ράφι στη φωτογραφία {SAMPLE} και κάνε ό,τι χρειάζεται.",
+        "Το ράφι διορθώθηκε. Ξαναέλεγξέ το με τη φωτογραφία data/shelf/photos/sample_after.png.",
+        "Ποιοι κωδικοί έχουν λιγότερο χώρο από όσο δικαιολογούν οι πωλήσεις τους;",
     ],
     mock_script=[
-        ("Ξεκινάω με πλάνο.", [("update_plan", {"steps": [
-            {"title": "Μέτρηση περιθωρίου ανά κατηγορία", "status": "in_progress"},
-            {"title": "Εντοπισμός αιτίας", "status": "pending"},
-            {"title": "Γράφημα και αναφορά", "status": "pending"},
-            {"title": "Email στον προμηθευτή", "status": "pending"}]})]),
-        ("Συγκρίνω την τελευταία ημέρα με τις προηγούμενες 14.", [("sql_query", {"sql":
-            "with d as (select max(date) m from sales) select p.category, "
-            "round(100*sum(case when s.date=d.m then s.revenue-s.cost end)/sum(case when s.date=d.m then s.revenue end),1) as margin_last, "
-            "round(100*sum(case when s.date<d.m and s.date>=d.m-14 then s.revenue-s.cost end)/sum(case when s.date<d.m and s.date>=d.m-14 then s.revenue end),1) as margin_avg14 "
-            "from sales s join products p using(sku), d group by 1 order by 2"})]),
-        ("Φτιάχνω το γράφημα της τάσης.", [("make_chart", {"sql":
-            "select strftime(s.date,'%d/%m') d, round(100*sum(s.revenue-s.cost)/sum(s.revenue),1) as margin_pct "
-            "from sales s where s.date >= (select max(date) from sales) - 20 group by s.date order by s.date",
-            "kind": "line", "title": "Περιθώριο % ανά ημέρα", "filename": "margin_trend.png"}),
-            ("update_plan", {"steps": [
-                {"title": "Μέτρηση περιθωρίου ανά κατηγορία", "status": "done"},
-                {"title": "Εντοπισμός αιτίας", "status": "done"},
-                {"title": "Γράφημα και αναφορά", "status": "in_progress"},
-                {"title": "Email στον προμηθευτή", "status": "pending"}]})]),
-        ("Γράφω την αναφορά.", [("write_file", {"path": "report.html", "content":
-            "<html><meta charset='utf-8'><body style='font-family:Arial;max-width:800px;margin:40px auto'>"
-            "<h1>Πτώση περιθωρίου: δοκιμαστική αναφορά</h1><p>Αναφορά από το ψεύτικο μοντέλο, για έλεγχο της ροής.</p>"
-            "<img src='margin_trend.png' style='width:100%'></body></html>"})]),
-        ("Ετοιμάζω το email.", [("send_email", {"to": "sales@galaktokomiki-ipeirou.example",
-            "subject": "Αύξηση τιμών: αίτημα επανεξέτασης",
-            "body": "Καλησπέρα σας,\n\nδιαπιστώσαμε αύξηση κόστους στα προϊόντα σας. Παρακαλούμε για επικοινωνία.\n\nΑγορά Plus"})]),
-        ("Υπολογίζω την επίπτωση με κώδικα.", [("compute", {"label": "Απώλεια ανά μήνα (€)",
-            "expression": "round(daily_loss * 26, 0)", "variables": {"daily_loss": 48.5}})]),
-        ("Δηλώνω το βασικό αποτέλεσμα.", [("headline_result", {"value": "1.261 €", "label": "απώλεια ανά μήνα αν δεν γίνει τίποτα",
-            "detail": "Δοκιμαστικός αριθμός από το ψεύτικο μοντέλο."}),
-            ("update_plan", {"steps": [
-                {"title": "Μέτρηση περιθωρίου ανά κατηγορία", "status": "done"},
-                {"title": "Εντοπισμός αιτίας", "status": "done"},
-                {"title": "Γράφημα και αναφορά", "status": "done"},
-                {"title": "Email στον προμηθευτή", "status": "done"}]})]),
-        ("Ολοκληρώθηκε η δοκιμαστική ροή: μέτρηση, γράφημα, αναφορά (report.html) και email προς έγκριση.", []),
+        ("Ξεκινάω με πλάνο.", [_plan(0)]),
+        ("Διαβάζω τη φωτογραφία.", [("read_shelf", {"photo": SAMPLE})]),
+        ("Συγκρίνω με το πλανόγραμμα.", [_plan(1), ("check_planogram", {})]),
+        ("Υπολογίζω την αναπλήρωση.", [_plan(2), ("replenishment_plan", {})]),
+        ("Στέλνω τις εργασίες στον υπάλληλο.", [("notify_user", {"message":
+            "Εργασίες για το ράφι καφέ:\n1. Φέρε από την αποθήκη: C02 Ελληνικός καφές 200g, 8 τεμάχια, ράφι 1.\n"
+            "2. Μετακίνησε: C08 Τσάι του βουνού από το ράφι 1 στο ράφι 3.\n"
+            "3. C04 Κάψουλες espresso: δεν υπάρχει στην αποθήκη, έγινε παραγγελία."})]),
+        ("Παραγγέλνω ό,τι δεν υπάρχει στην αποθήκη.", [("order_from_warehouse", {"lines": [{"sku": "C04", "cases": 1}]})]),
+        ("Ελέγχω τη διάταξη.", [_plan(3), ("layout_suggestions", {})]),
+        ("Γράφω την αναφορά.", [_plan(4), ("write_file", {"path": "shelf_report.md", "content":
+            "# Έλεγχος ραφιού (δοκιμαστική αναφορά)\n\nΑναφορά από το ψεύτικο μοντέλο, για έλεγχο της ροής.\n\n"
+            "![Σημειωμένη φωτογραφία](shelf_check_sample_before.png)\n"})]),
+        ("Δηλώνω το βασικό αποτέλεσμα.", [("headline_result", {"value": "66,7 %", "label": "συμμόρφωση με το πλανόγραμμα",
+            "detail": "Δοκιμαστικός αριθμός από το ψεύτικο μοντέλο."}), _plan(5)]),
+        ("Ολοκληρώθηκε η δοκιμαστική ροή: ανάγνωση φωτογραφίας, έλεγχος, αναπλήρωση, παραγγελία, πρόταση διάταξης και "
+         "αναφορά (shelf_report.md).", []),
     ],
 )
 
-# ---------------------------------------------------------------------------
-PROCUREMENT = Scenario(
-    name="procurement",
-    title="Υπάλληλος προμηθειών",
-    description="Παίρνει έναν στόχο αγορών, συγκρίνει προμηθευτές και καταχωρεί την παραγγελία.",
-    prompt=f"""
-Είσαι ο υπάλληλος προμηθειών ενός μικρού εστιατορίου («Ταβέρνα Το Λιμανάκι»). Ο ιδιοκτήτης σου δίνει έναν
-στόχο και εσύ παραδίδεις έτοιμη παραγγελία.
-{SCHEMA_HINT}
-Μέθοδος:
-1. Βρες τι χρειάζεται (customer_weekly_needs) και τι προσφέρει κάθε προμηθευτής (supplier_prices· πρόσεξε το min_qty).
-2. Διάλεξε τον φθηνότερο συνδυασμό μέσα στο όριο δαπάνης. Υπολόγισε πόσα γλιτώνει σε σχέση με την αγορά όλων
-   από τον κύριο προμηθευτή.
-3. Για τα ποτά υπάρχει το portal του προμηθευτή στο {config.BASE_URL}/portal (σύνδεση: demo / demo). Μπες με τα
-   browser_*, βάλε τα προϊόντα στο καλάθι και υπέβαλε την παραγγελία. Κράτησε τον αριθμό παραγγελίας.
-4. Για τους υπόλοιπους προμηθευτές στείλε αίτημα παραγγελίας με send_email (ένα email ανά προμηθευτή).
-5. Γράψε «order_summary.md» με πίνακα: προϊόν, ποσότητα, προμηθευτής, τιμή, σύνολο, εξοικονόμηση.
-""",
-    tools=COMMON_TOOLS + ["describe_data", "sql_query", "send_email", "browser_open", "browser_click",
-                          "browser_type", "browser_download", "read_pdf", "web_search", "fetch_url"],
-    examples=[
-        "Γέμισέ μου το μαγαζί για την εβδομάδα, μέχρι 800 €.",
-        "Παράγγειλε μόνο τα ποτά της εβδομάδας από το portal.",
-    ],
-    mock_script=[
-        ("Πλάνο.", [("update_plan", {"steps": [
-            {"title": "Ανάγκες εβδομάδας", "status": "in_progress"},
-            {"title": "Παραγγελία ποτών στο portal", "status": "pending"},
-            {"title": "Σύνοψη", "status": "pending"}]})]),
-        ("Βλέπω τις ανάγκες.", [("sql_query", {"sql": "select n.sku, p.name, n.weekly_qty from customer_weekly_needs n join products p using(sku)"})]),
-        ("Μπαίνω στο portal.", [("browser_open", {"url": f"{config.BASE_URL}/portal/login"})]),
-        ("", [("browser_type", {"selector": "#username", "text": "demo"})]),
-        ("", [("browser_type", {"selector": "#password", "text": "demo", "press_enter": True})]),
-        ("Πάω στον κατάλογο.", [("browser_open", {"url": f"{config.BASE_URL}/portal/catalog"})]),
-        ("Προσθέτω νερά.", [("browser_type", {"selector": "#qty-P011", "text": "20"})]),
-        ("", [("browser_click", {"target": "#add-P011"})]),
-        ("Υποβάλλω.", [("browser_open", {"url": f"{config.BASE_URL}/portal/cart"})]),
-        ("", [("browser_click", {"target": "#checkout"})]),
-        ("Γράφω σύνοψη.", [("write_file", {"path": "order_summary.md", "content": "# Παραγγελία (δοκιμή)\n\n| Προϊόν | Ποσότητα |\n|---|---|\n| Νερό 1.5L x6 | 20 |\n"})]),
-        ("Ολοκληρώθηκε η δοκιμαστική ροή: σύνδεση στο portal, καλάθι, υποβολή παραγγελίας και σύνοψη.", []),
-    ],
-)
+SCENARIOS: dict[str, Scenario] = {s.name: s for s in (SHELF,)}
 
-# ---------------------------------------------------------------------------
-INVOICES = Scenario(
-    name="invoices",
-    title="Υπάλληλος τιμολογίων",
-    description="Μαζεύει τα τιμολόγια από email και portal, βρίσκει ποια λείπουν και τα ζητάει.",
-    prompt=f"""
-Είσαι ο υπάλληλος λογιστηρίου της «Αγορά Plus». Στόχος σου είναι ο πλήρης μηνιαίος φάκελος για τον λογιστή:
-κάθε πληρωμή της τράπεζας να έχει το τιμολόγιό της.
-{SCHEMA_HINT}
-Πηγές:
-- Κινήσεις τράπεζας: data/bank_statement.csv (ή ο πίνακας bank_transactions). Η περιγραφή έχει τον αριθμό τιμολογίου.
-- Τιμολόγια που ήρθαν με email: inbox_list / inbox_read, τα PDF βρίσκονται στο data/invoices (read_pdf).
-- Τιμολόγια του προμηθευτή «Ποτά Αιγαίου»: μόνο από το portal {config.BASE_URL}/portal (σύνδεση: demo / demo),
-  κατέβασέ τα με browser_download.
-Μέθοδος:
-1. Διάβασε κάθε τιμολόγιο και κράτησε αριθμό, προμηθευτή, ημερομηνία, καθαρή αξία, ΦΠΑ, σύνολο.
-2. Αντιστοίχισε με τις πληρωμές. Σημείωσε διαφορές ποσών.
-3. Για κάθε πληρωμή χωρίς τιμολόγιο, στείλε email στον προμηθευτή (η διεύθυνση είναι στον πίνακα suppliers) και ζήτα το.
-4. Παράδωσε «invoice_register.csv» (όλα τα τιμολόγια) και «reconciliation.md» (τι ταιριάζει, τι λείπει, τι ζητήθηκε).
-""",
-    tools=COMMON_TOOLS + ["describe_data", "sql_query", "read_pdf", "extract_fields", "inbox_list", "inbox_read", "send_email",
-                          "browser_open", "browser_click", "browser_type", "browser_download"],
-    examples=[
-        "Ετοίμασε τον φάκελο τιμολογίων του μήνα για τον λογιστή και κυνήγησε ό,τι λείπει.",
-        "Κατέβασε τα νέα τιμολόγια από το portal των Ποτών Αιγαίου και αρχειοθέτησέ τα.",
-    ],
-    mock_script=[
-        ("Πλάνο.", [("update_plan", {"steps": [
-            {"title": "Ανάγνωση εισερχομένων", "status": "in_progress"},
-            {"title": "Αντιστοίχιση με τράπεζα", "status": "pending"},
-            {"title": "Αίτημα για όσα λείπουν", "status": "pending"}]})]),
-        ("Διαβάζω τα εισερχόμενα.", [("inbox_list", {})]),
-        ("Διαβάζω τις κινήσεις.", [("read_file", {"path": "data/bank_statement.csv"})]),
-        ("Διαβάζω ένα τιμολόγιο.", [("list_files", {"folder": "data/invoices"})]),
-        ("Ελέγχω ένα ποσό με κώδικα.", [("compute", {"label": "Σύνολο με ΦΠΑ 24%", "expression": "round(net * 1.24, 2)", "variables": {"net": 1000}})]),
-        ("Ζητάω αυτό που λείπει.", [("send_email", {"to": "info@katharistika-notou.example",
-            "subject": "Αίτημα αποστολής τιμολογίου",
-            "body": "Καλησπέρα σας,\n\nδεν έχουμε λάβει το τιμολόγιο για την πληρωμή μας. Παρακαλούμε στείλτε το.\n\nΑγορά Plus"})]),
-        ("Ολοκληρώθηκε η δοκιμαστική ροή: εισερχόμενα, κινήσεις τράπεζας και αίτημα για τιμολόγιο που λείπει.", []),
-    ],
-)
 
-# ---------------------------------------------------------------------------
-BLANK = Scenario(
-    name="blank",
-    title="Κενό σενάριο (για το challenge)",
-    description="Γενικός agent με όλα τα εργαλεία. Αφετηρία για ό,τι ανακοινωθεί στο hackathon.",
-    prompt="Είσαι ένας ικανός, αυτόνομος βοηθός που φέρνει σε πέρας τον στόχο του χρήστη από την αρχή ως το τέλος.",
-    tools=COMMON_TOOLS + ["describe_data", "sql_query", "make_chart", "read_pdf", "extract_fields", "inbox_list", "inbox_read",
-                          "send_email", "web_search", "fetch_url", "browser_open", "browser_click",
-                          "browser_type", "browser_download"],
-    examples=["Βρες τι είναι το GenAI Summit 5 και γράψε μου σύνοψη μίας σελίδας."],
-    mock_script=[("Το κενό σενάριο δεν έχει δοκιμαστική ροή. Όρισε LLM_PROVIDER στο .env.", [])],
-)
-
-SCENARIOS: dict[str, Scenario] = {s.name: s for s in (ANALYST, PROCUREMENT, INVOICES, BLANK)}
+def get(name: str | None) -> Scenario:
+    """Το σενάριο με αυτό το όνομα· αν δεν υπάρχει (π.χ. παλιό DEFAULT_SCENARIO στο .env), το πρώτο."""
+    return SCENARIOS.get(name or "") or SCENARIOS.get(config.DEFAULT_SCENARIO) or next(iter(SCENARIOS.values()))

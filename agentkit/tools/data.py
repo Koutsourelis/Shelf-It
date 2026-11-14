@@ -77,7 +77,7 @@ async def sql_query(ctx, sql: str) -> str:
         "sql": {"type": "string", "description": "Ερώτημα SELECT: πρώτη στήλη = Χ, οι υπόλοιπες = τιμές"},
         "kind": {"type": "string", "enum": ["line", "bar"], "description": "Τύπος γραφήματος"},
         "title": {"type": "string", "description": "Τίτλος που λέει το συμπέρασμα"},
-        "filename": {"type": "string", "description": "π.χ. 'margin_trend.png'"},
+        "filename": {"type": "string", "description": "π.χ. 'space_vs_sales.png'"},
     },
 )
 async def make_chart(ctx, sql: str, kind: str, title: str, filename: str) -> str:

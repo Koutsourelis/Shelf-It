@@ -41,25 +41,3 @@ async def send_email(ctx, to: str, subject: str, body: str) -> str:
 
     await asyncio.to_thread(work)
     return f"Το email στάλθηκε στον {to}."
-
-
-@tool("inbox_list", "Δείξε τα εισερχόμενα email (αποστολέας, θέμα, συνημμένα).", {})
-async def inbox_list(ctx) -> str:
-    folder = config.DATA_DIR / "inbox"
-    if not folder.exists():
-        return "Δεν υπάρχουν εισερχόμενα."
-    rows = []
-    for f in sorted(folder.glob("*.json")):
-        m = json.loads(f.read_text(encoding="utf-8"))
-        rows.append(f"{f.stem} | {m['date']} | {m['from']} | {m['subject']} | συνημμένα: {', '.join(m.get('attachments', [])) or '-'}")
-    return "\n".join(rows) or "Κανένα μήνυμα."
-
-
-@tool("inbox_read", "Διάβασε ένα εισερχόμενο email.", {"id": {"type": "string", "description": "Το id από το inbox_list"}})
-async def inbox_read(ctx, id: str) -> str:
-    f = config.DATA_DIR / "inbox" / f"{id.split('/')[-1]}.json"
-    if not f.exists():
-        return "Δεν βρέθηκε."
-    m = json.loads(f.read_text(encoding="utf-8"))
-    att = ", ".join(f"data/invoices/{a}" for a in m.get("attachments", [])) or "-"
-    return f"Από: {m['from']}\nΗμερομηνία: {m['date']}\nΘέμα: {m['subject']}\nΣυνημμένα: {att}\n\n{m['body']}"

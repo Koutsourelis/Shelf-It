@@ -56,9 +56,9 @@ async def notify_user(ctx, message: str) -> str:
 @tool(
     "headline_result",
     "Δήλωσε το ένα βασικό αποτέλεσμα της δουλειάς σου, όπως θα το έλεγες σε μία φράση στον διευθυντή "
-    "(π.χ. τιμή «1.240 €», ετικέτα «όφελος ανά μήνα»). Κάλεσέ το μία φορά, λίγο πριν το τελικό σου μήνυμα. "
+    "(π.χ. τιμή «66,7 %», ετικέτα «συμμόρφωση ραφιού»). Κάλεσέ το μία φορά, λίγο πριν το τελικό σου μήνυμα. "
     "Η τιμή πρέπει να έχει βγει από SQL ή από το compute, όχι από νοερή πράξη.",
-    {"value": {"type": "string", "description": "Ο αριθμός με τη μονάδα του, π.χ. «1.240 €», «3 τιμολόγια», «−4,2 μονάδες»"},
+    {"value": {"type": "string", "description": "Ο αριθμός με τη μονάδα του, π.χ. «48 € ανά ημέρα», «3 κωδικοί», «66,7 %»"},
      "label": {"type": "string", "description": "Τι μετράει ο αριθμός, σε 2 έως 5 λέξεις"},
      "detail": {"type": "string", "description": "Προαιρετικά: μία σύντομη πρόταση για το πώς προκύπτει"}},
     required=["value", "label"],
@@ -71,7 +71,7 @@ async def headline_result(ctx, value: str, label: str, detail: str = "") -> str:
 @tool(
     "list_files",
     "Δείξε τα αρχεία ενός φακέλου. Διαθέσιμοι φάκελοι: 'workspace' (εδώ γράφεις) και 'data' (υλικό εισόδου).",
-    {"folder": {"type": "string", "description": "π.χ. 'data/invoices' ή 'workspace'"}},
+    {"folder": {"type": "string", "description": "π.χ. 'data/shelf/photos' ή 'workspace'"}},
 )
 async def list_files(ctx, folder: str) -> str:
     p = safe_path(folder)
@@ -85,8 +85,8 @@ async def list_files(ctx, folder: str) -> str:
 
 @tool(
     "read_file",
-    "Διάβασε αρχείο κειμένου (txt, md, csv, json, html). Για PDF χρησιμοποίησε το read_pdf.",
-    {"path": {"type": "string", "description": "π.χ. 'data/bank_statement.csv'"}},
+    "Διάβασε αρχείο κειμένου (txt, md, csv, json, html).",
+    {"path": {"type": "string", "description": "π.χ. 'data/shelf/planogram.csv'"}},
 )
 async def read_file(ctx, path: str) -> str:
     p = safe_path(path)
@@ -98,7 +98,7 @@ async def read_file(ctx, path: str) -> str:
     "write_file",
     "Γράψε αρχείο στο workspace (αναφορά .md/.html, .csv, .json). Τα αρχεία εμφανίζονται στον χρήστη ως παραδοτέα.",
     {
-        "path": {"type": "string", "description": "Όνομα αρχείου μέσα στο workspace, π.χ. 'report.html'"},
+        "path": {"type": "string", "description": "Όνομα αρχείου μέσα στο workspace, π.χ. 'shelf_report.md'"},
         "content": {"type": "string", "description": "Το πλήρες περιεχόμενο"},
     },
 )

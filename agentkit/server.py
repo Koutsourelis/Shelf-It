@@ -4,15 +4,18 @@
 """
 import asyncio
 import json
+import time
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import agent, config, demo_data, events, portal, telegram, watchers
+from . import scenarios
 from .scenarios import SCENARIOS
 from .tools import browser
 
@@ -55,7 +58,7 @@ async def get_config():
         "logo": "/brand/logo" if logo else None,
         "provider": config.LLM_PROVIDER,
         "model": {"anthropic": config.ANTHROPIC_MODEL, "openai_compat": config.OPENAI_COMPAT_MODEL}.get(config.LLM_PROVIDER, "mock"),
-        "default_scenario": config.DEFAULT_SCENARIO,
+        "default_scenario": scenarios.get(None).name,
         "auto_approve": config.AUTO_APPROVE,
         "watchers": config.WATCHERS_ENABLED,
         "telegram": bool(config.TELEGRAM_BOT_TOKEN),
@@ -128,14 +131,11 @@ async def stream():
 
 @app.post("/api/demo/{action}")
 async def demo(action: str):
-    if action == "margin_drop":
-        text = await asyncio.to_thread(demo_data.inject_margin_drop)
-    elif action == "stock_out":
-        text = await asyncio.to_thread(demo_data.inject_stock_out)
-    elif action == "reset":
+    if action == "reset":
         await asyncio.to_thread(demo_data.build)
+        portal.orders.clear()
         watchers.reset()
-        text = "Τα δεδομένα επανήλθαν στην αρχική κατάσταση."
+        text = "Τα δεδομένα επανήλθαν στην αρχική κατάσταση (πλανόγραμμα, αποθήκη, έλεγχοι, παραγγελίες)."
     elif action == "check_now":
         started = await watchers.check_once(telegram.default_notifier)
         text = f"Έλεγχος τώρα: ξεκίνησαν {len(started)} εκτελέσεις."
@@ -145,13 +145,39 @@ async def demo(action: str):
     return {"ok": True, "text": text}
 
 
+# --- Φωτογραφία ραφιού από το κινητό ---------------------------------------
+
+@app.get("/capture")
+async def capture_page():
+    """Σελίδα για το κινητό: ανοίγει την κάμερα και στέλνει τη φωτογραφία. Θέλει HOST=0.0.0.0 και ίδιο δίκτυο."""
+    return FileResponse(CONSOLE / "capture.html", headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/shelf/photo")
+async def shelf_photo(file: UploadFile):
+    """Αποθηκεύει τη φωτογραφία στο workspace/photos και ξεκινά αμέσως τον έλεγχο του ραφιού."""
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in watchers.PHOTO_TYPES:
+        raise HTTPException(400, "Δεκτές μορφές: jpg, png, webp")
+    data = await file.read()
+    if not data or len(data) > 25_000_000:
+        raise HTTPException(400, "Κενό ή πολύ μεγάλο αρχείο (όριο 25 MB)")
+    watchers.PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+    name = f"shelf_{time.strftime('%H%M%S')}{ext}"
+    (watchers.PHOTO_DIR / name).write_bytes(data)
+    watchers.mark_seen(name)
+    run_id = agent.start_run(watchers.photo_goal(name), "shelf", source="camera", notifier=telegram.default_notifier())
+    return {"ok": True, "photo": name, "run_id": run_id}
+
+
 @app.get("/api/portal/orders")
 async def portal_orders():
     return portal.orders
 
 
 def main():
-    print(f"\n  Κονσόλα:  {config.BASE_URL}\n  Portal:   {config.BASE_URL}/portal  (demo / demo)\n"
+    print(f"\n  Κονσόλα:  {config.BASE_URL}\n  Κάμερα:   {config.BASE_URL}/capture  (από κινητό: HOST=0.0.0.0 και η IP του laptop)\n"
+          f"  Αποθήκη:  {config.BASE_URL}/portal/orders\n"
           f"  Μοντέλο:  {config.LLM_PROVIDER}\n")
     uvicorn.run(app, host=config.HOST, port=config.PORT, log_level="warning")
 

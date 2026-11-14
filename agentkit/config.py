@@ -25,7 +25,7 @@ OPENAI_COMPAT_MODEL = _env("OPENAI_COMPAT_MODEL")
 MAX_STEPS = int(_env("MAX_STEPS", "30"))
 
 # --- Συμπεριφορά -------------------------------------------------------
-DEFAULT_SCENARIO = _env("DEFAULT_SCENARIO", "analyst")
+DEFAULT_SCENARIO = _env("DEFAULT_SCENARIO", "shelf")
 AUTO_APPROVE = _env("AUTO_APPROVE", "0") == "1"
 WATCHERS_ENABLED = _env("WATCHERS_ENABLED", "1") == "1"
 WATCH_INTERVAL_SECONDS = int(_env("WATCH_INTERVAL_SECONDS", "20"))

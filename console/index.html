@@ -132,10 +132,10 @@ body.present #timeline { gap: 12px; }
     <div id="examples"></div>
     <h2>Χειριστήρια demo</h2>
     <div class="grid2">
-      <button data-demo="margin_drop" title="Ανεβάζει το κόστος μιας κατηγορίας την τελευταία ημέρα">Ρίξε περιθώριο</button>
-      <button data-demo="stock_out" title="Ρίχνει το απόθεμα ενός προϊόντος κάτω από το όριο">Άδειασε απόθεμα</button>
-      <button data-demo="check_now" title="Τρέχει τώρα τους προληπτικούς ελέγχους">Έλεγχος τώρα</button>
-      <button data-demo="reset" title="Ξαναχτίζει τα δεδομένα">Επαναφορά</button>
+      <button onclick="window.open('/capture')" title="Ανοίγει τη σελίδα λήψης φωτογραφίας (η ίδια ανοίγει και από το κινητό)">Φωτογραφία ραφιού</button>
+      <button onclick="window.open('/portal/orders')" title="Οι παραγγελίες που έφτασαν στην κεντρική αποθήκη">Παραγγελίες</button>
+      <button data-demo="check_now" title="Ψάχνει τώρα για νέα φωτογραφία στο workspace/photos">Έλεγχος τώρα</button>
+      <button data-demo="reset" title="Ξαναχτίζει τα δεδομένα και σβήνει ελέγχους και παραγγελίες">Επαναφορά</button>
     </div>
     <div id="lists">
       <h2>Εκτελέσεις</h2>
@@ -303,7 +303,7 @@ function renderRun() {
       case "audit":
         trail.push(ev.kind === "compute"
           ? `<div class="au"><b>${esc(ev.label)}</b> = ${esc(ev.result)}<br><code>${esc(ev.expression)}</code> · ${esc(JSON.stringify(ev.variables))}</div>`
-          : `<div class="au"><b>Από έγγραφο</b> ${esc(ev.source)}<br><code>${esc(JSON.stringify(ev.values))}</code></div>`);
+          : `<div class="au"><b>Διαβάστηκε από</b> ${esc(ev.source)}<br><code>${esc(JSON.stringify(ev.values))}</code></div>`);
         break;
       case "headline":
         html.push(`<div class="ev hero"><div class="v">${esc(ev.value)}</div><div class="l">${esc(ev.label)}</div>${ev.detail ? `<div class="d">${esc(ev.detail)}</div>` : ""}</div>`);
@@ -311,7 +311,7 @@ function renderRun() {
       case "log": html.push(`<div class="ev log">${esc(ev.text)}</div>`); break;
       case "screenshot":
         lastShot = ev;
-        html.push(`<div class="ev shot"><div class="lbl">Browser · ${esc(ev.url)}</div><img src="/files/${esc(ev.file)}" alt="Στιγμιότυπο browser" loading="lazy"></div>`);
+        html.push(`<div class="ev shot"><div class="lbl">${/^https?:/.test(ev.url) ? "Browser · " : ""}${esc(ev.url)}</div><img src="/files/${esc(ev.file)}" alt="Στιγμιότυπο browser" loading="lazy"></div>`);
         break;
       case "tool_call": {
         if (ev.name === "update_plan" || ev.name === "headline_result") break;

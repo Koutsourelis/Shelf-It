@@ -13,7 +13,8 @@ from typing import Awaitable, Callable
 
 from . import config, events
 from .llm import ToolCall, ToolResult, new_conversation
-from .scenarios import SCENARIOS, Scenario
+from . import scenarios
+from .scenarios import Scenario
 from .tools import REGISTRY, load_all
 
 load_all()
@@ -118,7 +119,7 @@ async def _call_tool(ctx: RunContext, call: ToolCall) -> ToolResult:
 
 async def run_agent(goal: str, scenario_name: str | None = None, source: str = "console",
                     notifier: Notifier | None = None, run_id: str | None = None) -> str:
-    scenario = SCENARIOS.get(scenario_name or config.DEFAULT_SCENARIO) or SCENARIOS[config.DEFAULT_SCENARIO]
+    scenario = scenarios.get(scenario_name)
     run_id = run_id or time.strftime("%H%M%S") + "-" + uuid.uuid4().hex[:4]
     ctx = RunContext(run_id=run_id, scenario=scenario, notifier=notifier)
     RUNS[run_id] = {"run_id": run_id, "goal": goal, "scenario": scenario.name, "source": source,

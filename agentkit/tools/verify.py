@@ -31,7 +31,7 @@ async def _read_document(path: str) -> str:
     "στοιχείο που θα μπει σε υπολογισμό ή σε παραδοτέο, ώστε να καταγραφεί η πηγή του. Πεδίο που δεν υπάρχει "
     "στο έγγραφο επιστρέφει null.",
     {
-        "path": {"type": "string", "description": "π.χ. 'data/invoices/INV-2026-0400.pdf'"},
+        "path": {"type": "string", "description": "π.χ. 'workspace/delivery_note.pdf'"},
         "fields": {
             "type": "array",
             "description": "Τα πεδία που θέλεις.",
@@ -98,11 +98,11 @@ def safe_eval(expression: str, variables: dict) -> float:
 @tool(
     "compute",
     "Κάνε έναν αριθμητικό υπολογισμό με κώδικα. ΚΑΘΕ αριθμός που δεν διαβάστηκε αυτούσιος από εργαλείο "
-    "(διαφορές, ποσοστά, αθροίσματα, επίπτωση σε ευρώ) πρέπει να βγαίνει από εδώ, ποτέ από νοερό υπολογισμό.",
+    "(διαφορές, ποσοστά, αθροίσματα, ημέρες κάλυψης) πρέπει να βγαίνει από εδώ, ποτέ από νοερό υπολογισμό.",
     {
-        "label": {"type": "string", "description": "Τι υπολογίζεται, π.χ. 'Διαφορά πληρωμής - τιμολογίου'"},
-        "expression": {"type": "string", "description": "Τύπος με ονόματα μεταβλητών, π.χ. 'round(paid - total, 2)'"},
-        "variables": {"type": "object", "description": "Τιμές των μεταβλητών, π.χ. {\"paid\": 1240.5, \"total\": 1200}"},
+        "label": {"type": "string", "description": "Τι υπολογίζεται, π.χ. 'Ημέρες κάλυψης αποθέματος'"},
+        "expression": {"type": "string", "description": "Τύπος με ονόματα μεταβλητών, π.χ. 'round(on_hand / daily_units, 1)'"},
+        "variables": {"type": "object", "description": "Τιμές των μεταβλητών, π.χ. {\"on_hand\": 36, \"daily_units\": 22}"},
     },
 )
 async def compute(ctx, label: str, expression: str, variables: dict) -> str:

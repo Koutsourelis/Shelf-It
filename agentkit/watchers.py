@@ -3,53 +3,47 @@
 Κάθε watcher είναι μια φθηνή συνάρτηση (χωρίς μοντέλο) που επιστρέφει None ή (κλειδί, στόχος).
 Το κλειδί εμποδίζει να ξεκινήσει δεύτερη εκτέλεση για το ίδιο συμβάν.
 
-Για νέο watcher στο hackathon: γράψε μια συνάρτηση και πρόσθεσέ τη στο WATCHERS.
+Ο μόνος watcher σήμερα: νέα φωτογραφία στο workspace/photos. Ό,τι ρίξει αρχείο εκεί (η σελίδα
+/capture από το κινητό, μια σταθερή κάμερα, ένα script) ξεκινά τον έλεγχο του ραφιού.
 """
 import asyncio
 
 from . import config, events
-from .tools.data import run_sql
+
+PHOTO_DIR = config.WORKSPACE / "photos"
+PHOTO_TYPES = {".jpg", ".jpeg", ".png", ".webp"}
 
 _seen: set[str] = set()
+_baseline_done = False
 
 
-def margin_drop():
-    """Περιθώριο κατηγορίας την τελευταία ημέρα έναντι μέσου όρου 14 ημερών."""
-    _, rows = run_sql("""
-        with d as (select max(date) m from sales), t as (
-          select p.category, d.m,
-            100 * sum(case when s.date = d.m then s.revenue - s.cost end) / sum(case when s.date = d.m then s.revenue end) as last_pct,
-            100 * sum(case when s.date < d.m and s.date >= d.m - 14 then s.revenue - s.cost end)
-                / sum(case when s.date < d.m and s.date >= d.m - 14 then s.revenue end) as avg_pct
-          from sales s join products p using (sku), d
-          group by 1, 2)
-        select * from t order by last_pct - avg_pct limit 1""")
-    if not rows:
+def photo_goal(name: str) -> str:
+    return f"Νέα φωτογραφία ραφιού: workspace/photos/{name}. Έλεγξε το ράφι και κάνε ό,τι χρειάζεται."
+
+
+def mark_seen(name: str) -> None:
+    """Η φωτογραφία έχει ήδη αναλάβει εκτέλεση (π.χ. από το upload), να μην την ξαναπιάσει ο watcher."""
+    _seen.add(f"photo:{name}")
+
+
+def new_photo():
+    """Η πιο πρόσφατη φωτογραφία που δεν έχει ελεγχθεί. Όσες υπήρχαν πριν ξεκινήσει ο server αγνοούνται."""
+    global _baseline_done
+    PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+    photos = sorted((p for p in PHOTO_DIR.iterdir() if p.suffix.lower() in PHOTO_TYPES), key=lambda p: p.stat().st_mtime)
+    if not _baseline_done:
+        _baseline_done = True
+        _seen.update(f"photo:{p.name}" for p in photos)
         return None
-    category, day, last_pct, avg_pct = rows[0]
-    if last_pct is None or avg_pct is None or avg_pct - last_pct < 4:
+    fresh = [p for p in photos if f"photo:{p.name}" not in _seen]
+    if not fresh:
         return None
-    return (f"margin:{category}:{day}",
-            f"[Αυτόματος έλεγχος] Το περιθώριο της κατηγορίας «{category}» έπεσε στο {last_pct:.1f}% στις {day} "
-            f"από {avg_pct:.1f}% μέσο όρο 14 ημερών. Βρες την αιτία, υπολόγισε την επίπτωση και ετοίμασε τη διορθωτική ενέργεια.")
-
-
-def stock_low():
-    """Προϊόν κάτω από το μισό του ορίου αναπαραγγελίας."""
-    _, rows = run_sql("""
-        select st.sku, p.name, s.name, st.on_hand, st.reorder_point
-        from stock st join products p using (sku) join stores s using (store_id)
-        where st.on_hand < st.reorder_point * 0.5 order by st.on_hand * 1.0 / st.reorder_point limit 1""")
-    if not rows:
-        return None
-    sku, name, store, on_hand, reorder = rows[0]
-    return (f"stock:{sku}:{store}",
-            f"[Αυτόματος έλεγχος] Το «{name}» ({sku}) στο κατάστημα {store} έχει απόθεμα {on_hand} με όριο αναπαραγγελίας "
-            f"{reorder}. Υπολόγισε πόσες ημέρες αντέχει, βρες τον καλύτερο προμηθευτή και ετοίμασε την παραγγελία.")
+    _seen.update(f"photo:{p.name}" for p in fresh[:-1])      # αν ήρθαν πολλές μαζί, ελέγχεται η τελευταία
+    return f"photo:{fresh[-1].name}", photo_goal(fresh[-1].name)
 
 
 # (συνάρτηση ελέγχου, σενάριο που θα αναλάβει)
-WATCHERS = [(margin_drop, "analyst"), (stock_low, "analyst")]
+WATCHERS = [(new_photo, "shelf")]
 
 
 async def check_once(notifier_factory=None) -> list[str]:
@@ -73,7 +67,9 @@ async def check_once(notifier_factory=None) -> list[str]:
 
 
 def reset() -> None:
+    global _baseline_done
     _seen.clear()
+    _baseline_done = False
 
 
 async def loop(notifier_factory=None) -> None:

@@ -1,0 +1,10 @@
+shelf,level,position,sku,facings,depth
+1,top,1,C01,2,4
+1,top,2,C02,3,4
+1,top,3,C03,2,4
+2,eye,1,C04,2,5
+2,eye,2,C05,2,3
+2,eye,3,C06,2,4
+3,bottom,1,C07,2,4
+3,bottom,2,C08,2,6
+3,bottom,3,C09,3,3

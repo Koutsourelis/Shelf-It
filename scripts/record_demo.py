@@ -1,7 +1,7 @@
 """Γράφει βίντεο της κονσόλας την ώρα που δουλεύει ο agent. Ο server πρέπει να τρέχει.
 
     python scripts/record_demo.py --replay <run_id>          # ξαναπαίζει αποθηκευμένη εκτέλεση
-    python scripts/record_demo.py --goal "..." --scenario analyst   # νέα ζωντανή εκτέλεση
+    python scripts/record_demo.py --goal "..." --scenario shelf   # νέα ζωντανή εκτέλεση
     python scripts/record_demo.py --replay <run_id> --speed 2
 
 Το βίντεο (.webm, 1280x720, χωρίς ήχο) γράφεται στο workspace/video/. Τα .webm ανεβαίνουν

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Φωτογραφία ραφιού</title>
+<style>
+  body { font-family: system-ui, "Segoe UI", Arial, sans-serif; margin: 0; padding: 24px 16px; background: #0f1720; color: #e8eef4; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p { color: #9fb0c0; margin: 0 0 20px; line-height: 1.4; }
+  label, button { display: block; width: 100%; box-sizing: border-box; padding: 18px; border-radius: 12px; border: 0;
+    font-size: 18px; font-weight: 600; text-align: center; cursor: pointer; }
+  label { background: #1f6feb; color: #fff; }
+  button { background: #2ea043; color: #fff; margin-top: 12px; }
+  button:disabled { background: #33414f; color: #8b9aa8; }
+  input { display: none; }
+  img { width: 100%; border-radius: 12px; margin-top: 16px; display: none; }
+  #status { margin-top: 16px; font-size: 16px; min-height: 24px; color: #e8eef4; }
+</style>
+</head>
+<body>
+  <h1>Φωτογραφία ραφιού</h1>
+  <p>Στάσου απέναντι από το ράφι, να φαίνεται ολόκληρο και ίσιο. Ο agent ξεκινά μόλις σταλεί η φωτογραφία.</p>
+  <label for="photo">Άνοιξε την κάμερα</label>
+  <input id="photo" type="file" accept="image/*" capture="environment">
+  <img id="preview" alt="Προεπισκόπηση">
+  <button id="send" disabled>Στείλε στον agent</button>
+  <div id="status" role="status"></div>
+<script>
+const input = document.getElementById("photo"), send = document.getElementById("send");
+const preview = document.getElementById("preview"), status = document.getElementById("status");
+input.onchange = () => {
+  const file = input.files[0];
+  if (!file) return;
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+  send.disabled = false;
+  status.textContent = "";
+};
+send.onclick = async () => {
+  const file = input.files[0];
+  if (!file) return;
+  send.disabled = true;
+  status.textContent = "Στέλνω…";
+  const body = new FormData();
+  body.append("file", file);
+  try {
+    const r = await fetch("/api/shelf/photo", { method: "POST", body });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    status.textContent = "Στάλθηκε. Ο agent ελέγχει το ράφι· δες την κονσόλα.";
+  } catch (e) {
+    status.textContent = "Δεν στάλθηκε: " + e.message;
+    send.disabled = false;
+  }
+};
+</script>
+</body>
+</html>

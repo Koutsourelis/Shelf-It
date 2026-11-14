@@ -51,4 +51,4 @@ def tool(name: str, description: str, properties: dict | None = None,
 
 def load_all() -> None:
     """Φορτώνει όλα τα αρχεία εργαλείων ώστε να γραφτούν στο μητρώο."""
-    from . import browser, core, data, docs, mail, verify, web  # noqa: F401
+    from . import browser, core, data, mail, shelf, verify, web  # noqa: F401

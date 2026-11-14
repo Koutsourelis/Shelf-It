@@ -2,7 +2,7 @@
 
     python scripts/check_setup.py
 
-Ελέγχει: πακέτα, δεδομένα, βρόχο agent (με το ψεύτικο μοντέλο), προληπτικούς ελέγχους,
+Ελέγχει: πακέτα, δεδομένα, όλη τη ροή του ραφιού (με το ψεύτικο μοντέλο), τον προληπτικό έλεγχο,
 browser και, αν έχει οριστεί πραγματικός πάροχος στο .env, μια πραγματική κλήση στο μοντέλο.
 """
 import asyncio
@@ -33,31 +33,42 @@ async def main() -> None:
 
     # Ο έλεγχος δουλεύει σε δικό του αντίγραφο της βάσης, ώστε να τρέχει και όσο είναι ανοιχτός ο server.
     config.DB_PATH = config.DATA_DIR / "_check.duckdb"
-    demo_data.build(side_files=False)
-    pdfs = len(list((config.DATA_DIR / "invoices").glob("*.pdf")))
-    report("Δεδομένα demo", config.DB_PATH.exists() and pdfs > 0, f"{pdfs} PDF τιμολογίων"
-           if pdfs else "λείπουν τα PDF → τρέξε: python scripts/make_demo_data.py")
+    summary = demo_data.build()
+    sample = demo_data.PHOTOS_DIR / "sample_before.png"
+    report("Δεδομένα demo", config.DB_PATH.exists() and sample.exists(),
+           f"{summary['products']} κωδικοί, {summary['planogram_slots']} θέσεις πλανογράμματος" if sample.exists()
+           else "λείπουν οι δοκιμαστικές φωτογραφίες → τρέξε: python scripts/make_demo_data.py --samples")
 
-    # Βρόχος agent με το ψεύτικο μοντέλο (χωρίς κλειδί, χωρίς internet).
+    # Βρόχος agent με το ψεύτικο μοντέλο (χωρίς κλειδί, χωρίς internet): όλη η ροή του ραφιού.
     real_provider, config.LLM_PROVIDER = config.LLM_PROVIDER, "mock"
     config.AUTO_APPROVE = True
-    final = await agent.run_agent("Δοκιμή", "analyst", source="check")
+    await agent.run_agent("Δοκιμή", "shelf", source="check")
     run = list(agent.RUNS.values())[-1]
-    report("Βρόχος agent (ψεύτικο μοντέλο)", run["status"] == "done" and {"report.html", "margin_trend.png"} <= set(run["artifacts"]),
-           f"παραδοτέα: {', '.join(run['artifacts'])}")
+    from agentkit import portal
+    from agentkit.tools.data import run_sql
+    _, check = run_sql("select compliance_pct, issues from shelf_checks order by checked_at desc limit 1")
+    expected = {"shelf_report.md", "shelf_check_sample_before.png"}
+    report("Βρόχος agent (ψεύτικο μοντέλο)",
+           run["status"] == "done" and expected <= set(run["artifacts"]) and bool(check) and len(portal.orders) == 1,
+           f"συμμόρφωση {check[0][0] if check else '-'}%, {check[0][1] if check else '-'} ευρήματα, "
+           f"παραγγελίες: {len(portal.orders)}, παραδοτέα: {', '.join(run['artifacts'])}")
+    portal.orders.clear()
 
-    # Προληπτικοί έλεγχοι: σε καθαρά δεδομένα δεν πρέπει να χτυπούν, μετά το «χάλασμα» πρέπει.
-    demo_data.build(side_files=False)
-    quiet = watchers.margin_drop() is None and watchers.stock_low() is None
-    demo_data.inject_margin_drop()
-    demo_data.inject_stock_out()
-    fired = watchers.margin_drop() is not None and watchers.stock_low() is not None
+    # Προληπτικός έλεγχος: ήσυχος όσο δεν υπάρχει νέα φωτογραφία, χτυπά μόλις πέσει μία στο workspace/photos.
+    watchers.reset()
+    quiet = watchers.new_photo() is None and watchers.new_photo() is None
+    probe = watchers.PHOTO_DIR / "_check_probe.png"
+    probe.write_bytes(sample.read_bytes())
+    hit = watchers.new_photo()
+    probe.unlink(missing_ok=True)
+    watchers.reset()
     from agentkit.tools import data as data_tools
     if data_tools._con is not None:
         data_tools._con.close()
         data_tools._con = None
     config.DB_PATH.unlink(missing_ok=True)
-    report("Προληπτικοί έλεγχοι", quiet and fired, f"ήσυχοι σε καθαρά δεδομένα: {quiet}, χτυπούν μετά το χάλασμα: {fired}")
+    report("Προληπτικός έλεγχος (νέα φωτογραφία)", quiet and hit is not None,
+           f"ήσυχος χωρίς νέα φωτογραφία: {quiet}, χτυπά με νέα φωτογραφία: {hit is not None}")
 
     try:
         from playwright.async_api import async_playwright
