@@ -37,7 +37,7 @@ async def main() -> None:
     query = f"{word} αγορά {config.EVIDENCE_REGION} πωλήσεις"
     calls = [(config.TREG_NEWS_TOOL, {config.TREG_QUERY_PARAM: query}),
              (config.TREG_SEARCH_TOOL, {config.TREG_QUERY_PARAM: query}),
-             (config.TREG_TRENDS_TOOL, {"keywords": word})]
+             (config.TREG_TRENDS_TOOL, {"keywords": [word], "country": config.EVIDENCE_COUNTRY})]
     failed = 0
     for tool_id, body in calls:
         log: list[dict] = []
@@ -48,7 +48,7 @@ async def main() -> None:
             failed += 1
             print(f"   ΑΠΟΤΥΧΙΑ: {log[0]['error']}")
             continue
-        print(f"   κόστος: {log[0]['cost_usd']} $")
+        print(f"   κόστος: {log[0]['cost_usd']} $ · πάροχος: {log[0].get('served_by')}")
         print(f"   μορφή: {shape(data)[:900]}")
         if tool_id == config.TREG_TRENDS_TOOL:
             points = ev._series(data)
