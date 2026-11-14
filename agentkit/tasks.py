@@ -21,6 +21,8 @@ from . import config, events
 
 TASKS: dict[str, dict] = {}            # task_id -> εργασία (in-memory, όπως όλη η κατάσταση του demo)
 HISTORY: list[dict] = []               # χρονολόγιο για την οθόνη: τι είδε και τι έκανε ο agent
+PROPOSALS: list[dict] = []             # προτάσεις διάταξης που αποφάσισε ο agent (εργαλείο propose_move)
+MAX_PROPOSALS = 3
 OPEN = ("open", "in_progress")
 VERB = {"restock": "Φέρε", "relocate": "Μετακίνησε", "remove": "Βγάλε", "tidy": "Τακτοποίησε"}
 # εύρημα του live.findings() -> τύπος εργασίας
@@ -43,6 +45,21 @@ def log(kind: str, text: str, **data) -> dict:
 def reset() -> None:
     TASKS.clear()
     HISTORY.clear()
+    PROPOSALS.clear()
+
+
+# --- Προτάσεις διάταξης (τις αποφασίζει ο agent, τους αριθμούς τους βγάζει ο κώδικας) ---
+
+def clear_proposals() -> None:
+    PROPOSALS.clear()
+
+
+def add_proposal(proposal: dict) -> dict:
+    """Καταχωρεί πρόταση του agent για την οθόνη. Ίδια πρόταση δεύτερη φορά αντικαθιστά την πρώτη."""
+    p = {"id": f"{proposal['kind']}:{proposal['a']['sku']}:{proposal['b']['sku']}", "ts": _now(), **proposal}
+    PROPOSALS[:] = [x for x in PROPOSALS if x["id"] != p["id"]][-(MAX_PROPOSALS - 1):] + [p]
+    log("proposal", f"Πρόταση διάταξης: {p['text']}", proposal=p["id"])
+    return p
 
 
 # --- Υπολογισμοί σε κώδικα (ποτέ από το μοντέλο) ---------------------------------
@@ -252,4 +269,4 @@ def summary() -> dict:
     orders = [t["order"] for t in TASKS.values() if t.get("order") and t["order"].get("order_no")]
     return {"shelf_ok": not tasks, "open": len(tasks), "tasks": tasks, "done": recent_done(),
             "pending_approval": [t for t in TASKS.values() if t.get("needs_approval")],
-            "orders": orders, "history": HISTORY[-40:]}
+            "orders": orders, "proposals": list(PROPOSALS), "history": HISTORY[-40:]}

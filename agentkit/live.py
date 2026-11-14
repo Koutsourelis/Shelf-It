@@ -151,16 +151,31 @@ async def _act(frame: Path, found: list[dict], sig: tuple) -> dict:
     events.emit("system", "live_report", frame=frame.name, open=len(tasks.open_tasks()),
                 new=len(changed["new"]), resolved=len(changed["resolved"]))
 
-    if changed["new"] and config.LIVE_START_AGENT:
-        running = STATE.agent_run and agent.RUNS.get(STATE.agent_run, {}).get("status") == "running"
-        if not running:
+    # Ο agent τρέχει όταν υπάρχουν νέα ευρήματα, και μία φορά ακόμη αν δεν έχει προτείνει ποτέ διάταξη.
+    if (changed["new"] or not tasks.PROPOSALS) and config.LIVE_START_AGENT:
+        if agent_status() != "running":
             rel = frame.relative_to(config.ROOT).as_posix()
-            listing = "\n".join(f"- {t['text']}" for t in changed["new"])
+            listing = "\n".join(f"- {t['text']}" for t in changed["new"]) or "- (καμία νέα εργασία)"
             STATE.agent_run = agent.start_run(
-                f"Η κάμερα του ραφιού βρήκε νέα ευρήματα στη φωτογραφία {rel}. Ο κώδικας έχει ήδη στείλει στον "
-                f"υπάλληλο αυτές τις εργασίες και έχει κάνει τις παραγγελίες:\n{listing}", "live", source="camera",
-                notifier=None)
+                f"Νέα φωτογραφία του ραφιού: {rel}. Βρες τι θέλει αναπλήρωση και αποφάσισε αν κάποιο προϊόν πρέπει "
+                f"να αλλάξει θέση για καλύτερες πωλήσεις. Ο κώδικας έχει ήδη στείλει στον υπάλληλο αυτές τις "
+                f"εργασίες και έχει κάνει τις παραγγελίες που χρειάζονταν:\n{listing}", "live", source="camera",
+                notifier=_agent_to_timeline)
     return changed
+
+
+def agent_status() -> str | None:
+    """running | done | error | ... για την τελευταία εκτέλεση του agent που ξεκίνησε η κάμερα· None αν δεν έτρεξε."""
+    from . import agent
+    if STATE.agent_run in agent._tasks:            # ξεκίνησε αλλά δεν έχει γράψει ακόμη τη σύνοψή του
+        return "running"
+    return agent.RUNS.get(STATE.agent_run or "", {}).get("status")
+
+
+async def _agent_to_timeline(kind: str, text: str) -> None:
+    """Το τελικό μήνυμα του agent μπαίνει στο χρονολόγιο της οθόνης."""
+    if kind == "final" and text:
+        tasks.log("agent", text, run=STATE.agent_run)
 
 
 # --- είσοδος ------------------------------------------------------------------
@@ -227,7 +242,7 @@ def status() -> dict:
             "provider": config.vision_provider(), "model": config.vision_model(),
             "auto_order": config.AUTO_ORDER, "max_cases": config.AUTO_ORDER_MAX_CASES,
             "max_eur": config.AUTO_ORDER_MAX_EUR, "frames": STATE.frames, "model_calls": STATE.model_calls,
-            "agent_run": STATE.agent_run,
+            "agent_run": STATE.agent_run, "agent_status": agent_status(),
             **(STATE.last or {"status": "idle", "findings": [], "items": [], "gaps": []}), **tasks.summary()}
 
 

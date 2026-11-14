@@ -83,6 +83,10 @@
       <h2>Εργασίες για τον υπάλληλο</h2>
       <div id="tasks"></div>
     </div>
+    <div class="card" style="margin-bottom:16px">
+      <h2>Αλλαγές θέσης που προτείνει το AI</h2>
+      <div id="proposals"></div>
+    </div>
     <div class="card">
       <h2>Τι έκανε ο agent</h2>
       <ul class="tl" id="timeline"></ul>
@@ -97,7 +101,7 @@ const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d")
 let interval = 30, countdown = 0, paused = false, last = null, sending = false, usingFile = false;
 const COLORS = { ok: "#2ea043", low: "#f0a020", missing: "#e5484d", misplaced: "#e5484d", unknown: "#a371f7", gap: "#e5484d" };
 const ICON = { restock: "📦", relocate: "↔️", remove: "🗑️", tidy: "🧹", task: "🔴", order: "🛒", done: "✅", claim: "🙋",
-               approval: "⚠️", setup: "⚙️" };
+               approval: "⚠️", setup: "⚙️", proposal: "💡", agent: "🧠" };
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const hhmm = ts => new Date(ts * 1000).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
@@ -169,9 +173,47 @@ function draw() {
     box(it.box_2d, COLORS[st], st === "ok" ? "" : (it.sku || "?"));
   });
   (last.gaps || []).forEach(g => box(g.box_2d, COLORS.gap, "κενό"));
+  (last.proposals || []).forEach(p => arrow(p, f));
+}
+// Πρόταση του agent πάνω στην εικόνα: μπλε πλαίσιο στους δύο κωδικούς και καμπύλο βέλος ανάμεσά τους.
+function arrow(p, f) {
+  const BLUE = "#4ea1ff", sides = [p.a, p.b].filter(s => s.box);
+  ctx.save(); ctx.strokeStyle = BLUE; ctx.fillStyle = BLUE; ctx.lineWidth = 4; ctx.setLineDash([10, 6]);
+  sides.forEach(s => { const [x, y, w, h] = toPx(s.box, f); ctx.strokeRect(x - 4, y - 4, w + 8, h + 8); });
+  ctx.setLineDash([]);
+  if (sides.length === 2) {
+    const mid = s => { const [x, y, w, h] = toPx(s.box, f); return [x + w / 2, y + h / 2]; };
+    const [x0, y0] = mid(p.a), [x1, y1] = mid(p.b);
+    const cx = (x0 + x1) / 2 + (y1 - y0) * 0.25, cy = (y0 + y1) / 2 - (x1 - x0) * 0.25;   // σημείο ελέγχου της καμπύλης
+    ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(cx, cy, x1, y1); ctx.stroke();
+    const head = (x, y, fx, fy) => {                       // μύτη βέλους στο (x, y), που έρχεται από το (fx, fy)
+      const a = Math.atan2(y - fy, x - fx), r = 16;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - r * Math.cos(a - 0.45), y - r * Math.sin(a - 0.45));
+      ctx.lineTo(x - r * Math.cos(a + 0.45), y - r * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
+    };
+    head(x1, y1, cx, cy);
+    if (p.kind === "swap") head(x0, y0, cx, cy);
+    const label = p.kind === "swap" ? "αλλαγή θέσης" : "+1 πρόσοψη";
+    ctx.font = "700 14px system-ui"; const tw = ctx.measureText(label).width + 14;
+    const lx = (x0 + 2 * cx + x1) / 4, ly = (y0 + 2 * cy + y1) / 4;                        // μέσο της καμπύλης
+    ctx.fillRect(lx - tw / 2, ly - 12, tw, 24); ctx.fillStyle = "#fff"; ctx.fillText(label, lx - tw / 2 + 7, ly + 5);
+  }
+  ctx.restore();
 }
 
 // ---- εμφάνιση ------------------------------------------------------------------
+const RULE = { K3: "Χώρος", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
+function propCard(p) {
+  return `<div class="prop"><span class="tag">💡 ${esc(RULE[p.rule] || "Διάταξη")}</span><b>${esc(p.text)}</b>
+    <p class="why">${esc(p.reason)}</p><p class="num">${esc(p.numbers)}</p>
+    <small>${esc(p.note)} Πηγή: ${esc(p.source)}. Την αλλαγή την εγκρίνει ο category manager.</small></div>`;
+}
+function propList(d) {
+  const ps = d.proposals || [];
+  if (ps.length) return ps.map(propCard).join("");
+  return `<div class="mut">${d.agent_status === "running" ? "Ο agent αναλύει τις πωλήσεις και τη διάταξη…"
+    : "Καμία πρόταση ακόμη. Ο agent προτείνει μετά το επόμενο scan."}</div>`;
+}
 function setLight(cls, title, sub, right = "") {
   $("light").className = "light " + cls; $("lightTitle").textContent = title; $("lightSub").textContent = sub || ""; $("lightRight").innerHTML = right;
 }
@@ -204,6 +246,7 @@ function render(d) {
 
   $("tasks").innerHTML = tasks.length ? tasks.map(taskCard).join("")
     : `<div class="empty"><div class="big">✅</div>Καμία εργασία</div>`;
+  $("proposals").innerHTML = propList(d);
   $("timeline").innerHTML = (d.history || []).slice().reverse().map(h =>
     `<li><time>${hhmm(h.ts)}</time><span>${ICON[h.kind] || "•"}</span><span>${esc(h.text)}</span></li>`).join("")
     || `<li><span></span><span></span><span class="mut">Τίποτα ακόμη. Η κάμερα ελέγχει κάθε ${interval} δευτερόλεπτα.</span></li>`;

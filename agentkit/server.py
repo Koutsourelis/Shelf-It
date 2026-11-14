@@ -259,7 +259,7 @@ async def live_reset():
 
 @app.get("/api/tasks")
 async def list_tasks():
-    return tasks.summary()
+    return {**tasks.summary(), "agent_status": live.agent_status()}
 
 
 class Claim(BaseModel):
@@ -338,7 +338,7 @@ async def qr(path: str = "/capture"):
 
 @app.post("/api/live/mock/{name}")
 async def live_mock(name: str):
-    """Μόνο με LLM_PROVIDER=mock: τι «βλέπει» το ψεύτικο μοντέλο (π.χ. sample_before, sample_after)."""
+    """Μόνο με σταθερή ανάγνωση (όραση mock): τι «βλέπει» το ψεύτικο μοντέλο (π.χ. sample_before, sample_after)."""
     try:
         vision.set_mock_reading(name)
     except FileNotFoundError as e:

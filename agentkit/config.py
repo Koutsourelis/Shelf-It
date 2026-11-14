@@ -29,7 +29,9 @@ MAX_STEPS = int(_env("MAX_STEPS", "30"))
 VISION_REFERENCE = _env("VISION_REFERENCE")
 VISION_TIMEOUT_SECONDS = int(_env("VISION_TIMEOUT_SECONDS", "40"))
 # VISION_PROVIDER: empty = same as LLM_PROVIDER | gemini = native Gemini API with an enforced response schema
-# (agentkit/vision/gemini.py). The agent itself keeps using LLM_PROVIDER.
+# (agentkit/vision/gemini.py) | mock = fixed reading from data/shelf/photos/<name>.reading.json, no model call.
+# The agent itself keeps using LLM_PROVIDER, so VISION_PROVIDER=mock + a real LLM_PROVIDER = standard photos
+# with outlines from the .json, and a real model that decides restocking and layout.
 VISION_PROVIDER = _env("VISION_PROVIDER").lower()
 _GOOGLE_COMPAT = "generativelanguage.googleapis.com" in OPENAI_COMPAT_BASE_URL
 # If the OpenAI-compatible provider already points at Google, its key and model are reused.

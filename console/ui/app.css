@@ -32,3 +32,10 @@ button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 700px) { .topbar nav { display: none; } }
 .empty { text-align: center; padding: 40px 10px; color: var(--mut); }
 .empty .big { font-size: 54px; }
+/* Πρόταση διάταξης του agent (propose_move): φαίνεται στο /shelf και στο /tasks */
+.prop { padding: 14px; border-radius: 12px; background: var(--card2); border-left: 4px solid var(--accent); margin-bottom: 10px; }
+.prop b { display: block; line-height: 1.35; }
+.prop .why { margin: 8px 0 0; line-height: 1.4; }
+.prop .num { margin: 8px 0 0; font-size: 14px; color: var(--fg); font-variant-numeric: tabular-nums; line-height: 1.4; }
+.prop small { display: block; margin-top: 8px; color: var(--mut); line-height: 1.4; }
+.prop .tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }

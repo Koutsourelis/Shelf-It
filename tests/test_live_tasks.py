@@ -64,6 +64,40 @@ class LiveTasksTest(unittest.TestCase):
         self.assertEqual(d["status"], "acted")
         self.assertEqual(d["open"], 3)
 
+    def test_agent_decides_a_move_and_code_checks_it(self):
+        """Mock agent μετά από scan: read_shelf → check → αναπλήρωση → layout_suggestions → propose_move."""
+        from agentkit import agent
+        config.LIVE_START_AGENT = True
+
+        async def flow():
+            d = await live.process_frame(frame((200, 0, 0)), single=True)
+            self.assertEqual(d["agent_status"], "running")
+            await agent._tasks[live.STATE.agent_run]
+            return live.status()
+        d = asyncio.run(flow())
+        self.assertEqual(d["agent_status"], "done")
+        self.assertEqual(len(d["proposals"]), 1)
+        p = d["proposals"][0]
+        self.assertEqual((p["kind"], p["rule"], p["a"]["sku"], p["b"]["sku"]), ("swap", "K4", "C09", "C05"))
+        self.assertGreater(p["a"]["per_facing"], p["b"]["per_facing"])      # ο αριθμός είναι του κώδικα
+        self.assertTrue(p["a"]["box"] and p["b"]["box"])                    # για το βέλος στην οθόνη
+        self.assertIn("agent", {h["kind"] for h in d["history"]})
+
+    def test_code_rejects_moves_the_numbers_do_not_support(self):
+        from agentkit.tools.shelf import propose_move
+
+        class Ctx:
+            def audit(self, *a, **k): pass
+        run = lambda **k: asyncio.run(propose_move(Ctx(), **k))
+        # το C05 έχει το χαμηλότερο περιθώριο ανά πρόσοψη στο ύψος των ματιών: δεν ανεβαίνει εκεί κάτι χειρότερο
+        self.assertIn("Δεν καταχωρήθηκε", run(kind="swap", sku_from="C08", sku_to="C05", reason="δοκιμή"))
+        self.assertIn("Δεν καταχωρήθηκε", run(kind="swap", sku_from="C01", sku_to="C07", reason="δοκιμή"))   # ούτε μάτια ούτε κέντρο
+        self.assertIn("Δεν καταχωρήθηκε", run(kind="facing", sku_from="C04", sku_to="C08", reason="δοκιμή"))  # αρνητικό καθαρό
+        self.assertIn("Δεν καταχωρήθηκε", run(kind="swap", sku_from="C09", sku_to="C05", reason="θα ανέβουν 20%"))
+        self.assertEqual(tasks.PROPOSALS, [])
+        self.assertIn("Καταχωρήθηκε", run(kind="facing", sku_from="C08", sku_to="C04", reason="δοκιμή"))
+        self.assertEqual(tasks.PROPOSALS[0]["rule"], "K3")
+
     def test_same_frame_skips_the_model(self):
         self.send()
         calls = live.STATE.model_calls
