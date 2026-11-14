@@ -96,10 +96,31 @@ Backend syntax validation:
 python3 -m py_compile backend/mock_server.py
 ```
 
-## Repository comparison note
+## Branches compared with the README
 
-The local full comparison against `main` contains only the four paths listed
-above. `git diff --check main...HEAD` produced no output. A fresh
-`git fetch --all --prune` could not be completed in the original environment
-because GitHub HTTPS credentials were unavailable; the branch had already been
-confirmed pushed to `origin/demo-shelf-jpeg`.
+The available refs were audited against the architecture, API contract,
+repository structure, and quickstart in `ShelfSense AR Project README.md`:
+
+| Branch | README alignment |
+| --- | --- |
+| `main` (`fa61e87`) | Contains the working FastAPI/SSE frontend and backend, but still references the old Screenshot PNG selector. The README quickstart is stale: it names `backend.main:app`, while the repository uses `backend.mock_server:app`. The README's `treg`, `fal`, and `Oumi` integrations are represented by local/mock behavior rather than external service calls. |
+| `demo-shelf-jpeg` (`3aa5f66`) | Adds the single `frontend/demo_shelf.jpg` cached asset, removes the PNG selector, and documents the actual `backend.mock_server:app` startup. Gemini live detection, SSE tracing, feedback logging, and the cached fallback are present. The README still overstates external sponsor integrations and still describes the removed animated arrow. |
+| `origin/demo-shelf-jpeg` (`1e51ed5`) | Same functional demo-image branch before the merge-guide commit. It has the same README mismatches as `demo-shelf-jpeg`; only the guide commit is absent. |
+
+Important README mismatches that remain after merging:
+
+- The README says the arrow is rendered in AR; the current branch intentionally
+  shows a static source box and destination target instead of a fake animated
+  arrow.
+- The README describes separate `backend/main.py`, `vision_agent.py`, and
+  `tools.py` modules; the actual implementation is consolidated in
+  `backend/mock_server.py`.
+- `treg`/Firecrawl, `fal`, and Oumi are currently simulated/local integrations;
+  only Gemini live vision is an external provider.
+- The README's sample result uses Organic Matcha Latte, while the verified
+  cached dataset uses Blue and white canned goods.
+
+The available remote branch was already present locally, but refreshing all
+remote refs was not possible in the original environment because GitHub HTTPS
+credentials were unavailable. No claim is made here about branches not listed
+by `git branch -a`.
