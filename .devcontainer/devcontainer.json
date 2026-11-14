@@ -1,0 +1,19 @@
+{
+  "name": "GenAI Hackathon",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "node",
+  "runArgs": [
+    "--userns=keep-id",
+    "--security-opt=label=disable"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "saoudrizwan.claude-dev",
+        "ms-python.python"
+      ]
+    }
+  }
+}

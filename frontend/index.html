@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShelfSense AR — Autonomous Retail Merchandising Agent</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- LEFT PANE: Agent Trace & Controls (Projector Optimized) -->
+        <aside class="left-pane" aria-label="Agent Trace and Insights">
+            <header class="app-header">
+                <div class="brand">
+                    <span class="brand-icon">📦✨</span>
+                    <h1>ShelfSense <span class="highlight">AR</span></h1>
+                </div>
+                <p class="tagline">Autonomous Retail Merchandising Agent</p>
+            </header>
+
+            <!-- Controls Panel -->
+            <section class="controls-card" aria-label="Scan Controls">
+                <div class="control-group">
+                    <label for="targetAudience">Target Audience</label>
+                    <select id="targetAudience" class="select-input">
+                        <option value="Morning Commuters" selected>☕ Morning Commuters</option>
+                        <option value="Tourists">🎒 Tourists & Visitors</option>
+                        <option value="Students">📚 Students & Youth</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="scenarioSelect">Agent Scenario</label>
+                    <select id="scenarioSelect" class="select-input">
+                        <option value="default" selected>🟢 Default (Success Path)</option>
+                        <option value="blurry_photo">📸 Blurry Photo (Requests Better Photo)</option>
+                        <option value="weak_trends">📈 Weak Trends (Fallback Average)</option>
+                        <option value="verify_fails_once">⚠️ Verify Fails Once (Corrective Retry)</option>
+                    </select>
+                </div>
+
+
+                <div class="control-row">
+                    <label class="toggle-container" title="Use verified ground truth dataset in case of Wi-Fi or camera limitations">
+                        <input type="checkbox" id="useCachedDemo">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Use cached demo (Plan B)</span>
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label for="mockImageSelect">Mock camera image</label>
+                    <select id="mockImageSelect" class="select-input">
+                        <option value="Screenshot From 2026-11-14 19-32-35.png">Mock shelf 1</option>
+                        <option value="Screenshot From 2026-11-14 19-32-53.png">Mock shelf 2</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button id="scanBtn" class="btn btn-primary" aria-label="Scan Shelf">
+                        <span class="btn-icon">📷</span> Scan Shelf
+                    </button>
+                    <button id="rescanBtn" class="btn btn-secondary" aria-label="Re-scan to verify" disabled>
+                        <span class="btn-icon">🔄</span> Re-scan to verify
+                    </button>
+                </div>
+
+                <div class="fallback-upload-row">
+                    <label for="fallbackFile" class="file-upload-label">
+                        📁 Upload shelf photo (fallback)
+                    </label>
+                    <input type="file" id="fallbackFile" accept="image/*" class="file-input">
+                </div>
+            </section>
+
+            <!-- Error / Status Message Toast -->
+            <div id="errorToast" class="error-toast hidden" role="alert">
+                <span id="errorMessage">Camera access failed.</span>
+                <button id="fallbackToggleBtn" class="btn-text">Enable Cached Demo</button>
+            </div>
+
+            <!-- Trace Log Feed -->
+            <section class="trace-section" aria-label="Agent Reasoning Trace">
+                <div class="section-header">
+                    <h2>Agent Trace</h2>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span id="stepCounter" style="font-size: 11px; font-weight: 700; color: var(--text-secondary); font-family: var(--font-mono);">step 0 of max 8</span>
+                        <span id="traceSourceBadge" class="source-badge live">LIVE</span>
+                    </div>
+                </div>
+                <div id="traceLog" class="trace-log">
+                    <div class="trace-placeholder">
+                        <div class="pulse-dot"></div>
+                        <p>Select target audience and click <strong>Scan Shelf</strong> to begin agent reasoning...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Needs User Prompt Card (Initially Hidden) -->
+            <section id="needsUserCard" class="recommendation-card hidden" style="border-color: var(--accent-blue);" aria-label="Agent Request">
+                <div class="rec-header">
+                    <h3 style="color: var(--accent-blue);">🤖 Agent Request</h3>
+                </div>
+                <div class="rec-body">
+                    <p id="needsUserMessage" class="rec-reason"></p>
+                    <div class="feedback-actions" style="margin-top: 10px;">
+                        <button id="resumeActionBtn" class="btn btn-primary">Resume with Better Photo</button>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Recommendation & Action Result Card (Initially Hidden) -->
+            <section id="recommendationCard" class="recommendation-card hidden" aria-label="Merchandising Recommendation">
+                <div class="rec-header">
+                    <h3>💡 Actionable Swap</h3>
+                    <span id="salesLiftBadge" class="lift-badge">+18% to +24%</span>
+                </div>
+                <div class="rec-body">
+                    <p id="recReasonText" class="rec-reason"></p>
+                    <div class="feedback-actions">
+                        <button id="acceptBtn" class="btn btn-success">✅ Accept Swap</button>
+                        <button id="overrideBtn" class="btn btn-danger">❌ Override</button>
+                    </div>
+                </div>
+            </section>
+            <!-- Done Summary Card (Initially Hidden) -->
+            <section id="doneSummaryCard" class="recommendation-card hidden" style="border-color: var(--accent-green);" aria-label="Agent Run Summary">
+                <div class="rec-header">
+                    <h3 style="color: var(--accent-green);">🎉 Agent Run Complete</h3>
+                </div>
+                <div class="rec-body">
+                    <p id="doneSummaryText" class="rec-reason">Shelf optimization successfully verified and logged to Oumi.</p>
+                </div>
+            </section>
+
+
+
+            <!-- Shelf Talker Card (Initially Hidden) -->
+            <section id="shelfTalkerSection" class="shelf-talker-section hidden" aria-label="Generated Shelf Talker">
+                <div class="section-header">
+                    <h3>🏷️ Promo Shelf Talker</h3>
+                    <div class="talker-actions">
+                        <button id="printTalkerBtn" class="btn-sm btn-outline">🖨️ Print</button>
+                        <a id="downloadTalkerLink" class="btn-sm btn-outline" download="shelf_talker.svg">📥 Download</a>
+                    </div>
+                </div>
+                <div class="talker-preview-container">
+                    <div id="talkerContainer"></div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- RIGHT PANE: AR Video & Canvas Viewport -->
+        <main class="right-pane" aria-label="AR Camera Viewport">
+            <div class="viewport-container" id="viewportContainer">
+                <!-- Live Camera Feed -->
+                <video id="cameraVideo" autoplay playsinline muted></video>
+                
+                <!-- Fallback Image Preview (when file upload is used) -->
+                <img id="fallbackImagePreview" class="hidden" alt="Uploaded Shelf Preview">
+
+                <!-- AR Canvas Overlay -->
+                <canvas id="arCanvas"></canvas>
+
+                <!-- Status Overlay Badge -->
+                <div id="viewportBadge" class="viewport-badge">
+                    <span class="status-dot"></span> <span id="viewportStatusText">Camera Ready</span>
+                </div>
+
+                <!-- Verification Result Banner -->
+                <div id="verifyBanner" class="verify-banner hidden">
+                    <span id="verifyIcon">✅</span>
+                    <span id="verifyText">Verified Successfully</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

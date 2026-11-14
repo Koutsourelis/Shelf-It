@@ -1,0 +1,207 @@
+{
+  "detected_items": [
+    {
+      "name": "Green canned vegetables",
+      "category": "canned_vegetables",
+      "shelf_tier": "top",
+      "box_2d": [
+        75,
+        0,
+        185,
+        182
+      ],
+      "trend_score": 31,
+      "confidence": 0.95
+    },
+    {
+      "name": "Orange and yellow canned goods",
+      "category": "canned_fish_or_protein",
+      "shelf_tier": "top",
+      "box_2d": [
+        78,
+        175,
+        185,
+        385
+      ],
+      "trend_score": 92,
+      "confidence": 0.92
+    },
+    {
+      "name": "Packaged meal boxes",
+      "category": "sauce_jars",
+      "shelf_tier": "top",
+      "box_2d": [
+        71,
+        528,
+        185,
+        630
+      ],
+      "trend_score": 78,
+      "confidence": 0.94
+    },
+    {
+      "name": "Yellow and red produce boxes",
+      "category": "snacks_other",
+      "shelf_tier": "top",
+      "box_2d": [
+        39,
+        730,
+        184,
+        852
+      ],
+      "trend_score": 66,
+      "confidence": 0.9
+    },
+    {
+      "name": "Assorted small tins and jars",
+      "category": "canned_fish_or_protein",
+      "shelf_tier": "eye_level",
+      "box_2d": [
+        235,
+        829,
+        333,
+        1000
+      ],
+      "trend_score": 92,
+      "confidence": 0.88
+    },
+    {
+      "name": "White sauce boxes",
+      "category": "sauce_jars",
+      "shelf_tier": "eye_level",
+      "box_2d": [
+        255,
+        500,
+        335,
+        646
+      ],
+      "trend_score": 78,
+      "confidence": 0.96
+    },
+    {
+      "name": "Red-lid glass jars",
+      "category": "sauce_jars",
+      "shelf_tier": "eye_level",
+      "box_2d": [
+        291,
+        699,
+        332,
+        835
+      ],
+      "trend_score": 78,
+      "confidence": 0.92
+    },
+    {
+      "name": "Red and orange labeled cans",
+      "category": "canned_fish_or_protein",
+      "shelf_tier": "eye_level",
+      "box_2d": [
+        387,
+        222,
+        480,
+        357
+      ],
+      "trend_score": 92,
+      "confidence": 0.94
+    },
+    {
+      "name": "Pink and white flat packages",
+      "category": "pasta_dry_goods",
+      "shelf_tier": "eye_level",
+      "box_2d": [
+        384,
+        357,
+        482,
+        452
+      ],
+      "trend_score": 71,
+      "confidence": 0.95
+    },
+    {
+      "name": "Yellow and red bagged food",
+      "category": "snacks_other",
+      "shelf_tier": "eye_level",
+      "box_2d": [
+        366,
+        452,
+        482,
+        526
+      ],
+      "trend_score": 66,
+      "confidence": 0.95
+    },
+    {
+      "name": "Brown and white packaged bags",
+      "category": "pasta_dry_goods",
+      "shelf_tier": "eye_level",
+      "box_2d": [
+        379,
+        523,
+        482,
+        712
+      ],
+      "trend_score": 71,
+      "confidence": 0.94
+    },
+    {
+      "name": "Blue and white canned goods",
+      "category": "canned_fish_or_protein",
+      "shelf_tier": "bottom",
+      "box_2d": [
+        811,
+        502,
+        927,
+        665
+      ],
+      "trend_score": 92,
+      "confidence": 0.95
+    },
+    {
+      "name": "Red and white glass jars",
+      "category": "sauce_jars",
+      "shelf_tier": "bottom",
+      "box_2d": [
+        823,
+        661,
+        930,
+        998
+      ],
+      "trend_score": 78,
+      "confidence": 0.94
+    },
+    {
+      "name": "White bagged flour and sugar",
+      "category": "flour_sugar_rice",
+      "shelf_tier": "bottom",
+      "box_2d": [
+        794,
+        255,
+        929,
+        503
+      ],
+      "trend_score": 24,
+      "confidence": 0.96
+    }
+  ],
+  "recommendation": {
+    "product_to_move": "Blue and white canned goods",
+    "move_from_box": [
+      811,
+      502,
+      927,
+      665
+    ],
+    "move_to_point": [
+      424,
+      489
+    ],
+    "displaced_item": "Yellow and red bagged food",
+    "reason": "For Students, the blue-and-white canned goods have a simulated demand index of 92 and a simulated 38% margin, but sit on the bottom shelf; swapping them with slower bagged items (index 66) puts them at eye level.",
+    "projected_sales_lift": "+5% to +8% (estimate)",
+    "no_change_needed": false
+  },
+  "image_quality_confidence": 0.95,
+  "needs_better_photo": false,
+  "shelf_talker_image_url": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'><rect width='600' height='400' fill='%23F0FDF4'/><rect x='20' y='20' width='560' height='360' rx='16' fill='white' stroke='%2322C55E' stroke-width='4'/><text x='300' y='70' font-family='sans-serif' font-size='26' font-weight='bold' fill='%2315803D' text-anchor='middle'>\ud83c\udf93 STUDENT ESSENTIALS DEAL</text><text x='300' y='120' font-family='sans-serif' font-size='32' font-weight='900' fill='%231E293B' text-anchor='middle'>Blue & White Canned Goods</text><text x='300' y='170' font-family='sans-serif' font-size='20' fill='%2364748B' text-anchor='middle'>High Protein \u2022 Student Budget Choice</text><rect x='150' y='210' width='300' height='70' rx='35' fill='%23DCFCE7'/><text x='300' y='255' font-family='sans-serif' font-size='28' font-weight='bold' fill='%2316A34A' text-anchor='middle'>\u20ac2.99 \u2014 SPECIAL PRICE</text><text x='300' y='335' font-family='sans-serif' font-size='14' fill='%2394A3B8' text-anchor='middle'>Verified by ShelfSense AR \u2022 Autonomous Merchandising</text></svg>",
+  "trace_id": "run_20261115_002"
+}
