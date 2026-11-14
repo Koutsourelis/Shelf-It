@@ -24,7 +24,7 @@
 | Αρχεία | `agentkit/vision/` (`prompts.py`, `reader.py`, `schema.py`), `scripts/eval_vision.py`, `data/shelf/eval/`, `data/shelf/refs/` | `agentkit/live.py`, `console/live.html`, endpoints `/live` και `/api/shelf/frame` στο `server.py` |
 | Πρώτο βήμα | Κλειδί Gemini στο `.env`, `eval_vision.py` στα 2 samples | `/live` με το mock: κουμπιά «χαλασμένο» / «σωστό» |
 | Μετά | 10–15 φωτογραφίες του ραφιού μας στο eval, tuning του prompt ως sku_shelf ≥ 90% | Πραγματική κάμερα, Telegram, μηνύματα για τον αποθηκάριο, πόσο συχνά στο demo |
-| Ανοιχτά | Native Gemini client με `response_schema` αν το `openai_compat` δίνει λάθος τύπους· φωτογραφία αναφοράς: βοηθάει; | Interval στο demo (30 s είναι αργό στη σκηνή· 8–10 s + «Scan τώρα»)· συγκρούσεις με εκτέλεση agent που τρέχει ήδη |
+| Ανοιχτά | Native Gemini client: έτοιμος (`VISION_PROVIDER=gemini`), μένει να μετρηθεί στο eval με κλειδί· φωτογραφία αναφοράς: βοηθάει; | Interval στο demo (30 s είναι αργό στη σκηνή· 8–10 s + «Scan τώρα»)· συγκρούσεις με εκτέλεση agent που τρέχει ήδη |
 
 **Συμβόλαιο μεταξύ σας:** η έξοδος του `read_photo()`, όπως ορίζεται στο `agentkit/vision/schema.py`
 (`occluded`, `items`, `gaps`, `visual_issues`). Ο Β δουλεύει με το mock μέχρι να είναι έτοιμος ο Α.
@@ -41,3 +41,10 @@ python -m agentkit.server
 
 Στο `.env`: `LLM_PROVIDER=openai_compat`, `OPENAI_COMPAT_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`,
 `OPENAI_COMPAT_MODEL=<id από το AI Studio>`. Μετά: `python scripts/eval_vision.py --runs 3`.
+
+**Native Gemini (branch `vision-2`):** πρόσθεσε `VISION_PROVIDER=gemini`. Η όραση καλεί απευθείας το
+`generateContent` με `responseSchema` (`agentkit/vision/gemini.py`), ώστε οι τύποι και τα πεδία να επιβάλλονται από
+το API· ο agent συνεχίζει με το `LLM_PROVIDER`. Κλειδί και μοντέλο παίρνονται από τα `OPENAI_COMPAT_*` αν δείχνουν
+στη Google, αλλιώς από `GEMINI_API_KEY` / `GEMINI_MODEL`. Ρυθμίσεις: `GEMINI_MEDIA_RESOLUTION`,
+`VISION_MAX_IMAGE_SIDE`. Τρέξε το eval με και χωρίς `VISION_PROVIDER=gemini` για σύγκριση. Tests χωρίς κλειδί:
+`python -m unittest discover tests`.

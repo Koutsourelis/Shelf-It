@@ -86,9 +86,8 @@ async def main() -> None:
     if not cases:
         sys.exit(f"Δεν βρέθηκαν περιπτώσεις στο {EVAL_DIR}. Δες το README εκεί.")
 
-    model = config.OPENAI_COMPAT_MODEL if config.LLM_PROVIDER == "openai_compat" else (
-        config.ANTHROPIC_MODEL if config.LLM_PROVIDER == "anthropic" else "mock")
-    print(f"\nEval όρασης · {config.LLM_PROVIDER}/{model} · prompt {PROMPT_VERSION} · "
+    provider, model = config.vision_provider(), config.vision_model()
+    print(f"\nEval όρασης · {provider}/{model} · prompt {PROMPT_VERSION} · "
           f"αναφορά: {config.VISION_REFERENCE or 'καμία'} · {len(cases)} φωτογραφίες × {args.runs}\n")
 
     from agentkit.vision import reader
@@ -115,7 +114,7 @@ async def main() -> None:
 
     if total["n"]:
         pct = lambda k: round(100 * total[k] / max(total["slots"], 1), 1)
-        summary = {"provider": config.LLM_PROVIDER, "model": model, "prompt": PROMPT_VERSION,
+        summary = {"provider": provider, "model": model, "prompt": PROMPT_VERSION,
                    "reference": config.VISION_REFERENCE, "sku_shelf_pct": pct("sku_shelf"), "facings_pct": pct("facings"),
                    "false_pos": total["false_pos"], "errors": total["errors"],
                    "avg_seconds": round(total["latency"] / total["n"], 1), "rows": rows}

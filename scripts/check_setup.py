@@ -41,6 +41,7 @@ async def main() -> None:
 
     # Βρόχος agent με το ψεύτικο μοντέλο (χωρίς κλειδί, χωρίς internet): όλη η ροή του ραφιού.
     real_provider, config.LLM_PROVIDER = config.LLM_PROVIDER, "mock"
+    real_vision, config.VISION_PROVIDER = config.VISION_PROVIDER, ""
     config.AUTO_APPROVE = True
     await agent.run_agent("Δοκιμή", "shelf", source="check")
     run = list(agent.RUNS.values())[-1]
@@ -94,6 +95,19 @@ async def main() -> None:
             report(f"Πραγματικό μοντέλο ({real_provider}: {conv.model})", bool(turn.text.strip()), turn.text.strip()[:60])
         except Exception as e:
             report(f"Πραγματικό μοντέλο ({real_provider})", False, f"{type(e).__name__}: {str(e)[:160]}")
+
+    # Native Gemini vision (VISION_PROVIDER=gemini): one real reading of the sample photo.
+    config.VISION_PROVIDER = real_vision
+    if real_vision == "gemini":
+        try:
+            from agentkit.vision import gemini as gemini_vision, prompts
+            from agentkit.vision.schema import READING_SCHEMA
+            raw = await gemini_vision.structured(prompts.SYSTEM, prompts.user_prompt([], False), READING_SCHEMA,
+                                                 images=[sample])
+            report(f"Όραση (gemini: {config.GEMINI_MODEL})", isinstance(raw.get("items"), list),
+                   f"{len(raw.get('items') or [])} ομάδες προϊόντων στο sample_before")
+        except Exception as e:
+            report("Όραση (gemini)", False, f"{type(e).__name__}: {str(e)[:160]}")
 
     print("\n" + ("Όλα εντάξει." if all(results) else "Υπάρχουν αποτυχίες, δες παραπάνω.") + "\n")
     sys.exit(0 if all(results) else 1)

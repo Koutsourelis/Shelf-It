@@ -3,14 +3,13 @@
 read_photo(path) → dict που ακολουθεί το READING_SCHEMA, πάντα καθαρισμένο (normalize), ώστε ο υπόλοιπος
 κώδικας να μη χρειάζεται ελέγχους.
 
-- Πάροχος: ό,τι ορίζει το .env (LLM_PROVIDER). Για Gemini: openai_compat με το base url της Google.
+- Πάροχος: VISION_PROVIDER=gemini → native Gemini με response schema (gemini.py). Κενό → ό,τι ορίζει το
+  LLM_PROVIDER (π.χ. openai_compat με το base url της Google).
 - Cache ανά αρχείο: αν το live loop διάβασε ένα frame και μετά ο agent ζητήσει το ίδιο, δεν γίνεται 2η κλήση.
 - mock: διαβάζει το <photo>.reading.json δίπλα στη φωτογραφία, αλλιώς την «ψεύτικη κατάσταση» του ραφιού
   (set_mock_reading), ώστε το live loop να δοκιμάζεται χωρίς κλειδί.
 
-TODO(Α):
-- native Gemini client με response_schema, αν το eval δείξει λάθη τύπων από το openai_compat
-- media resolution / μέγεθος εικόνας (MAX_IMAGE_SIDE στο llm/structured.py)
+Μέγεθος εικόνας και media resolution για το Gemini: VISION_MAX_IMAGE_SIDE, GEMINI_MEDIA_RESOLUTION στο .env.
 """
 import asyncio
 import json
@@ -20,7 +19,7 @@ from pathlib import Path
 from .. import config
 from ..demo_data import PHOTOS_DIR
 from ..llm.structured import structured
-from . import prompts
+from . import gemini, prompts
 from .schema import READING_SCHEMA
 
 _cache: "OrderedDict[tuple, dict]" = OrderedDict()
@@ -87,11 +86,12 @@ def _reference() -> Path | None:
 
 async def _call_model(path: Path, catalog: list, ref: Path | None) -> dict:
     images = [ref, path] if ref else [path]
+    call = gemini.structured if config.vision_provider() == "gemini" else structured
     last = None
     for attempt in range(2):                       # μία επανάληψη σε timeout ή χαλασμένο JSON
         try:
             return await asyncio.wait_for(
-                structured(prompts.SYSTEM, prompts.user_prompt(catalog, ref is not None), READING_SCHEMA, images=images),
+                call(prompts.SYSTEM, prompts.user_prompt(catalog, ref is not None), READING_SCHEMA, images=images),
                 timeout=config.VISION_TIMEOUT_SECONDS)
         except (asyncio.TimeoutError, ValueError, json.JSONDecodeError) as e:
             last = e
@@ -103,14 +103,14 @@ async def read_photo(path: Path) -> dict:
     catalog = await asyncio.to_thread(_catalog)
     known = {c[0] for c in catalog}
 
-    if config.LLM_PROVIDER == "mock":
+    if config.vision_provider() == "mock":
         side = path.with_suffix(".reading.json")
         if not side.exists():
             side = PHOTOS_DIR / f"{_mock_name}.reading.json"
         return normalize(json.loads(side.read_text(encoding="utf-8")), known)
 
     ref = _reference()
-    key = (str(path.resolve()), path.stat().st_mtime_ns, config.OPENAI_COMPAT_MODEL or config.ANTHROPIC_MODEL,
+    key = (str(path.resolve()), path.stat().st_mtime_ns, config.vision_provider(), config.vision_model(),
            prompts.PROMPT_VERSION, str(ref))
     if key in _cache:
         _cache.move_to_end(key)

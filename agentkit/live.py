@@ -205,5 +205,5 @@ async def process_frame(data: bytes, force: bool = False) -> dict:
 
 def status() -> dict:
     return {"interval": config.LIVE_INTERVAL_SECONDS, "confirm_frames": config.LIVE_CONFIRM_FRAMES,
-            "provider": config.LLM_PROVIDER, "frames": STATE.frames, "model_calls": STATE.model_calls,
+            "provider": config.vision_provider(), "frames": STATE.frames, "model_calls": STATE.model_calls,
             "last": STATE.last}

@@ -28,6 +28,26 @@ MAX_STEPS = int(_env("MAX_STEPS", "30"))
 # Φωτογραφία του σωστού ραφιού που στέλνεται μαζί με κάθε frame (σχετική διαδρομή από τη ρίζα). Κενό = χωρίς.
 VISION_REFERENCE = _env("VISION_REFERENCE")
 VISION_TIMEOUT_SECONDS = int(_env("VISION_TIMEOUT_SECONDS", "40"))
+# VISION_PROVIDER: empty = same as LLM_PROVIDER | gemini = native Gemini API with an enforced response schema
+# (agentkit/vision/gemini.py). The agent itself keeps using LLM_PROVIDER.
+VISION_PROVIDER = _env("VISION_PROVIDER").lower()
+_GOOGLE_COMPAT = "generativelanguage.googleapis.com" in OPENAI_COMPAT_BASE_URL
+# If the OpenAI-compatible provider already points at Google, its key and model are reused.
+GEMINI_API_KEY = _env("GEMINI_API_KEY") or (OPENAI_COMPAT_API_KEY if _GOOGLE_COMPAT else "")
+GEMINI_MODEL = _env("GEMINI_MODEL") or (OPENAI_COMPAT_MODEL if _GOOGLE_COMPAT else "")
+GEMINI_MEDIA_RESOLUTION = _env("GEMINI_MEDIA_RESOLUTION")          # empty (model default) | low | medium | high
+GEMINI_MAX_OUTPUT_TOKENS = int(_env("GEMINI_MAX_OUTPUT_TOKENS", "0"))   # 0 = model default
+VISION_MAX_IMAGE_SIDE = int(_env("VISION_MAX_IMAGE_SIDE", "1600"))  # longest side in pixels sent to Gemini
+
+
+def vision_provider() -> str:
+    """Who reads the photos: VISION_PROVIDER if set, otherwise LLM_PROVIDER."""
+    return VISION_PROVIDER or LLM_PROVIDER
+
+
+def vision_model() -> str:
+    return {"gemini": GEMINI_MODEL, "openai_compat": OPENAI_COMPAT_MODEL,
+            "anthropic": ANTHROPIC_MODEL}.get(vision_provider(), "mock")
 
 # --- Live παρακολούθηση (agentkit/live.py, σελίδα /live) ------------------
 LIVE_INTERVAL_SECONDS = int(_env("LIVE_INTERVAL_SECONDS", "30"))    # κάθε πόσο στέλνει frame η σελίδα /live

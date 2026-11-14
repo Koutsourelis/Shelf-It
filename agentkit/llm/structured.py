@@ -21,12 +21,13 @@ def _parse_json(text: str) -> dict:
     return json.loads(match.group(0))
 
 
-def image_b64(path: Path) -> str:
-    """Η εικόνα ως JPEG σε base64, με σωστό προσανατολισμό και μέγιστη πλευρά MAX_IMAGE_SIDE."""
+def image_b64(path: Path, max_side: int = 0) -> str:
+    """Η εικόνα ως JPEG σε base64, με σωστό προσανατολισμό και μέγιστη πλευρά max_side (ή MAX_IMAGE_SIDE)."""
+    max_side = max_side or MAX_IMAGE_SIDE
     from PIL import Image, ImageOps
     with Image.open(path) as im:
         im = ImageOps.exif_transpose(im).convert("RGB")
-        im.thumbnail((MAX_IMAGE_SIDE, MAX_IMAGE_SIDE))
+        im.thumbnail((max_side, max_side))
         buf = io.BytesIO()
         im.save(buf, format="JPEG", quality=88)
     return base64.b64encode(buf.getvalue()).decode("ascii")
