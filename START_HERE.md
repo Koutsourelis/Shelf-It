@@ -27,6 +27,8 @@ hackathon. Τελευταία ενημέρωση: 13 Νοε 2026, βράδυ.
 |---|---|---|
 | `START_HERE.md` | Αυτή η σελίδα | Πρώτο, πάντα |
 | [`AGENTS.md`](AGENTS.md) | Κανόνες για όποιον δουλεύει με βοηθό AI (Claude, ChatGPT, Codex, Cursor) | Δώσ' το στον βοηθό σου πριν γράψει κώδικα |
+| [`planning/BRAINSTORM.md`](planning/BRAINSTORM.md) | Ιδέες της ομάδας, σημειώσεις από το Discord, πρώτη αξιολόγηση | **Τώρα** |
+| [`planning/KICKOFF.md`](planning/KICKOFF.md) | Έπαθλα, κανόνες, tracks, credits, οδηγίες της Quintessential για το πώς κερδίζεις | **Τώρα** |
 | [`planning/SITE_MAP.md`](planning/SITE_MAP.md) | Τι λέει το επίσημο site: tracks, πρόγραμμα, όροι, credits | Απόψε και αύριο το πρωί |
 | [`planning/DISCORD.md`](planning/DISCORD.md) | Ανακοινώσεις από το Discord | Πριν το kickoff |
 | [`planning/IDEAS.md`](planning/IDEAS.md) | Οι πέντε ιδέες, συνδυασμοί, ποια ταιριάζει σε ποιο track | Σάββατο 13:00, για να διαλέξουμε |
