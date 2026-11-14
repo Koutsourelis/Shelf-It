@@ -54,3 +54,6 @@ jobs:
 
       - name: Full flow with the mock model
         run: python scripts/check_setup.py
+
+      - name: Unit tests (vision, live tasks)
+        run: python -m unittest discover tests

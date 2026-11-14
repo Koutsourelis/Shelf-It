@@ -55,6 +55,13 @@ LIVE_CONFIRM_FRAMES = int(_env("LIVE_CONFIRM_FRAMES", "2"))         # ίδια �
 LIVE_DIFF_THRESHOLD = float(_env("LIVE_DIFF_THRESHOLD", "4.0"))     # μέση διαφορά pixel (0-255) κάτω από την οποία το frame θεωρείται ίδιο
 LIVE_START_AGENT = _env("LIVE_START_AGENT", "1") == "1"             # νέα ευρήματα → πλήρης εκτέλεση του agent (αναπλήρωση, παραγγελία)
 
+# --- Αυτονομία (agentkit/tasks.py) ---------------------------------------
+# Παραγγελία χωρίς έγκριση μέσα σε αυτά τα όρια. Πάνω από αυτά, ο υπεύθυνος εγκρίνει με ένα πάτημα.
+AUTO_ORDER = _env("AUTO_ORDER", "1") == "1"
+AUTO_ORDER_MAX_CASES = int(_env("AUTO_ORDER_MAX_CASES", "3"))
+AUTO_ORDER_MAX_EUR = float(_env("AUTO_ORDER_MAX_EUR", "50"))
+TASK_REMINDER_MINUTES = int(_env("TASK_REMINDER_MINUTES", "10"))    # 0 = χωρίς υπενθυμίσεις
+
 # --- Συμπεριφορά -------------------------------------------------------
 DEFAULT_SCENARIO = _env("DEFAULT_SCENARIO", "shelf")
 AUTO_APPROVE = _env("AUTO_APPROVE", "0") == "1"
@@ -91,6 +98,8 @@ PROJECT_LOGO = _env("PROJECT_LOGO")
 HOST = _env("HOST", "127.0.0.1")
 PORT = int(_env("PORT", "8000"))
 BASE_URL = _env("BASE_URL", f"http://{HOST}:{PORT}")
+# Διεύθυνση για το κινητό αν μπαίνει από tunnel (π.χ. https://xxxx.trycloudflare.com). Κενό = η IP του laptop.
+PUBLIC_URL = _env("PUBLIC_URL")
 
 # --- Φάκελοι -----------------------------------------------------------
 DATA_DIR = ROOT / "data"

@@ -354,10 +354,23 @@ async def layout_suggestions(ctx) -> str:
     return "\n".join(out)
 
 
+def _order_needs_approval(args: dict) -> bool:
+    """Αυτονομία μέσα σε όρια: έγκριση μόνο αν η παραγγελία ξεπερνά AUTO_ORDER_MAX_CASES ή AUTO_ORDER_MAX_EUR."""
+    if not config.AUTO_ORDER:
+        return True
+    from .. import portal
+    try:
+        cases = {l["sku"]: int(l["cases"]) for l in args.get("lines") or []}
+    except (KeyError, TypeError, ValueError):
+        return True
+    _lines, total = portal._lines(cases)
+    return sum(cases.values()) > config.AUTO_ORDER_MAX_CASES or total > config.AUTO_ORDER_MAX_EUR
+
+
 @tool(
     "order_from_warehouse",
     "Καταχώρισε παραγγελία στην κεντρική αποθήκη για κωδικούς που δεν υπάρχουν στην αποθήκη του καταστήματος. "
-    "Θέλει έγκριση ανθρώπου. Χρησιμοποίησε τα κιβώτια που έβγαλε το replenishment_plan.",
+    "Μικρές παραγγελίες γίνονται αμέσως· πάνω από τα όρια του καταστήματος θέλει έγκριση ανθρώπου. Χρησιμοποίησε τα κιβώτια που έβγαλε το replenishment_plan.",
     {"lines": {
         "type": "array",
         "description": "Οι γραμμές της παραγγελίας.",
@@ -365,7 +378,7 @@ async def layout_suggestions(ctx) -> str:
                   "properties": {"sku": {"type": "string"}, "cases": {"type": "integer", "description": "Κιβώτια"}},
                   "required": ["sku", "cases"]},
     }},
-    needs_approval=True,
+    needs_approval=_order_needs_approval,     # χωρίς έγκριση μέσα στα όρια του .env
 )
 async def order_from_warehouse(ctx, lines: list) -> str:
     from .. import portal

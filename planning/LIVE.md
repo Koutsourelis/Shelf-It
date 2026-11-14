@@ -1,33 +1,66 @@
 # Live παρακολούθηση ραφιού
 
-Η κάμερα βλέπει το ράφι συνεχώς. Κάθε 30 δευτερόλεπτα στέλνεται ένα frame στο Gemini, ο κώδικας το συγκρίνει με το
-πλανόγραμμα και ο αποθηκάριος παίρνει αναφορά **μόνο όταν κάτι αλλάξει**. Τελευταία ενημέρωση: 14 Νοε, βράδυ.
+Η κάμερα βλέπει το ράφι συνεχώς. Ό,τι λείπει γίνεται **εργασία στο κινητό του υπαλλήλου** και, αν δεν υπάρχει στην
+αποθήκη, **παραγγελία χωρίς έγκριση** (μέσα σε όρια). Όταν η κάμερα δει το ράφι σωστό, η εργασία κλείνει μόνη της.
+Κανείς δεν πατάει τίποτα. Τελευταία ενημέρωση: 14 Νοε, βράδυ.
+
+## Σελίδες
+
+| Σελίδα | Για ποιον | Τι δείχνει |
+|---|---|---|
+| `/` | όλους | κάρτες για κάθε σελίδα, QR για το κινητό, κατάσταση |
+| `/shelf` | υπεύθυνο, οθόνη demo | κάμερα με κουτιά, φανάρι 🟢/🔴, εργασίες, χρονολόγιο «τι έκανε ο agent». Ξεκινά μόνη της |
+| `/tasks` | υπάλληλο (κινητό) | εργασίες με φωτογραφία του σημείου, «Το κάνω», δόνηση/ήχος σε νέα εργασία |
+| `/portal/orders` | κεντρική αποθήκη | οι παραγγελίες που έγιναν αυτόματα |
+| `/dev` | εμάς, κριτές | η κονσόλα του agent + κουμπί **Σύστημα**: τι λείπει, ρυθμίσεις, ενέργειες |
+| `/shelf?dev=1` | εμάς | το ράφι με εργαλεία δοκιμής: mock, από αρχείο, κάμερα, μηδενισμός, λεπτομέρειες frame |
+
+Παλιές διευθύνσεις: `/live` → `/shelf`, `/agent` → `/dev`. Το `/capture` (μία φωτογραφία από κινητό) μένει.
 
 ## Ροή
 
 ```
-/live (browser, κάμερα)  ── frame κάθε LIVE_INTERVAL_SECONDS ──►  POST /api/shelf/frame
+/shelf (κάμερα)  ── frame κάθε LIVE_INTERVAL_SECONDS ──►  POST /api/shelf/frame
   agentkit/live.py
     1. αποθήκευση στο workspace/live/   (όχι στο workspace/photos, αλλιώς ο watcher ξεκινά agent σε κάθε frame)
     2. σχεδόν ίδιο με το προηγούμενο → skip, χωρίς κλήση στο μοντέλο
     3. agentkit/vision.read_photo → ανάγνωση (Gemini)
     4. occluded → skip
     5. findings(): λείπει / λίγες προσόψεις / λάθος ράφι / εκτός πλανογράμματος / παρουσίαση (κώδικας)
-    6. ίδια ευρήματα σε LIVE_CONFIRM_FRAMES frames και διαφορετικά από την τελευταία αναφορά
-         → αναφορά (κονσόλα + Telegram) και εκτέλεση του agent: αναπλήρωση, παραγγελία με έγκριση
+    6. ίδια ευρήματα σε LIVE_CONFIRM_FRAMES frames → agentkit/tasks.py: sync()
+         · νέο εύρημα → εργασία με εικόνα (crop του σημείου) και τεμάχια από την αποθήκη
+         · δεν υπάρχει στην αποθήκη → παραγγελία αμέσως αν ≤ AUTO_ORDER_MAX_CASES και ≤ AUTO_ORDER_MAX_EUR,
+           αλλιώς κουμπί έγκρισης στο /shelf
+         · εύρημα που δεν φαίνεται πια → η εργασία κλείνει («Έγινε σε 2 λεπτά»)
+         · Telegram μόνο όταν κάτι αλλάξει · υπενθύμιση μετά από TASK_REMINDER_MINUTES
+    7. (LIVE_START_AGENT=1) ο agent, σενάριο `live`, εξηγεί και προτείνει διάταξη στο /dev. Δεν ρωτά τίποτα
 ```
+
+Τα βήματα 5–6 είναι όλα κώδικας: η εργασία και η παραγγελία βγαίνουν αμέσως μετά την ανάγνωση. Ο agent δεν
+χρειάζεται γι' αυτές· τρέχει δίπλα για το «show the work».
+
+## Αυτονομία
+
+| Ρύθμιση | Προεπιλογή | Τι κάνει |
+|---|---|---|
+| `AUTO_ORDER` | 1 | παραγγελίες χωρίς έγκριση μέσα στα όρια |
+| `AUTO_ORDER_MAX_CASES` | 3 | πάνω από τόσα κιβώτια → έγκριση |
+| `AUTO_ORDER_MAX_EUR` | 50 | πάνω από τόσα € → έγκριση |
+| `TASK_REMINDER_MINUTES` | 10 | υπενθύμιση για ανοιχτή εργασία · 0 = ποτέ |
+| `LIVE_START_AGENT` | 1 | ο agent εξηγεί στο /dev κάθε νέο εύρημα |
+
+Το ίδιο όριο ισχύει και για το εργαλείο `order_from_warehouse` του agent: το `needs_approval` δέχεται πλέον
+συνάρτηση, και η έγκριση ζητείται μόνο πάνω από το όριο. **Αυτό αλλάζει τον κανόνα «outward actions need approval»
+του `AGENTS.md` και θέλει μία γραμμή στο `DECISIONS.md` με συμφωνία της ομάδας.**
 
 ## Ποιος κάνει τι
 
 | | Άτομο Α: μοντέλο | Άτομο Β: ενσωμάτωση |
 |---|---|---|
-| Αρχεία | `agentkit/vision/` (`prompts.py`, `reader.py`, `schema.py`), `scripts/eval_vision.py`, `data/shelf/eval/`, `data/shelf/refs/` | `agentkit/live.py`, `console/live.html`, endpoints `/live` και `/api/shelf/frame` στο `server.py` |
-| Πρώτο βήμα | Κλειδί Gemini στο `.env`, `eval_vision.py` στα 2 samples | `/live` με το mock: κουμπιά «χαλασμένο» / «σωστό» |
-| Μετά | 10–15 φωτογραφίες του ραφιού μας στο eval, tuning του prompt ως sku_shelf ≥ 90% | Πραγματική κάμερα, Telegram, μηνύματα για τον αποθηκάριο, πόσο συχνά στο demo |
-| Ανοιχτά | Native Gemini client: έτοιμος (`VISION_PROVIDER=gemini`), μένει να μετρηθεί στο eval με κλειδί· φωτογραφία αναφοράς: βοηθάει; | Interval στο demo (30 s είναι αργό στη σκηνή· 8–10 s + «Scan τώρα»)· συγκρούσεις με εκτέλεση agent που τρέχει ήδη |
+| Αρχεία | `agentkit/vision/`, `scripts/eval_vision.py`, `data/shelf/eval/`, `data/shelf/refs/` | `agentkit/live.py`, `agentkit/tasks.py`, `console/shelf.html`, `console/tasks.html`, `console/home.html` |
+| Επόμενο | 10–15 φωτογραφίες στο eval, tuning ως sku_shelf ≥ 90% | Πραγματική κάμερα, Telegram, interval στο demo (8–10 s) |
 
-**Συμβόλαιο μεταξύ σας:** η έξοδος του `read_photo()`, όπως ορίζεται στο `agentkit/vision/schema.py`
-(`occluded`, `items`, `gaps`, `visual_issues`). Ο Β δουλεύει με το mock μέχρι να είναι έτοιμος ο Α.
+**Συμβόλαιο:** η έξοδος του `read_photo()` στο `agentkit/vision/schema.py` (`occluded`, `items`, `gaps`, `visual_issues`).
 
 ## Δοκιμή χωρίς κλειδί
 
@@ -35,16 +68,18 @@
 python -m agentkit.server
 ```
 
-Άνοιξε http://127.0.0.1:8000/live → «Έναρξη» → «mock: χαλασμένο» (2 frames = αναφορά) → «mock: σωστό».
+Άνοιξε http://127.0.0.1:8000/shelf?dev=1 → «mock: χαλασμένο» δύο φορές (επιβεβαίωση 2/2) → εργασίες + παραγγελία →
+http://127.0.0.1:8000/tasks σε άλλο παράθυρο → «mock: σωστό» δύο φορές → οι εργασίες κλείνουν.
 
 ## Με Gemini
 
 Στο `.env`: `LLM_PROVIDER=openai_compat`, `OPENAI_COMPAT_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`,
-`OPENAI_COMPAT_MODEL=<id από το AI Studio>`. Μετά: `python scripts/eval_vision.py --runs 3`.
+`OPENAI_COMPAT_API_KEY=...`, `OPENAI_COMPAT_MODEL=gemini-3.8-flash`. Για native client με `responseSchema`:
+`VISION_PROVIDER=gemini` (κλειδί και μοντέλο παίρνονται από τα `OPENAI_COMPAT_*`). Μετά:
+`python scripts/eval_vision.py --runs 3`. Tests χωρίς κλειδί: `python -m unittest discover tests`.
 
-**Native Gemini (branch `vision-2`):** πρόσθεσε `VISION_PROVIDER=gemini`. Η όραση καλεί απευθείας το
-`generateContent` με `responseSchema` (`agentkit/vision/gemini.py`), ώστε οι τύποι και τα πεδία να επιβάλλονται από
-το API· ο agent συνεχίζει με το `LLM_PROVIDER`. Κλειδί και μοντέλο παίρνονται από τα `OPENAI_COMPAT_*` αν δείχνουν
-στη Google, αλλιώς από `GEMINI_API_KEY` / `GEMINI_MODEL`. Ρυθμίσεις: `GEMINI_MEDIA_RESOLUTION`,
-`VISION_MAX_IMAGE_SIDE`. Τρέξε το eval με και χωρίς `VISION_PROVIDER=gemini` για σύγκριση. Tests χωρίς κλειδί:
-`python -m unittest discover tests`.
+## Κινητό
+
+`HOST=0.0.0.0` στο `.env`, κινητό και laptop στο ίδιο δίκτυο, σκανάρεις το QR της αρχικής. Η σελίδα `/tasks` δεν
+χρειάζεται κάμερα, άρα δουλεύει και με απλό http. Η κάμερα της `/shelf` θέλει `localhost` ή https: τρέχει στο laptop.
+Με tunnel: `PUBLIC_URL=https://...` για να δείχνει σωστά το QR.

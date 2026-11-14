@@ -8,7 +8,8 @@
 
 Το `ctx` (RunContext) δίνει πρόσβαση στην εκτέλεση: ctx.emit(...) για γεγονότα στην
 κονσόλα, ctx.notify(...) για μήνυμα στον χρήστη, ctx.artifact(path) για παραγόμενα αρχεία.
-Με needs_approval=True ο agent σταματά και περιμένει έγκριση ανθρώπου πριν εκτελέσει.
+Με needs_approval=True ο agent σταματά και περιμένει έγκριση ανθρώπου πριν εκτελέσει. Αντί για True δέχεται και
+συνάρτηση f(ορίσματα) -> bool, για έγκριση μόνο πάνω από ένα όριο (π.χ. order_from_warehouse).
 """
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
@@ -21,7 +22,10 @@ class Tool:
     properties: dict[str, Any]
     required: list[str]
     fn: Callable[..., Awaitable[str]]
-    needs_approval: bool = False
+    needs_approval: bool | Callable[[dict], bool] = False
+
+    def approval_needed(self, args: dict) -> bool:
+        return bool(self.needs_approval(args)) if callable(self.needs_approval) else bool(self.needs_approval)
 
     def schema(self) -> dict:
         return {
@@ -35,7 +39,7 @@ REGISTRY: dict[str, Tool] = {}
 
 
 def tool(name: str, description: str, properties: dict | None = None,
-         required: list[str] | None = None, needs_approval: bool = False):
+         required: list[str] | None = None, needs_approval: bool | Callable[[dict], bool] = False):
     props = properties or {}
 
     def deco(fn):

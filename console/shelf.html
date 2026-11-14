@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ράφι · ShelfSense</title>
+<link rel="stylesheet" href="/ui/app.css">
+<!-- Οθόνη ραφιού. Ξεκινά μόνη της: κάμερα → frame κάθε N s → POST /api/shelf/frame → φανάρι, εργασίες, χρονολόγιο.
+     Τα κουτιά έρχονται σε [ymin, xmin, ymax, xmax] 0–1000· η μετατροπή σε pixel γίνεται ΜΟΝΟ στο toPx().
+     ?dev=1: εμφανίζει τα εργαλεία δοκιμής (mock, από αρχείο, επιλογή κάμερας, λεπτομέρειες frame). -->
+<style>
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 18px; padding: 18px 20px; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  .light { display: flex; align-items: center; gap: 16px; padding: 18px 22px; border-radius: var(--r); margin-bottom: 14px;
+    background: var(--card); border: 1px solid var(--line); transition: background .3s; }
+  .light .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--mut); flex: none; }
+  .light.ok { background: var(--okbg); border-color: #1d5a31; } .light.ok .dot { background: var(--ok); box-shadow: 0 0 18px var(--ok); }
+  .light.bad { background: var(--badbg); border-color: #6b2326; } .light.bad .dot { background: var(--bad); box-shadow: 0 0 18px var(--bad); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  .light b { font-size: 24px; display: block; } .light span { color: var(--mut); }
+  .light .right { margin-left: auto; text-align: right; font-size: 14px; color: var(--mut); }
+  .stage { position: relative; background: #000; border-radius: var(--r); overflow: hidden; aspect-ratio: 16 / 9; }
+  .stage video, .stage canvas, .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .stage canvas { pointer-events: none; }
+  .stage .hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mut); text-align: center; padding: 20px; }
+  .scan { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    top: 0; opacity: 0; } .scan.on { opacity: 1; animation: sweep 1.4s linear infinite; }
+  @keyframes sweep { from { top: 0; } to { top: 100%; } }
+  .bar { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .bar .count { color: var(--mut); font-size: 14px; margin-left: auto; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--mut); margin: 0 0 12px; }
+  .task { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 12px; border-radius: 12px; background: var(--card2); margin-bottom: 10px; }
+  .task .img { width: 64px; height: 64px; border-radius: 10px; background: #000 center / cover no-repeat; display: grid; place-items: center; font-size: 26px; }
+  .task b { display: block; line-height: 1.35; } .task small { color: var(--mut); display: block; margin-top: 4px; }
+  .task .acts { margin-top: 8px; display: flex; gap: 8px; } .task .acts button { padding: 7px 12px; font-size: 14px; }
+  .task.in_progress { outline: 2px solid var(--warn); }
+  .tl { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow: auto; }
+  .tl li { display: grid; grid-template-columns: 44px 22px 1fr; gap: 6px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.35; }
+  .tl time { color: var(--mut); font-variant-numeric: tabular-nums; }
+  .devonly { display: none !important; } body.dev .devonly { display: initial !important; } body.dev .devflex { display: flex !important; }
+  #devinfo { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--mut); white-space: pre-wrap; margin-top: 10px; }
+  .setup { border: 1px dashed var(--accent); }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">ShelfSense</a>
+  <nav><a class="on" href="/shelf">Ράφι</a><a href="/tasks">Εργασίες</a><a href="/portal/orders">Αποθήκη</a><a href="/dev">Dev</a></nav>
+  <div class="right">
+    <span class="pill" id="mode"></span>
+  </div>
+</header>
+<main>
+  <section>
+    <div class="light" id="light"><div class="dot"></div><div><b id="lightTitle">Ξεκινάω την κάμερα…</b><span id="lightSub"></span></div>
+      <div class="right" id="lightRight"></div></div>
+    <div class="stage" id="stage">
+      <video id="video" autoplay playsinline muted></video>
+      <img id="still" alt="" hidden>
+      <canvas id="overlay"></canvas>
+      <div class="scan" id="scan"></div>
+      <div class="hint" id="hint" hidden></div>
+    </div>
+    <div class="bar">
+      <button id="pause" class="ghost">Παύση</button>
+      <button id="now" class="ghost">Έλεγχος τώρα</button>
+      <button id="ref" class="ghost" title="Το τωρινό frame γίνεται η εικόνα αναφοράς για το μοντέλο">Αυτό είναι το σωστό ράφι</button>
+      <span class="devonly devflex" style="gap:8px">
+        <select id="cam" class="btn ghost" title="Κάμερα"></select>
+        <button class="ghost" id="file">Από αρχείο…</button>
+        <button class="ghost" data-mock="sample_before">mock: χαλασμένο</button>
+        <button class="ghost" data-mock="sample_after">mock: σωστό</button>
+        <button class="ghost" id="reset">Μηδενισμός</button>
+      </span>
+      <input id="fileInput" type="file" accept="image/*" hidden>
+      <span class="count" id="count"></span>
+    </div>
+    <div id="devinfo" class="devonly"></div>
+  </section>
+
+  <aside>
+    <div class="card" style="margin-bottom:16px">
+      <h2>Εργασίες για τον υπάλληλο</h2>
+      <div id="tasks"></div>
+    </div>
+    <div class="card">
+      <h2>Τι έκανε ο agent</h2>
+      <ul class="tl" id="timeline"></ul>
+    </div>
+  </aside>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const DEV = new URLSearchParams(location.search).has("dev");
+if (DEV) document.body.classList.add("dev");
+const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
+let interval = 30, countdown = 0, paused = false, last = null, sending = false, usingFile = false;
+const COLORS = { ok: "#2ea043", low: "#f0a020", missing: "#e5484d", misplaced: "#e5484d", unknown: "#a371f7", gap: "#e5484d" };
+const ICON = { restock: "📦", relocate: "↔️", remove: "🗑️", tidy: "🧹", task: "🔴", order: "🛒", done: "✅", claim: "🙋",
+               approval: "⚠️", setup: "⚙️" };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const hhmm = ts => new Date(ts * 1000).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+// ---- κάμερα ----------------------------------------------------------------
+async function openCamera(deviceId) {
+  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+  const v = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } };
+  video.srcObject = await navigator.mediaDevices.getUserMedia({ video: v });
+  await video.play();
+  const devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+  $("cam").innerHTML = devices.map((d, i) => `<option value="${d.deviceId}">${esc(d.label || "Κάμερα " + (i + 1))}</option>`).join("");
+}
+function snapshot() {
+  const c = document.createElement("canvas");
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext("2d").drawImage(video, 0, 0);
+  return new Promise(res => c.toBlob(res, "image/jpeg", 0.88));
+}
+
+// ---- frame → server ----------------------------------------------------------
+async function send(blob, force = false) {
+  if (sending || !blob) return;
+  sending = true; $("scan").classList.add("on");
+  const body = new FormData(); body.append("file", blob, "frame.jpg");
+  try {
+    const r = await fetch("/api/shelf/frame" + (force ? "?force=1" : ""), { method: "POST", body });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || r.statusText);
+    render(data);
+  } catch (e) {
+    setLight("", "Δεν διαβάστηκε το ράφι", e.message);
+  } finally { sending = false; $("scan").classList.remove("on"); }
+}
+async function scan(force = false) {
+  if (usingFile) return;
+  if (video.videoWidth) await send(await snapshot(), force);
+}
+
+// ---- σχέδιο πάνω στην εικόνα ------------------------------------------------
+function frameRect() {                       // πού πέφτει η εικόνα μέσα στο stage (object-fit: contain)
+  const W = overlay.clientWidth, H = overlay.clientHeight;
+  const el = usingFile ? $("still") : video;
+  const vw = (usingFile ? el.naturalWidth : el.videoWidth) || 16, vh = (usingFile ? el.naturalHeight : el.videoHeight) || 9;
+  const s = Math.min(W / vw, H / vh), w = vw * s, h = vh * s;
+  return { x: (W - w) / 2, y: (H - h) / 2, w, h };
+}
+function toPx(box, f) {                      // [ymin, xmin, ymax, xmax] 0-1000 → [x, y, w, h] στο canvas
+  const [y0, x0, y1, x1] = box;
+  return [f.x + x0 * f.w / 1000, f.y + y0 * f.h / 1000, (x1 - x0) * f.w / 1000, (y1 - y0) * f.h / 1000];
+}
+function draw() {
+  overlay.width = overlay.clientWidth; overlay.height = overlay.clientHeight;
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  if (!last || !last.items) return;
+  const f = frameRect(), statusOf = {};
+  (last.findings || []).forEach(x => { if (x.sku) statusOf[x.sku] = x.type; });
+  ctx.lineWidth = 3; ctx.font = "600 14px system-ui";
+  const box = (b, color, text) => {
+    const [x, y, w, h] = toPx(b, f);
+    ctx.strokeStyle = color; ctx.strokeRect(x, y, w, h);
+    if (!text) return;
+    const tw = ctx.measureText(text).width + 12;
+    ctx.fillStyle = color; ctx.fillRect(x, Math.max(y - 22, 0), tw, 22);
+    ctx.fillStyle = "#fff"; ctx.fillText(text, x + 6, Math.max(y - 6, 16));
+  };
+  last.items.forEach(it => {
+    if (!it.box_2d) return;
+    const st = !it.sku ? "unknown" : (statusOf[it.sku] || "ok");
+    box(it.box_2d, COLORS[st], st === "ok" ? "" : (it.sku || "?"));
+  });
+  (last.gaps || []).forEach(g => box(g.box_2d, COLORS.gap, "κενό"));
+}
+
+// ---- εμφάνιση ------------------------------------------------------------------
+function setLight(cls, title, sub, right = "") {
+  $("light").className = "light " + cls; $("lightTitle").textContent = title; $("lightSub").textContent = sub || ""; $("lightRight").innerHTML = right;
+}
+function orderNote(orders) {
+  const n = (orders || []).length;
+  return n ? ` · ${n === 1 ? "1 παραγγελία" : n + " παραγγελίες"}` : "";
+}
+function ago(ts) {
+  const m = Math.round((Date.now() / 1000 - ts) / 60);
+  return m < 1 ? "μόλις τώρα" : `πριν από ${m}′`;
+}
+function taskCard(t) {
+  const img = t.image ? `style="background-image:url('/files/${encodeURI(t.image)}')"` : "";
+  const order = t.order && t.order.order_no ? `🛒 Παραγγέλθηκε · ${esc(t.order.order_no)} · ${t.order.eur.toFixed(2)} €`
+    : t.order && t.order.rejected ? "Η παραγγελία απορρίφθηκε" : "";
+  const appr = t.needs_approval ? `<div class="acts"><button class="ok" data-order="${esc(t.id)}" data-v="1">Έγκριση ${t.needs_approval.cases} κιβ. · ${t.needs_approval.eur.toFixed(2)} €</button>
+     <button class="ghost" data-order="${esc(t.id)}" data-v="0">Όχι</button></div><small class="warn">${esc(t.needs_approval.why)}</small>` : "";
+  return `<div class="task ${t.status}"><div class="img" ${img}>${t.image ? "" : ICON[t.kind] || "•"}</div>
+    <div><b>${esc(t.text)}</b><small>${t.status === "in_progress" ? "✋ " + esc(t.claimed_by || "") + " · " : ""}${ago(t.created)}${order ? " · " + order : ""}</small>${appr}</div></div>`;
+}
+function render(d) {
+  last = d; draw();
+  const tasks = d.tasks || [];
+  if (d.status === "occluded") setLight("", "Κάτι κρύβει το ράφι", "Περιμένω να καθαρίσει η εικόνα· αυτό το frame δεν μετράει.");
+  else if (d.status === "idle") setLight("", "Περιμένω το πρώτο frame…", "");
+  else if (!tasks.length) setLight("ok", "Το ράφι είναι σωστό", d.done && d.done.length ? `Τελευταία διόρθωση: ${esc(d.done[0].text)}` : "Όλα τα προϊόντα στη θέση τους.");
+  else setLight("bad", `${tasks.length} ${tasks.length === 1 ? "εργασία" : "εργασίες"} για το ράφι`,
+    "Στάλθηκαν στο κινητό του υπαλλήλου" + orderNote(d.orders));
+  if (d.status === "pending") $("lightRight").innerHTML = `Επιβεβαιώνω… ${esc(d.confirm || "")}`;
+
+  $("tasks").innerHTML = tasks.length ? tasks.map(taskCard).join("")
+    : `<div class="empty"><div class="big">✅</div>Καμία εργασία</div>`;
+  $("timeline").innerHTML = (d.history || []).slice().reverse().map(h =>
+    `<li><time>${hhmm(h.ts)}</time><span>${ICON[h.kind] || "•"}</span><span>${esc(h.text)}</span></li>`).join("")
+    || `<li><span></span><span></span><span class="mut">Τίποτα ακόμη. Η κάμερα ελέγχει κάθε ${interval} δευτερόλεπτα.</span></li>`;
+  $("devinfo").textContent = `frame ${d.frame || "-"} · ${d.status} · ${d.seconds ?? "-"} s · επιβεβαίωση ${d.confirm || "-"} · ` +
+    `${d.frames} frames / ${d.model_calls} κλήσεις μοντέλου` + (d.diff !== undefined ? ` · διαφορά ${d.diff}` : "") +
+    (d.agent_run ? ` · agent ${d.agent_run}` : "") + "\n" + JSON.stringify(d.findings || [], null, 1).slice(0, 1500);
+}
+
+// ---- βρόχος -----------------------------------------------------------------
+setInterval(() => {
+  if (paused || usingFile) { $("count").textContent = paused ? "σε παύση" : ""; return; }
+  countdown -= 1;
+  $("count").textContent = sending ? "διαβάζω το ράφι…" : `επόμενος έλεγχος σε ${Math.max(countdown, 0)} s`;
+  if (countdown <= 0) { countdown = interval; scan(); }
+}, 1000);
+// Αλλαγές από αλλού (π.χ. ο υπάλληλος πάτησε «το κάνω» στο κινητό) φτάνουν από τη ροή γεγονότων.
+new EventSource("/api/events").onmessage = m => {
+  const ev = JSON.parse(m.data);
+  if (ev.run_id === "system" && ev.type === "shelf_log" && Date.now() / 1000 - ev.ts < 5)
+    fetch("/api/live/status").then(r => r.json()).then(s => { if (!sending) render(s); });
+};
+
+$("pause").onclick = () => { paused = !paused; $("pause").textContent = paused ? "Συνέχεια" : "Παύση"; };
+$("now").onclick = () => { usingFile = false; $("still").hidden = true; scan(true); countdown = interval; };
+$("ref").onclick = async () => {
+  if (!video.videoWidth) return;
+  const body = new FormData(); body.append("file", await snapshot(), "ref.jpg");
+  const r = await fetch("/api/shelf/reference", { method: "POST", body });
+  if (r.ok) { $("ref").textContent = "✓ Αποθηκεύτηκε ως σωστό ράφι"; setTimeout(() => $("ref").textContent = "Αυτό είναι το σωστό ράφι", 2500);
+    fetch("/api/live/status").then(r => r.json()).then(render); }
+};
+$("cam").onchange = e => openCamera(e.target.value);
+$("file").onclick = () => $("fileInput").click();
+$("fileInput").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  usingFile = true; $("still").src = URL.createObjectURL(f); $("still").hidden = false; $("hint").hidden = true; send(f, true);
+};
+$("reset").onclick = async () => { await fetch("/api/live/reset", { method: "POST" }); render(await (await fetch("/api/live/status")).json()); };
+document.querySelectorAll("[data-mock]").forEach(b => b.onclick = async () => {
+  await fetch("/api/live/mock/" + b.dataset.mock, { method: "POST" }); usingFile = false; $("still").hidden = true; scan(true);
+});
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-order]"); if (!b) return;
+  b.disabled = true;
+  await fetch(`/api/tasks/${encodeURIComponent(b.dataset.order)}/order`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approved: b.dataset.v === "1" }) });
+  render(await (await fetch("/api/live/status")).json());
+});
+window.addEventListener("resize", draw);
+video.addEventListener("loadedmetadata", draw);
+
+(async () => {
+  const s = await (await fetch("/api/live/status")).json();
+  interval = s.interval; render(s);
+  $("mode").textContent = s.provider === "mock" ? "Δοκιμαστικό μοντέλο" : `Όραση: ${s.model}`;
+  $("mode").className = "pill " + (s.provider === "mock" ? "warn" : "");
+  try { await openCamera(); $("hint").hidden = true; countdown = 2; }
+  catch (e) {
+    $("hint").hidden = false;
+    $("hint").innerHTML = `<div>Δεν άνοιξε η κάμερα (${esc(e.message)}).<br>Άνοιξε τη σελίδα από <code>localhost</code> ή https` +
+      (DEV ? `, ή χρησιμοποίησε «Από αρχείο…».` : `. Για δοκιμή χωρίς κάμερα: <a href="?dev=1" style="color:var(--accent)">εργαλεία δοκιμής</a>.`) + `</div>`;
+  }
+})();
+</script>
+</body>
+</html>

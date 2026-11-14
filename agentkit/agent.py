@@ -103,7 +103,7 @@ async def _call_tool(ctx: RunContext, call: ToolCall) -> ToolResult:
     ctx.emit("tool_call", id=call.id, name=call.name, input=call.input)
     started = time.time()
     try:
-        if tool.needs_approval and not await ctx.ask_approval(f"{call.name}", call.input):
+        if tool.approval_needed(call.input) and not await ctx.ask_approval(f"{call.name}", call.input):
             result = ToolResult(call.id, "Ο χρήστης ΔΕΝ ενέκρινε αυτή την ενέργεια. Μην την επαναλάβεις· "
                                          "συνέχισε χωρίς αυτήν ή ρώτα τι να αλλάξεις.", is_error=True)
         else:

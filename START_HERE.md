@@ -90,7 +90,16 @@ python scripts/check_setup.py
 python -m agentkit.server
 ```
 
-Μετά άνοιξε http://127.0.0.1:8000 και πάτα το πρώτο παράδειγμα. Χωρίς κλειδί δουλεύει με ψεύτικο μοντέλο πάνω σε δύο
+Μετά άνοιξε http://127.0.0.1:8000. Η αρχική έχει μία κάρτα για κάθε σελίδα:
+
+| Σελίδα | Τι είναι |
+|---|---|
+| `/shelf` | Οθόνη ραφιού: κάμερα, φανάρι, εργασίες, τι έκανε ο agent |
+| `/tasks` | Κινητό υπαλλήλου (QR στην αρχική) |
+| `/portal/orders` | Κεντρική αποθήκη |
+| `/dev` | Κονσόλα του agent, κουμπί «Σύστημα» με ό,τι λείπει · `/shelf?dev=1` για δοκιμές με mock |
+
+Λεπτομέρειες: [`planning/LIVE.md`](planning/LIVE.md). Χωρίς κλειδί δουλεύει με ψεύτικο μοντέλο πάνω σε δύο
 σχέδια ραφιού. Σε macOS ή Linux: `source .venv/bin/activate` και `cp` αντί για `copy`.
 
 Αν είχες ήδη στήσει το repo: `git pull --rebase`, `pip install -r requirements.txt`, `python scripts/make_demo_data.py`,
