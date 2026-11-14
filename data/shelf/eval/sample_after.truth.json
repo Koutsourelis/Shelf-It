@@ -1,0 +1,51 @@
+{
+  "photo": "data/shelf/photos/sample_after.png",
+  "items": [
+    {
+      "sku": "C01",
+      "shelf": 1,
+      "facings": 2
+    },
+    {
+      "sku": "C02",
+      "shelf": 1,
+      "facings": 3
+    },
+    {
+      "sku": "C03",
+      "shelf": 1,
+      "facings": 2
+    },
+    {
+      "sku": "C04",
+      "shelf": 2,
+      "facings": 2
+    },
+    {
+      "sku": "C05",
+      "shelf": 2,
+      "facings": 2
+    },
+    {
+      "sku": "C06",
+      "shelf": 2,
+      "facings": 2
+    },
+    {
+      "sku": "C07",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "C08",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "C09",
+      "shelf": 3,
+      "facings": 3
+    }
+  ],
+  "occluded": false
+}

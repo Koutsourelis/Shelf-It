@@ -24,6 +24,17 @@ OPENAI_COMPAT_MODEL = _env("OPENAI_COMPAT_MODEL")
 
 MAX_STEPS = int(_env("MAX_STEPS", "30"))
 
+# --- Όραση (agentkit/vision) -------------------------------------------
+# Φωτογραφία του σωστού ραφιού που στέλνεται μαζί με κάθε frame (σχετική διαδρομή από τη ρίζα). Κενό = χωρίς.
+VISION_REFERENCE = _env("VISION_REFERENCE")
+VISION_TIMEOUT_SECONDS = int(_env("VISION_TIMEOUT_SECONDS", "40"))
+
+# --- Live παρακολούθηση (agentkit/live.py, σελίδα /live) ------------------
+LIVE_INTERVAL_SECONDS = int(_env("LIVE_INTERVAL_SECONDS", "30"))    # κάθε πόσο στέλνει frame η σελίδα /live
+LIVE_CONFIRM_FRAMES = int(_env("LIVE_CONFIRM_FRAMES", "2"))         # ίδια ευρήματα σε τόσα συνεχόμενα frames → αναφορά
+LIVE_DIFF_THRESHOLD = float(_env("LIVE_DIFF_THRESHOLD", "4.0"))     # μέση διαφορά pixel (0-255) κάτω από την οποία το frame θεωρείται ίδιο
+LIVE_START_AGENT = _env("LIVE_START_AGENT", "1") == "1"             # νέα ευρήματα → πλήρης εκτέλεση του agent (αναπλήρωση, παραγγελία)
+
 # --- Συμπεριφορά -------------------------------------------------------
 DEFAULT_SCENARIO = _env("DEFAULT_SCENARIO", "shelf")
 AUTO_APPROVE = _env("AUTO_APPROVE", "0") == "1"

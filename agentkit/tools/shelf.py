@@ -16,7 +16,6 @@ from pathlib import Path
 
 from .. import config
 from ..demo_data import DAYS, PHOTOS_DIR
-from ..llm.structured import structured
 from . import tool
 from .core import safe_path
 from .data import _table, run_sql
@@ -24,43 +23,7 @@ from .data import _table, run_sql
 UPLOADS = config.WORKSPACE / "photos"          # εδώ πέφτουν οι φωτογραφίες από το κινητό
 STATUS = {"ok": "σωστό", "missing": "λείπει από το ράφι", "low": "λιγότερες προσόψεις", "extra": "περισσότερες προσόψεις",
           "misplaced": "σε λάθος ράφι", "unknown": "εκτός πλανογράμματος", "order": "λάθος σειρά"}
-_BOX = {"type": "array", "items": {"type": "integer"},
-        "description": "[ymin, xmin, ymax, xmax], κανονικοποιημένο 0-1000 ως προς την εικόνα"}
-READING_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "items": {
-            "type": "array",
-            "description": "Μία εγγραφή για κάθε ομάδα ίδιων προϊόντων που στέκονται δίπλα δίπλα.",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "sku": {"anyOf": [{"type": "string"}, {"type": "null"}],
-                            "description": "Κωδικός από τον κατάλογο, ή null αν το προϊόν δεν είναι στον κατάλογο"},
-                    "label": {"type": "string", "description": "Τι γράφει η συσκευασία, όπως το διαβάζεις"},
-                    "shelf": {"type": "integer", "description": "Αριθμός ραφιού, 1 = το πάνω"},
-                    "position": {"type": "integer", "description": "Σειρά στο ράφι, 1 = αριστερά"},
-                    "facings": {"type": "integer", "description": "Πόσα τεμάχια φαίνονται δίπλα δίπλα στην μπροστινή σειρά"},
-                    "box_2d": _BOX,
-                },
-                "required": ["sku", "label", "shelf", "position", "facings", "box_2d"],
-                "additionalProperties": False,
-            },
-        },
-        "gaps": {
-            "type": "array",
-            "description": "Εμφανή κενά στο ράφι, όπου χωράει τουλάχιστον ένα προϊόν.",
-            "items": {"type": "object", "properties": {"shelf": {"type": "integer"}, "box_2d": _BOX},
-                      "required": ["shelf", "box_2d"], "additionalProperties": False},
-        },
-    },
-    "required": ["items", "gaps"],
-    "additionalProperties": False,
-}
-READING_SYSTEM = (
-    "Διαβάζεις φωτογραφίες ραφιών καταστήματος. Καταγράφεις μόνο ό,τι φαίνεται καθαρά· δεν μαντεύεις και δεν "
-    "συμπληρώνεις ό,τι θα περίμενες να υπάρχει. Αν ένα προϊόν δεν ταιριάζει με βεβαιότητα σε κωδικό του καταλόγου, "
-    "δίνεις sku null και γράφεις στο label ό,τι διαβάζεις. Μετράς μόνο την μπροστινή σειρά.")
+# Το schema και τα prompts της ανάγνωσης είναι στο agentkit/vision (schema.py, prompts.py).
 
 
 def find_photo(photo: str) -> Path:
@@ -100,28 +63,14 @@ def _current_photo() -> str:
     {"photo": {"type": "string", "description": "π.χ. 'workspace/photos/shelf_101500.jpg' ή 'data/shelf/photos/sample_before.png'"}},
 )
 async def read_shelf(ctx, photo: str) -> str:
+    from ..vision import read_photo          # prompt, schema, cache και mock ζουν στο agentkit/vision
     path = find_photo(photo)
-    _, catalog = await asyncio.to_thread(run_sql, "select sku, name, brand from products order by sku")
-    known = {c[0] for c in catalog}
-
-    if config.LLM_PROVIDER == "mock":
-        side = path.with_suffix(".reading.json")
-        if not side.exists():
-            raise FileNotFoundError(f"Το ψεύτικο μοντέλο χρειάζεται το {side.name} δίπλα στη φωτογραφία.")
-        reading = json.loads(side.read_text(encoding="utf-8"))
-    else:
-        listing = "\n".join(f"{sku} | {name} | {brand}" for sku, name, brand in catalog)
-        reading = await structured(
-            READING_SYSTEM,
-            "Κατάλογος προϊόντων (κωδικός | προϊόν | μάρκα):\n" + listing + "\n\n"
-            "Διάβασε τη φωτογραφία του ραφιού. Για κάθε ομάδα ίδιων προϊόντων που στέκονται δίπλα δίπλα δώσε μία "
-            "εγγραφή στο items, από πάνω προς τα κάτω και από αριστερά προς τα δεξιά. Στο gaps βάλε κάθε εμφανές κενό.",
-            READING_SCHEMA, images=[path])
+    reading = await read_photo(path)
 
     name = path.name
     items, gaps = [], []
     for it in reading.get("items") or []:
-        sku = it.get("sku") if it.get("sku") in known else None
+        sku = it.get("sku")
         box = _box(it.get("box_2d")) or (None, None, None, None)
         items.append((name, int(it.get("shelf") or 0), int(it.get("position") or 0), sku,
                       str(it.get("label") or ""), max(int(it.get("facings") or 0), 0), *box))
@@ -129,6 +78,8 @@ async def read_shelf(ctx, photo: str) -> str:
         box = _box(g.get("box_2d"))
         if box:
             gaps.append((name, int(g.get("shelf") or 0), *box))
+    if reading.get("occluded"):
+        return "Κάτι κρύβει μέρος του ραφιού (άνθρωπος ή αντικείμενο). Ζήτα νέα λήψη χωρίς εμπόδια."
     if not items:
         return "Δεν αναγνωρίστηκε κανένα προϊόν στη φωτογραφία. Ζήτα νέα λήψη, πιο κοντινή και με καλύτερο φως."
 
@@ -143,7 +94,8 @@ async def read_shelf(ctx, photo: str) -> str:
         (i[3] or f"άγνωστο: {i[4]}"): f"ράφι {i[1]}, θέση {i[2]}, {i[5]} προσόψεις" for i in items})
     rows = [(i[1], i[2], i[3] or "-", i[4], i[5]) for i in sorted(items, key=lambda i: (i[1], i[2]))]
     return (f"Φωτογραφία {name}: {len(items)} ομάδες προϊόντων, {len(gaps)} κενά.\n"
-            + _table(["ράφι", "θέση", "κωδικός", "ετικέτα", "προσόψεις"], rows))
+            + _table(["ράφι", "θέση", "κωδικός", "ετικέτα", "προσόψεις"], rows)
+            + "".join(f"\nΠαρουσίαση, ράφι {v['shelf']}: {v['detail']}" for v in reading.get("visual_issues") or []))
 
 
 def _compare() -> dict:

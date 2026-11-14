@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import agent, config, demo_data, events, portal, telegram, watchers
+from . import agent, config, demo_data, events, live, portal, telegram, vision, watchers
 from . import scenarios
 from .scenarios import SCENARIOS
 from .tools import browser
@@ -170,6 +170,48 @@ async def shelf_photo(file: UploadFile):
     return {"ok": True, "photo": name, "run_id": run_id}
 
 
+# --- Live κάμερα (agentkit/live.py) ------------------------------------------
+
+@app.get("/live")
+async def live_page():
+    """Σελίδα με τη ζωντανή κάμερα: στέλνει frame κάθε LIVE_INTERVAL_SECONDS και ζωγραφίζει τα ευρήματα."""
+    return FileResponse(CONSOLE / "live.html", headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/shelf/frame")
+async def shelf_frame(file: UploadFile, force: bool = False):
+    """Ένα frame από τη ζωντανή κάμερα. force=1: διάβασέ το ακόμη κι αν μοιάζει με το προηγούμενο («Scan τώρα»)."""
+    data = await file.read()
+    if not data or len(data) > 10_000_000:
+        raise HTTPException(400, "Κενό ή πολύ μεγάλο frame (όριο 10 MB)")
+    try:
+        return await live.process_frame(data, force=force)
+    except Exception as e:
+        events.emit("system", "log", text=f"Live frame: {type(e).__name__}: {e}")
+        raise HTTPException(502, f"{type(e).__name__}: {e}")
+
+
+@app.get("/api/live/status")
+async def live_status():
+    return live.status()
+
+
+@app.post("/api/live/reset")
+async def live_reset():
+    live.STATE.reset()
+    return {"ok": True}
+
+
+@app.post("/api/live/mock/{name}")
+async def live_mock(name: str):
+    """Μόνο με LLM_PROVIDER=mock: τι «βλέπει» το ψεύτικο μοντέλο (π.χ. sample_before, sample_after)."""
+    try:
+        vision.set_mock_reading(name)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
+    return {"ok": True, "mock": name}
+
+
 @app.get("/api/portal/orders")
 async def portal_orders():
     return portal.orders
@@ -177,6 +219,7 @@ async def portal_orders():
 
 def main():
     print(f"\n  Κονσόλα:  {config.BASE_URL}\n  Κάμερα:   {config.BASE_URL}/capture  (από κινητό: HOST=0.0.0.0 και η IP του laptop)\n"
+          f"  Live:     {config.BASE_URL}/live  (frame κάθε {config.LIVE_INTERVAL_SECONDS}s)\n"
           f"  Αποθήκη:  {config.BASE_URL}/portal/orders\n"
           f"  Μοντέλο:  {config.LLM_PROVIDER}\n")
     uvicorn.run(app, host=config.HOST, port=config.PORT, log_level="warning")
