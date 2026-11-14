@@ -346,7 +346,11 @@ async def qr(path: str = "/tasks"):
 async def live_mock(name: str):
     """Μόνο με LLM_PROVIDER=mock: τι «βλέπει» το ψεύτικο μοντέλο (π.χ. sample_before, sample_after)."""
     try:
-        vision.set_mock_reading(name)
+        vision.set_mock_assessment(name)          # η ροή χρησιμοποιεί την αξιολόγηση
+        try:
+            vision.set_mock_reading(name)         # η παλιά ανάγνωση, αν υπάρχει
+        except FileNotFoundError:
+            pass
     except FileNotFoundError as e:
         raise HTTPException(404, str(e))
     return {"ok": True, "mock": name}

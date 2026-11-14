@@ -3,44 +3,40 @@
   "items": [
     {
       "sku": "C01",
-      "shelf": 1,
       "facings": 2
     },
     {
       "sku": "C02",
-      "shelf": 1,
       "facings": 1
     },
     {
       "sku": "C03",
-      "shelf": 1,
-      "facings": 2
-    },
-    {
-      "sku": "C08",
-      "shelf": 1,
       "facings": 2
     },
     {
       "sku": "C05",
-      "shelf": 2,
       "facings": 2
     },
     {
       "sku": "C06",
-      "shelf": 2,
       "facings": 2
     },
     {
       "sku": "C07",
-      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "C08",
       "facings": 2
     },
     {
       "sku": "C09",
-      "shelf": 3,
       "facings": 3
     }
   ],
-  "occluded": false
+  "missing": [
+    "C04"
+  ],
+  "shelf_ok": false,
+  "note": "Λείπει C04, C02 1/3, C08 σε λάθος επίπεδο."
 }

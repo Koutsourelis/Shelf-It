@@ -40,7 +40,7 @@ class LiveTasksTest(unittest.TestCase):
         config.AUTO_ORDER_MAX_CASES, config.AUTO_ORDER_MAX_EUR, config.LIVE_CONFIRM_FRAMES = 3, 50.0, 2
         portal.orders.clear()
         live.STATE.reset()
-        vision.set_mock_reading("sample_before")
+        vision.set_mock_assessment("sample_before")
 
     def tearDown(self):
         from agentkit.tools import data as data_tools
@@ -51,7 +51,7 @@ class LiveTasksTest(unittest.TestCase):
             setattr(config, k, v)
         live.STATE.reset()
         portal.orders.clear()
-        vision.set_mock_reading("sample_before")
+        vision.set_mock_assessment("sample_before")
         self._tmp.cleanup()
 
     def send(self, color=(200, 0, 0), force=True) -> dict:
@@ -95,7 +95,7 @@ class LiveTasksTest(unittest.TestCase):
 
     def test_fixed_shelf_closes_tasks(self):
         self.send(); self.send()
-        vision.set_mock_reading("sample_after")
+        vision.set_mock_assessment("sample_after")
         self.send((0, 0, 200))
         d = self.send((0, 0, 200))
         self.assertTrue(d["shelf_ok"])

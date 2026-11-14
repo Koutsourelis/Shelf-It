@@ -19,6 +19,7 @@ from pathlib import Path
 
 from . import config, events
 
+DEFAULT_DEPTH = 3                      # πόσα τεμάχια πίσω από μία πρόσοψη, όταν δεν το ξέρουμε
 TASKS: dict[str, dict] = {}            # task_id -> εργασία (in-memory, όπως όλη η κατάσταση του demo)
 HISTORY: list[dict] = []               # χρονολόγιο για την οθόνη: τι είδε και τι έκανε ο agent
 OPEN = ("open", "in_progress")
@@ -48,12 +49,18 @@ def reset() -> None:
 # --- Υπολογισμοί σε κώδικα (ποτέ από το μοντέλο) ---------------------------------
 
 def _stock() -> dict[str, dict]:
-    """Ανά κωδικό: όνομα, βάθος θέσης, τεμάχια ανά κιβώτιο, απόθεμα αποθήκης, κόστος."""
+    """Ανά κωδικό: όνομα, τεμάχια ανά κιβώτιο, απόθεμα αποθήκης, κόστος, βάθος αν το ξέρουμε.
+
+    Το βάθος δεν είναι «θέση»: είναι πόσα τεμάχια χωράνε πίσω από μία πρόσοψη, για να βγουν τα τεμάχια.
+    Αν το πλανόγραμμα δεν έχει τον κωδικό, παίρνουμε DEFAULT_DEPTH.
+    """
     from .tools.data import run_sql
     _, rows = run_sql("""
-        select pl.sku, p.name, pl.depth, p.case_size, coalesce(b.on_hand, 0), p.unit_cost
-        from planogram pl join products p using (sku) left join backroom b using (sku)""")
-    return {r[0]: {"name": r[1], "depth": r[2], "case_size": r[3], "on_hand": r[4], "unit_cost": r[5]} for r in rows}
+        select p.sku, p.name, p.case_size, coalesce(b.on_hand, 0), p.unit_cost,
+               (select pl.depth from planogram pl where pl.sku = p.sku limit 1)
+        from products p left join backroom b using (sku) order by p.sku""")
+    return {r[0]: {"name": r[1], "case_size": r[2], "on_hand": r[3], "unit_cost": r[4],
+                   "depth": r[5] or DEFAULT_DEPTH} for r in rows}
 
 
 def plan_units(finding: dict, stock: dict) -> dict:
@@ -76,8 +83,9 @@ def plan_units(finding: dict, stock: dict) -> dict:
 def _text(finding: dict, numbers: dict | None, stock: dict) -> str:
     name = (stock.get(finding["sku"]) or {}).get("name") or finding.get("label") or finding["sku"] or ""
     shelf = finding["shelf"]
+    level = {"top": "πάνω", "eye": "ύψος ματιών", "bottom": "κάτω"}.get(finding.get("level") or "", "")
     if finding["type"] in ("missing", "low"):
-        where = " (ύψος ματιών)" if finding.get("level") == "eye" else ""
+        where = f" ({level})" if level else ""
         n = numbers or {}
         if n.get("from_backroom"):
             rest = f" · τα άλλα {n['to_order']} δεν υπάρχουν στην αποθήκη" if n.get("to_order") else ""
@@ -86,10 +94,11 @@ def _text(finding: dict, numbers: dict | None, stock: dict) -> str:
             return f"Λείπει {name} από το ράφι {shelf}{where} · δεν υπάρχει στην αποθήκη"
         return f"Φέρε από την αποθήκη: {name}, ράφι {shelf}{where}"
     if finding["type"] == "misplaced":
-        came = ", ".join(map(str, finding.get("found_on") or []))
-        return f"Μετακίνησε: {name} από το ράφι {came} στο ράφι {shelf}"
+        to_level = {"top": "πάνω", "eye": "ύψος ματιών", "bottom": "κάτω"}.get(finding.get("to_level") or "", "")
+        why = f" — {finding['why']}" if finding.get("why") else ""
+        return f"Μετακίνησε: {name} από {level or 'εδώ'} σε {to_level or 'άλλο επίπεδο'}{why}"
     if finding["type"] == "unknown":
-        return f"Βγάλε από το ράφι {shelf}: {finding.get('label') or name} (δεν ανήκει στο πλανόγραμμα)"
+        return f"Βγάλε από το ράφι: {finding.get('label') or name} (δεν ανήκει στο τμήμα)"
     return f"Τακτοποίησε στο ράφι {shelf}: {finding.get('detail') or finding.get('msg', '')}"
 
 

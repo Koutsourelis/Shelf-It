@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from . import config, events, tasks
-from .vision import read_photo
+from .vision import assess_photo
 
 LIVE_DIR = config.WORKSPACE / "live"
 KEEP_FRAMES = 200                       # τα παλιότερα frames σβήνονται
@@ -40,6 +40,7 @@ class LiveState:
         self.recent: deque = deque(maxlen=max(config.LIVE_CONFIRM_FRAMES, 1))   # υπογραφές ευρημάτων
         self.reported_sig: tuple | None = None       # για ποια ευρήματα έγινε τελευταία φορά sync
         self.last: dict | None = None                # τελευταία απάντηση προς τη σελίδα
+        self.verdict: dict | None = None             # εκτίμηση του μοντέλου για το τελευταίο frame
         self.agent_run: str | None = None
         self.frames = self.model_calls = 0
         self.busy = False
@@ -62,47 +63,37 @@ def _diff(a, b) -> float:
     return sum(abs(x - y) for x, y in zip(pa, pb)) / len(pa)
 
 
-# --- 5. ευρήματα ----------------------------------------------------------------
+# --- 5. εκτίμηση ραφιού από το μοντέλο -------------------------------------------
 
-def _plan() -> list:
-    from .tools.data import run_sql
-    _, plan = run_sql("select pl.shelf, pl.level, pl.position, pl.sku, p.name, pl.facings "
-                      "from planogram pl join products p using (sku) order by pl.shelf, pl.position")
-    return plan
+def to_findings(verdict: dict) -> list[dict]:
+    """Εκτίμηση του μοντέλου → ευρήματα για τις εργασίες. Καμία σύγκριση με θέσεις.
 
-
-def findings(reading: dict, plan: list) -> list[dict]:
-    """Ευρήματα ανά κωδικό, ταξινομημένα κατά προτεραιότητα. Καθαρός κώδικας, χωρίς μοντέλο."""
-    seen: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
-    boxes: dict[str, list] = defaultdict(list)
-    for it in reading["items"]:
-        if it["sku"]:
-            seen[it["sku"]][it["shelf"]] += it["facings"]
-            if it["box_2d"]:
-                boxes[it["sku"]].append(it["box_2d"])
-    planned = {r[3] for r in plan}
+    Τα επίπεδα γίνονται «ράφι 1/2/3» μόνο για το κείμενο της εργασίας· ο κώδικας δεν ελέγχει αν το προϊόν
+    είναι «στη σωστή θέση», γιατί τέτοια θέση δεν υπάρχει. Ελέγχει μόνο ό,τι λέει το μοντέλο:
+    λείπει, σε λάθος επίπεδο, ξένο, λίγες προσόψεις, παρουσίαση.
+    """
+    from .vision.assessment import LEVEL_TO_SHELF
     out = []
-    for shelf, level, _pos, sku, _name, facings in plan:
-        here = seen[sku].get(shelf, 0)
-        elsewhere = sorted(s for s in seen[sku] if s != shelf)
-        if here == 0 and elsewhere:
-            out.append({"type": "misplaced", "sku": sku, "shelf": shelf, "level": level, "found_on": elsewhere,
-                        "boxes": boxes[sku]})
-        elif here == 0:
-            # Για την εικόνα της εργασίας: τα κενά που είδε το μοντέλο στο ίδιο ράφι.
-            holes = [g["box_2d"] for g in reading.get("gaps") or [] if g["shelf"] == shelf]
-            out.append({"type": "missing", "sku": sku, "shelf": shelf, "level": level, "need": facings, "boxes": holes})
-        elif here < facings:
-            out.append({"type": "low", "sku": sku, "shelf": shelf, "level": level, "need": facings - here,
-                        "boxes": boxes[sku]})
-    for it in reading["items"]:
-        if not it["sku"] or it["sku"] not in planned:
-            out.append({"type": "unknown", "sku": it["sku"], "shelf": it["shelf"], "label": it["label"],
-                        "boxes": [it["box_2d"]] if it["box_2d"] else []})
-    for v in reading.get("visual_issues") or []:
-        out.append({"type": "visual", "sku": None, "shelf": v["shelf"], "label": v["type"], "detail": v["detail"],
-                    "boxes": []})
-    # Τα κενά δεν γίνονται χωριστή εργασία (καλύπτονται από τα «λείπει»), αλλά ζωγραφίζονται στη σελίδα.
+    for item in (i for sh in verdict["shelves"] for i in sh["items"]):
+        if item.get("sku") and item.get("target_facings") and item["facings"] < item["target_facings"]:
+            level = next(sh["level"] for sh in verdict["shelves"] if item in sh["items"])
+            out.append({"type": "low", "sku": item["sku"], "label": item["label"], "level": level,
+                        "shelf": LEVEL_TO_SHELF[level], "need": item["target_facings"] - item["facings"],
+                        "boxes": [item["box_2d"]] if item.get("box_2d") else []})
+    for m in verdict["missing"]:
+        out.append({"type": "missing", "sku": m.get("sku"), "label": m["product"], "level": "eye",
+                    "shelf": 2, "need": m.get("target_facings") or 1, "boxes": [],
+                    "why": m.get("why", "")})
+    for m in verdict["misplaced"]:
+        out.append({"type": "misplaced", "sku": m.get("sku"), "label": m["product"], "level": m["from_level"],
+                    "shelf": LEVEL_TO_SHELF[m["from_level"]], "to_level": m["to_level"],
+                    "boxes": [m["box_2d"]] if m.get("box_2d") else [], "why": m.get("why", "")})
+    for f in verdict["foreign"]:
+        out.append({"type": "unknown", "sku": None, "label": f["label"], "level": f["level"],
+                    "shelf": LEVEL_TO_SHELF[f["level"]], "boxes": [f["box_2d"]] if f.get("box_2d") else []})
+    for v in verdict["visual_issues"]:
+        out.append({"type": "visual", "sku": None, "label": v["type"], "level": v["level"],
+                    "shelf": LEVEL_TO_SHELF[v["level"]], "detail": v["detail"], "boxes": []})
     out.sort(key=lambda f: (PRIORITY[f["type"]], f["shelf"]))
     for i, f in enumerate(out, 1):
         f["priority"] = i
@@ -110,7 +101,7 @@ def findings(reading: dict, plan: list) -> list[dict]:
 
 
 def _signature(found: list[dict]) -> tuple:
-    """Τι μετράει για «άλλαξε κάτι;». Οι προσόψεις μπαίνουν, τα κουτιά όχι (αλλάζουν λίγο σε κάθε frame)."""
+    """Τι μετράει για «άλλαξε κάτι;». Τα κουτιά όχι (αλλάζουν λίγο σε κάθε frame)."""
     return tuple(sorted((f["type"], f["sku"] or f.get("label", ""), f["shelf"], f.get("need", 0)) for f in found))
 
 
@@ -189,15 +180,16 @@ async def process_frame(data: bytes, force: bool = False) -> dict:
                 return {**status(), "status": "unchanged", "diff": round(d, 1)}
         frame = await asyncio.to_thread(_save, data)
         t0 = time.time()
-        reading = await read_photo(frame)
+        verdict = await assess_photo(frame)
         STATE.model_calls += 1
         seconds = round(time.time() - t0, 1)
-        if reading["occluded"]:
+        if verdict["occluded"]:
             events.emit("system", "live_frame", frame=frame.name, status="occluded", seconds=seconds)
             return {**status(), "status": "occluded", "seconds": seconds,
                     "detail": "Κάτι κρύβει το ράφι· το frame δεν μετράει"}
         STATE.prev_thumb = thumb
-        found = findings(reading, await asyncio.to_thread(_plan))
+        STATE.verdict = verdict
+        found = to_findings(verdict)
         sig = _signature(found)
         STATE.recent.append(sig)
         confirmed = len(STATE.recent) == STATE.recent.maxlen and len(set(STATE.recent)) == 1
@@ -208,7 +200,8 @@ async def process_frame(data: bytes, force: bool = False) -> dict:
         STATE.last = {
             "status": "acted" if acted else ("confirmed" if confirmed else "pending"),
             "frame": frame.name, "seconds": seconds, "findings": found,
-            "items": reading["items"], "gaps": reading["gaps"],
+            "shelves": verdict["shelves"], "summary": verdict["summary"],
+            "suggested_layout": verdict["suggested_layout"], "shelf_ok": verdict["shelf_ok"],
             "confirm": f"{sum(1 for s in STATE.recent if s == sig)}/{STATE.recent.maxlen}",
         }
         events.emit("system", "live_frame", frame=frame.name, status=STATE.last["status"],
@@ -225,7 +218,8 @@ def status() -> dict:
             "auto_order": config.AUTO_ORDER, "max_cases": config.AUTO_ORDER_MAX_CASES,
             "max_eur": config.AUTO_ORDER_MAX_EUR, "frames": STATE.frames, "model_calls": STATE.model_calls,
             "agent_run": STATE.agent_run,
-            **(STATE.last or {"status": "idle", "findings": [], "items": [], "gaps": []}), **tasks.summary()}
+            **(STATE.last or {"status": "idle", "findings": [], "shelves": [], "summary": "",
+                              "suggested_layout": [], "shelf_ok": True}), **tasks.summary()}
 
 
 async def reminder_loop() -> None:

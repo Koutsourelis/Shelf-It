@@ -1,0 +1,295 @@
+"""Αξιολόγηση ραφιού από το μοντέλο όρασης. Μία κλήση: τι υπάρχει, τι λείπει, τι είναι σε λάθος ύψος, πώς πρέπει να στηθεί.
+
+Σχεδιαστική αρχή: **καμία καρτεσιανή θέση**. Δεν λέμε στο μοντέλο «το C04 ανήκει στο ράφι 2, θέση 3».
+Του δίνουμε τον κατάλογο των προϊόντων που πουλάει το τμήμα και τους κανόνες merchandising, και το μοντέλο
+απαντά με ό,τι βλέπει: επίπεδο ραφιού (top / eye / bottom), σειρά από αριστερά, πόσες προσόψεις, τι λείπει,
+τι είναι σε λάθος επίπεδο, και πώς θα έπρεπε να στηθεί. Ο κώδικας δεν συγκρίνει θέσεις· μετατρέπει μόνο
+«λείπουν 3 προσόψεις» σε τεμάχια, κιβώτια και ευρώ (agentkit/tasks.py).
+
+Το συμβόλαιο εξόδου είναι το ASSESS_SCHEMA παρακάτω. Το χρησιμοποιούν το read_shelf (σενάριο agent) και το
+live loop (agentkit/live.py).
+
+Mock (χωρίς κλειδί): διαβάζει το <photo>.assessment.json δίπλα στη φωτογραφία, αλλιώς του ενεργού δείγματος
+(set_mock_assessment). Έτσι όλη η ροή δοκιμάζεται offline, με την ίδια έξοδο που θα έδινε το μοντέλο.
+"""
+import asyncio
+import json
+from collections import OrderedDict
+from pathlib import Path
+
+from .. import config
+from .. import demo_data
+
+LEVELS = ("top", "eye", "bottom")          # top = πάνω, eye = ύψος ματιών, bottom = κάτω
+LEVEL_TO_SHELF = {"top": 1, "eye": 2, "bottom": 3}   # μόνο για εμφάνιση («ράφι 2»), όχι για έλεγχο θέσης
+
+BOX = {"type": "array", "items": {"type": "integer"},
+       "description": "[ymin, xmin, ymax, xmax], 0-1000 ως προς την εικόνα"}
+
+ASSESS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "shelf_ok": {"type": "boolean",
+                     "description": "true μόνο αν το ράφι είναι όπως πρέπει: τίποτα δεν λείπει, τίποτα δεν είναι σε λάθος επίπεδο, τίποτα ξένο"},
+        "occluded": {"type": "boolean", "description": "true αν άνθρωπος, χέρι ή αντικείμενο κρύβει μέρος του ραφιού"},
+        "shelves": {
+            "type": "array",
+            "description": "Ένα στοιχείο για κάθε επίπεδο που φαίνεται, από πάνω προς τα κάτω.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "level": {"type": "string", "enum": list(LEVELS)},
+                    "items": {
+                        "type": "array",
+                        "description": "Οι ομάδες ίδιων προϊόντων που στέκονται δίπλα δίπλα, από αριστερά.",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "label": {"type": "string", "description": "Τι γράφει η συσκευασία, όπως το διαβάζεις"},
+                                "sku": {"anyOf": [{"type": "string"}, {"type": "null"}],
+                                        "description": "Κωδικός του καταλόγου αν ταιριάζει με βεβαιότητα, αλλιώς null"},
+                                "facings": {"type": "integer", "description": "Πόσα τεμάχια φαίνονται δίπλα δίπλα"},
+                                "target_facings": {"type": "integer",
+                                                   "description": "Πόσες προσόψεις του αξίζουν σε αυτό το επίπεδο"},
+                                "placement_ok": {"type": "boolean",
+                                                 "description": "false αν το προϊόν δεν ταιριάζει στο επίπεδο που στέκει (κανόνες παρακάτω)"},
+                                "box_2d": BOX,
+                            },
+                            "required": ["label", "sku", "facings", "target_facings", "placement_ok", "box_2d"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["level", "items"],
+                "additionalProperties": False,
+            },
+        },
+        "missing": {
+            "type": "array",
+            "description": "Προϊόντα του καταλόγου που δεν φαίνονται καθόλου στο ράφι.",
+            "items": {"type": "object", "properties": {
+                "sku": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                "product": {"type": "string"},
+                "target_facings": {"type": "integer"},
+                "why": {"type": "string", "description": "Γιατί πρέπει να είναι εδώ (π.χ. κύριος κωδικός της κατηγορίας)"}},
+                "required": ["sku", "product", "target_facings", "why"], "additionalProperties": False},
+        },
+        "misplaced": {
+            "type": "array",
+            "description": "Προϊόντα που υπάρχουν αλλά σε λάθος επίπεδο για τους κανόνες.",
+            "items": {"type": "object", "properties": {
+                "sku": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                "product": {"type": "string"},
+                "from_level": {"type": "string", "enum": list(LEVELS)},
+                "to_level": {"type": "string", "enum": list(LEVELS)},
+                "why": {"type": "string"},
+                "box_2d": BOX},
+                "required": ["sku", "product", "from_level", "to_level", "why", "box_2d"], "additionalProperties": False},
+        },
+        "foreign": {
+            "type": "array",
+            "description": "Συσκευασίες που δεν ανήκουν στον κατάλογο του τμήματος.",
+            "items": {"type": "object", "properties": {
+                "label": {"type": "string"}, "level": {"type": "string", "enum": list(LEVELS)}, "box_2d": BOX},
+                "required": ["label", "level", "box_2d"], "additionalProperties": False},
+        },
+        "visual_issues": {
+            "type": "array",
+            "description": "Παραβάσεις παρουσίασης που φαίνονται μόνο με το μάτι.",
+            "items": {"type": "object", "properties": {
+                "level": {"type": "string", "enum": list(LEVELS)},
+                "type": {"type": "string", "enum": ["label_not_facing", "not_fronted", "messy", "damaged", "other"]},
+                "detail": {"type": "string"}},
+                "required": ["level", "type", "detail"], "additionalProperties": False},
+        },
+        "suggested_layout": {
+            "type": "array",
+            "description": "Πώς θα έπρεπε να στηθεί το ράφι. Ένα στοιχείο ανά επίπεδο, με τη σειρά από αριστερά.",
+            "items": {"type": "object", "properties": {
+                "level": {"type": "string", "enum": list(LEVELS)},
+                "order": {"type": "array", "items": {"type": "string"},
+                          "description": "Ονόματα/κωδικοί προϊόντων με τη σειρά που προτείνεις"},
+                "why": {"type": "string"}},
+                "required": ["level", "order", "why"], "additionalProperties": False},
+        },
+        "summary": {"type": "string", "description": "Δύο προτάσεις: τι βλέπεις και τι πρέπει να γίνει."},
+    },
+    "required": ["shelf_ok", "occluded", "shelves", "missing", "misplaced", "foreign", "visual_issues",
+                 "suggested_layout", "summary"],
+    "additionalProperties": False,
+}
+
+SYSTEM = (
+    "Είσαι merchandiser καταστήματος και κοιτάς φωτογραφία ραφιού. Περιγράφεις μόνο ό,τι φαίνεται: δεν μαντεύεις "
+    "προϊόντα που δεν βλέπεις και δεν συμπληρώνεις τον κατάλογο από συνήθεια. Κρίνεις τη διάταξη με κανόνες "
+    "κατηγορίας, όχι με προκαθορισμένες θέσεις: δεν υπάρχει σωστή «θέση 3» — υπάρχει σωστό επίπεδο, σωστή γειτονιά "
+    "και σωστός αριθμός προσόψεων."
+)
+
+RULES = [
+    "Το ύψος των ματιών (eye) είναι το πολυτιμότερο: εκεί πάνε οι κωδικοί με το μεγαλύτερο περιθώριο κέρδους "
+    "και οι κωδικοί που θέλουμε να αγοραστούν παρορμητικά.",
+    "Τα βαριά ή ογκώδη πάνε κάτω (bottom), τα ελαφριά και μικρά πάνω (top).",
+    "Ίδια μάρκα μαζί, κάθετα αν γίνεται· μην ανακατεύεις ανταγωνιστές στο ίδιο μπλοκ.",
+    "Κάθε κωδικός θέλει τουλάχιστον δύο προσόψεις· ο ηγέτης της κατηγορίας περισσότερες.",
+    "Οι ετικέτες κοιτάνε προς τα έξω και τα προϊόντα είναι τραβηγμένα στην άκρη του ραφιού.",
+    "Ένα κενό στο ράφι είναι χαμένη πώληση: αν λείπει κωδικός του καταλόγου, είναι πρόβλημα.",
+]
+
+
+def user_prompt(catalog: list[dict], has_reference: bool) -> str:
+    rows = []
+    for p in catalog:
+        margin = ""
+        if p.get("unit_price") and p.get("unit_cost") is not None:
+            try:
+                margin = f", περιθώριο {100 * (float(p['unit_price']) - float(p['unit_cost'])) / float(p['unit_price']):.0f}%"
+            except (TypeError, ValueError, ZeroDivisionError):
+                margin = ""
+        rows.append(f"- {p['sku']} | {p['name']} | {p['brand']} | {p.get('category') or 'χωρίς κατηγορία'}{margin}")
+    ref = ("Η ΠΡΩΤΗ εικόνα δείχνει το ίδιο ράφι σε καλή κατάσταση (αναφορά). Η ΔΕΥΤΕΡΗ είναι η σημερινή. "
+           "Σύγκρινε νοητά, αλλά αξιολόγησε μόνο τη δεύτερη.\n\n" if has_reference else "")
+    rules = "\n".join(f"- {r}" for r in RULES)
+    return (
+        f"{ref}Κατάλογος του τμήματος (κωδικός | προϊόν | μάρκα | κατηγορία):\n" + "\n".join(rows) + "\n\n"
+        "Ο κατάλογος λέει ΠΟΙΑ προϊόντα πουλάμε, όχι σε ποια θέση πρέπει να είναι. Αξιολόγησε τη φωτογραφία:\n"
+        "1. Για κάθε επίπεδο (top/eye/bottom) γράψε τις ομάδες ίδιων προϊόντων από αριστερά, με προσόψεις, το "
+        "box_2d τους και αν το επίπεδο τους ταιριάζει (placement_ok).\n"
+        "2. Στο missing βάλε κωδικούς του καταλόγου που δεν φαίνονται καθόλου.\n"
+        "3. Στο misplaced ό,τι είναι σε λάθος επίπεδο, με το επίπεδο που του ταιριάζει.\n"
+        "4. Στο foreign ό,τι δεν ανήκει στον κατάλογο. Στο visual_issues τις παραβάσεις παρουσίασης.\n"
+        "5. Στο suggested_layout δώσε τη διάταξη που προτείνεις, ανά επίπεδο, με σειρά από αριστερά, και το γιατί.\n"
+        "6. shelf_ok = true μόνο αν δεν λείπει τίποτα, δεν είναι τίποτα σε λάθος επίπεδο και δεν υπάρχει πρόβλημα "
+        "παρουσίασης.\n\nΚανόνες κατηγορίας:\n" + rules
+    )
+
+
+_cache: "OrderedDict[tuple, dict]" = OrderedDict()
+_CACHE_SIZE = 16
+_mock_name = "sample_before"
+
+
+def set_mock_assessment(name: str) -> None:
+    """Mock: ποια κατάσταση «βλέπει» το ψεύτικο μοντέλο (π.χ. sample_before, sample_after, newim1)."""
+    global _mock_name
+    if not (demo_data.PHOTOS_DIR / f"{name}.assessment.json").exists():
+        raise FileNotFoundError(f"Λείπει το {demo_data.PHOTOS_DIR / (name + '.assessment.json')}")
+    _mock_name = name
+
+
+def mock_assessment() -> str:
+    return _mock_name
+
+
+def _clamp_box(value) -> list[int] | None:
+    try:
+        ymin, xmin, ymax, xmax = (max(0, min(1000, int(v))) for v in value)
+    except (TypeError, ValueError):
+        return None
+    return [ymin, xmin, ymax, xmax] if ymax > ymin and xmax > xmin else None
+
+
+def _int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def normalize(raw: dict, known: set[str]) -> dict:
+    """Καθαρίζει την έξοδο του μοντέλου: άγνωστοι κωδικοί → null, κουτιά σε 0-1000, αριθμοί ≥ 0."""
+    shelves = []
+    for sh in raw.get("shelves") or []:
+        level = sh.get("level") if sh.get("level") in LEVELS else "top"
+        items = []
+        for it in sh.get("items") or []:
+            if not isinstance(it, dict):
+                continue
+            items.append({"label": str(it.get("label") or ""),
+                          "sku": it.get("sku") if it.get("sku") in known else None,
+                          "facings": max(_int(it.get("facings")), 0),
+                          "target_facings": max(_int(it.get("target_facings")), 0),
+                          "placement_ok": bool(it.get("placement_ok", True)),
+                          "box_2d": _clamp_box(it.get("box_2d"))})
+        shelves.append({"level": level, "items": items})
+
+    def level(value, default="top"):
+        return value if value in LEVELS else default
+
+    missing = [{"sku": m.get("sku") if m.get("sku") in known else None, "product": str(m.get("product") or ""),
+                "target_facings": max(_int(m.get("target_facings")), 1), "why": str(m.get("why") or "")}
+               for m in raw.get("missing") or [] if isinstance(m, dict)]
+    misplaced = [{"sku": m.get("sku") if m.get("sku") in known else None, "product": str(m.get("product") or ""),
+                  "from_level": level(m.get("from_level")), "to_level": level(m.get("to_level")),
+                  "why": str(m.get("why") or ""), "box_2d": _clamp_box(m.get("box_2d"))}
+                 for m in raw.get("misplaced") or [] if isinstance(m, dict)]
+    foreign = [{"label": str(f.get("label") or ""), "level": level(f.get("level")),
+                "box_2d": _clamp_box(f.get("box_2d"))} for f in raw.get("foreign") or [] if isinstance(f, dict)]
+    visual = [{"level": level(v.get("level")), "type": str(v.get("type") or "other"), "detail": str(v.get("detail") or "")}
+              for v in raw.get("visual_issues") or [] if isinstance(v, dict)]
+    layout = [{"level": level(s.get("level")), "order": [str(x) for x in s.get("order") or []],
+               "why": str(s.get("why") or "")} for s in raw.get("suggested_layout") or [] if isinstance(s, dict)]
+    return {"shelf_ok": bool(raw.get("shelf_ok")), "occluded": bool(raw.get("occluded")), "shelves": shelves,
+            "missing": missing, "misplaced": misplaced, "foreign": foreign, "visual_issues": visual,
+            "suggested_layout": layout, "summary": str(raw.get("summary") or "")}
+
+
+def _catalog() -> list[dict]:
+    from ..tools.data import run_sql
+    _, rows = run_sql("select sku, name, brand, unit_cost, unit_price, category from products order by sku")
+    return [{"sku": r[0], "name": r[1], "brand": r[2], "unit_cost": r[3], "unit_price": r[4], "category": r[5]}
+            for r in rows]
+
+
+def _reference() -> Path | None:
+    if not config.VISION_REFERENCE:
+        return None
+    p = (config.ROOT / config.VISION_REFERENCE).resolve()
+    return p if p.is_file() else None
+
+
+def _provider():
+    from . import gemini
+    from ..llm.structured import structured
+    return gemini.structured if config.vision_provider() == "gemini" else structured
+
+
+async def assess_photo(path: Path) -> dict:
+    """Φωτογραφία → αξιολόγηση κατά ASSESS_SCHEMA. Καμία σύγκριση με θέσεις· όλα από το μοντέλο."""
+    from . import prompts
+    path = Path(path)
+    catalog = await asyncio.to_thread(_catalog)
+    known = {c["sku"] for c in catalog}
+
+    if config.vision_provider() == "mock":
+        side = path.with_suffix(".assessment.json")
+        if not side.exists():
+            side = demo_data.PHOTOS_DIR / f"{_mock_name}.assessment.json"
+        return normalize(json.loads(side.read_text(encoding="utf-8")), known)
+
+    ref = _reference()
+    key = (str(path.resolve()), path.stat().st_mtime_ns, config.vision_provider(), config.vision_model(),
+           prompts.PROMPT_VERSION, str(ref), len(catalog))
+    if key in _cache:
+        _cache.move_to_end(key)
+        return _cache[key]
+
+    call = _provider()
+    last = None
+    for _ in range(2):                      # μία επανάληψη σε timeout ή χαλασμένο JSON
+        try:
+            raw = await asyncio.wait_for(
+                call(SYSTEM, user_prompt(catalog, ref is not None), ASSESS_SCHEMA,
+                     images=[ref, path] if ref else [path]),
+                timeout=config.VISION_TIMEOUT_SECONDS)
+            break
+        except (asyncio.TimeoutError, ValueError, json.JSONDecodeError) as e:
+            last = e
+    else:
+        raise RuntimeError(f"Το μοντέλο όρασης απέτυχε δύο φορές: {type(last).__name__}: {last}")
+
+    verdict = normalize(raw, known)
+    _cache[key] = verdict
+    if len(_cache) > _CACHE_SIZE:
+        _cache.popitem(last=False)
+    return verdict

@@ -1,0 +1,44 @@
+{
+  "photo": "data/shelf/photos/newim1.jpeg",
+  "items": [
+    {
+      "sku": "C01",
+      "facings": 2
+    },
+    {
+      "sku": "C02",
+      "facings": 3
+    },
+    {
+      "sku": "C03",
+      "facings": 2
+    },
+    {
+      "sku": "C04",
+      "facings": 2
+    },
+    {
+      "sku": "C05",
+      "facings": 2
+    },
+    {
+      "sku": "C06",
+      "facings": 2
+    },
+    {
+      "sku": "C07",
+      "facings": 2
+    },
+    {
+      "sku": "C08",
+      "facings": 2
+    },
+    {
+      "sku": "C09",
+      "facings": 3
+    }
+  ],
+  "missing": [],
+  "shelf_ok": true,
+  "note": "Μετρημένο πάνω στη φωτογραφία από τους κωδικούς των συσκευασιών: πάνω 2/3/2, μέση 2/2/2, κάτω 2/2/3."
+}

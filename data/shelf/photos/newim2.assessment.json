@@ -1,0 +1,180 @@
+{
+  "shelf_ok": false,
+  "occluded": false,
+  "shelves": [
+    {
+      "level": "top",
+      "items": [
+        {
+          "label": "Καφές φίλτρου 250g",
+          "sku": "C01",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            60,
+            84,
+            300,
+            286
+          ]
+        },
+        {
+          "label": "Ελληνικός καφές 200g",
+          "sku": "C02",
+          "facings": 1,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            60,
+            294,
+            300,
+            496
+          ]
+        },
+        {
+          "label": "Στιγμιαίος καφές 100g",
+          "sku": "C03",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            60,
+            504,
+            300,
+            706
+          ]
+        },
+        {
+          "label": "Τσάι του βουνού x20",
+          "sku": "C08",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": false,
+          "box_2d": [
+            60,
+            714,
+            300,
+            916
+          ]
+        }
+      ]
+    },
+    {
+      "level": "eye",
+      "items": [
+        {
+          "label": "Espresso σε κόκκους 500g",
+          "sku": "C05",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            330,
+            84,
+            570,
+            496
+          ]
+        },
+        {
+          "label": "Στιγμιαίος καφές 200g",
+          "sku": "C06",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            330,
+            504,
+            570,
+            916
+          ]
+        }
+      ]
+    },
+    {
+      "level": "bottom",
+      "items": [
+        {
+          "label": "Κακάο 400g",
+          "sku": "C07",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            600,
+            84,
+            850,
+            496
+          ]
+        },
+        {
+          "label": "Ελληνικός καφές 500g",
+          "sku": "C09",
+          "facings": 3,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            600,
+            504,
+            850,
+            916
+          ]
+        }
+      ]
+    }
+  ],
+  "missing": [
+    {
+      "sku": "C04",
+      "product": "Κάψουλες espresso x10",
+      "target_facings": 2,
+      "why": "Κύριος κωδικός στο ύψος των ματιών"
+    }
+  ],
+  "misplaced": [
+    {
+      "sku": "C08",
+      "product": "Τσάι του βουνού x20",
+      "from_level": "top",
+      "to_level": "bottom",
+      "why": "Το τσάι ανήκει με τα υπόλοιπα ροφήματα κάτω",
+      "box_2d": [
+        60,
+        0,
+        300,
+        0
+      ]
+    }
+  ],
+  "foreign": [],
+  "visual_issues": [],
+  "suggested_layout": [
+    {
+      "level": "top",
+      "order": [
+        "C01",
+        "C02",
+        "C03"
+      ],
+      "why": "Καφές φίλτρου και στιγμιαίος: ελαφριά, μικρά, πάνω."
+    },
+    {
+      "level": "eye",
+      "order": [
+        "C04",
+        "C05",
+        "C06"
+      ],
+      "why": "Κάψουλες και κόκκοι: μεγαλύτερο περιθώριο στο ύψος των ματιών."
+    },
+    {
+      "level": "bottom",
+      "order": [
+        "C07",
+        "C08",
+        "C09"
+      ],
+      "why": "Κακάο, τσάι και η συσκευασία 500g: βαριά, κάτω."
+    }
+  ],
+  "summary": "Ένα κενό στο πάνω ράφι, λείπει ο C04 από τα μάτια, το τσάι σε λάθος επίπεδο και ένα κενό κάτω."
+}

@@ -1,20 +1,27 @@
-"""Μέτρηση του μοντέλου όρασης. Κάτοχος: Άτομο Α.
+"""Μέτρηση του μοντέλου όρασης στην αξιολόγηση ραφιού. Κάτοχος: Άτομο Α.
 
     python scripts/eval_vision.py                 # όλες οι φωτογραφίες του data/shelf/eval/
     python scripts/eval_vision.py --runs 3        # 3 κλήσεις ανά φωτογραφία: δείχνει και τη σταθερότητα
-    python scripts/eval_vision.py --only shelf_01
+    python scripts/eval_vision.py --only newim    # μόνο όσες περιέχουν «newim»
 
 Για κάθε φωτογραφία χρειάζεται ένα <όνομα>.truth.json δίπλα της (ή με πεδίο "photo" που δείχνει αλλού):
 
-    {"photo": "data/shelf/photos/sample_before.png",          (προαιρετικό)
-     "items": [{"sku": "C01", "shelf": 1, "facings": 2}, ...], (η αλήθεια: τι υπάρχει, σε ποιο ράφι, πόσες προσόψεις)
-     "occluded": false}
+    {"photo": "data/shelf/photos/newim1.jpeg",
+     "items": [{"sku": "C01", "facings": 2}, ...],   # τι φαίνεται πραγματικά
+     "missing": ["C04"],                              # τι λείπει πραγματικά
+     "shelf_ok": true,                                # είναι το ράφι όπως πρέπει;
+     "note": "πώς μετρήθηκε"}
 
-Μετρά ανά (κωδικός, ράφι):
-- sku_shelf: βρήκε το σωστό προϊόν στο σωστό ράφι (αυτό καθορίζει «λείπει» και «λάθος ράφι»)
-- facings:   και με σωστό αριθμό προσόψεων (αυτό καθορίζει «λίγες προσόψεις» και την αναπλήρωση)
-- false_pos: (κωδικός, ράφι) που είπε το μοντέλο ενώ δεν υπάρχουν
-Στόχος από το BUILD_PLAN: sku_shelf ≥ 90%. Τα αποτελέσματα γράφονται στο workspace/eval/ για σύγκριση prompts.
+Δεν βαθμολογούμε θέσεις. Το μοντέλο δεν καλείται να βάλει προϊόντα σε «σωστή θέση»· βαθμολογούμε αυτό που
+πρέπει να καταλάβει: ποιο προϊόν είναι, πόσες προσόψεις, τι λείπει, αν το ράφι είναι σωστό.
+
+- sku:      βρήκε τα προϊόντα που υπάρχουν (ανά κωδικό, όχι ανά θέση)
+- facings:  και με σωστό αριθμό προσόψεων
+- false+:   προϊόντα που δήλωσε ενώ δεν υπάρχουν
+- missing:  βρήκε σωστά τι λείπει
+- ok:       συμφωνεί με το «είναι σωστό το ράφι;»
+
+Στόχος από το BUILD_PLAN: sku ≥ 90%. Τα αποτελέσματα γράφονται στο workspace/eval/ για σύγκριση prompts.
 """
 import argparse
 import asyncio
@@ -29,7 +36,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 from agentkit import config                       # noqa: E402
-from agentkit.vision import read_photo            # noqa: E402
+from agentkit.vision import assess_photo          # noqa: E402
 from agentkit.vision.prompts import PROMPT_VERSION  # noqa: E402
 
 EVAL_DIR = config.SHELF_DIR / "eval"          # ακολουθεί το SHELF_SET
@@ -54,23 +61,31 @@ def _cases(only: str | None) -> list[tuple[str, Path, dict]]:
     return cases
 
 
-def _by_slot(items) -> dict[tuple, int]:
-    out: dict[tuple, int] = defaultdict(int)
-    for it in items:
-        if it.get("sku"):
-            out[(it["sku"], int(it["shelf"]))] += int(it.get("facings") or 0)
-    return out
+def _seen(verdict: dict) -> dict[str, int]:
+    """Κωδικός → προσόψεις, αθροισμένα σε όλα τα επίπεδα. Χωρίς θέσεις."""
+    out: dict[str, int] = defaultdict(int)
+    for sh in verdict["shelves"]:
+        for it in sh["items"]:
+            if it.get("sku"):
+                out[it["sku"]] += int(it.get("facings") or 0)
+    return dict(out)
 
 
-def score(truth: dict, reading: dict) -> dict:
-    want, got = _by_slot(truth["items"]), _by_slot(reading["items"])
+def score(truth: dict, verdict: dict) -> dict:
+    want = {i["sku"]: int(i["facings"]) for i in truth["items"]}
+    got = _seen(verdict)
     hit = [k for k in want if k in got]
-    return {"slots": len(want), "sku_shelf": len(hit), "facings": sum(1 for k in hit if got[k] == want[k]),
+    want_missing = {s for s in truth.get("missing") or []}
+    got_missing = {m["sku"] for m in verdict["missing"] if m.get("sku")}
+    return {"slots": len(want), "sku": len(hit), "facings": sum(1 for k in hit if got[k] == want[k]),
             "false_pos": sum(1 for k in got if k not in want),
-            "occluded_ok": bool(reading.get("occluded")) == bool(truth.get("occluded")),
-            "wrong": sorted([f"λείπει {k[0]}@{k[1]}" for k in want if k not in got]
-                            + [f"{k[0]}@{k[1]}: {got[k]} αντί {want[k]}" for k in hit if got[k] != want[k]]
-                            + [f"επιπλέον {k[0]}@{k[1]}" for k in got if k not in want])}
+            "missing_hit": len(want_missing & got_missing), "missing_total": len(want_missing),
+            "missing_false": sorted(got_missing - want_missing),
+            "ok": None if truth.get("shelf_ok") is None else bool(verdict["shelf_ok"]) == bool(truth["shelf_ok"]),
+            "wrong": sorted([f"λείπει {k}" for k in want if k not in got]
+                            + [f"{k}: {got[k]} αντί {want[k]}" for k in hit if got[k] != want[k]]
+                            + [f"δεν υπάρχει {k}" for k in got if k not in want])
+                     + [f"δεν βρήκε ότι λείπει {s}" for s in sorted(want_missing - got_missing)]}
 
 
 async def main() -> None:
@@ -90,40 +105,49 @@ async def main() -> None:
     print(f"\nEval όρασης · {provider}/{model} · prompt {PROMPT_VERSION} · "
           f"αναφορά: {config.VISION_REFERENCE or 'καμία'} · {len(cases)} φωτογραφίες × {args.runs}\n")
 
-    from agentkit.vision import reader
+    from agentkit.vision import assessment as assess_mod
     rows, total = [], defaultdict(int)
     for name, photo, truth in cases:
         for run in range(args.runs):
-            reader._cache.clear()                      # κάθε run = πραγματική νέα κλήση
+            assess_mod._cache.clear()                  # κάθε run = πραγματική νέα κλήση
             t0 = time.time()
             try:
-                reading = await read_photo(photo)
+                verdict = await assess_photo(photo)
             except Exception as e:
                 print(f"  {name} #{run + 1}: ΑΠΟΤΥΧΙΑ {type(e).__name__}: {e}")
                 total["errors"] += 1
                 continue
-            s = score(truth, reading)
+            s = score(truth, verdict)
             s["seconds"] = round(time.time() - t0, 1)
-            for k in ("slots", "sku_shelf", "facings", "false_pos"):
+            for k in ("slots", "sku", "facings", "false_pos", "missing_hit", "missing_total"):
                 total[k] += s[k]
+            total["ok_hits"] += 1 if s["ok"] else 0
+            total["ok_total"] += 0 if s["ok"] is None else 1
             total["latency"] += s["seconds"]
             total["n"] += 1
             rows.append({"case": name, "run": run + 1, **s})
-            print(f"  {name} #{run + 1}: θέσεις {s['sku_shelf']}/{s['slots']} · προσόψεις {s['facings']}/{s['slots']}"
-                  f" · επιπλέον {s['false_pos']} · {s['seconds']} s" + (f"\n      {'; '.join(s['wrong'])}" if s["wrong"] else ""))
+            extra = f" · λείπει {s['missing_hit']}/{s['missing_total']}" if s["missing_total"] else ""
+            print(f"  {name} #{run + 1}: κωδικοί {s['sku']}/{s['slots']} · προσόψεις {s['facings']}/{s['slots']}"
+                  f" · επιπλέον {s['false_pos']}{extra} · σωστό ράφι: "
+                  f"{'—' if s['ok'] is None else ('ναι' if s['ok'] else 'ΟΧΙ')} · {s['seconds']} s"
+                  + (f"\n      {'; '.join(s['wrong'])}" if s["wrong"] else ""))
 
     if total["n"]:
         pct = lambda k: round(100 * total[k] / max(total["slots"], 1), 1)
         summary = {"provider": provider, "model": model, "prompt": PROMPT_VERSION,
-                   "reference": config.VISION_REFERENCE, "sku_shelf_pct": pct("sku_shelf"), "facings_pct": pct("facings"),
-                   "false_pos": total["false_pos"], "errors": total["errors"],
-                   "avg_seconds": round(total["latency"] / total["n"], 1), "rows": rows}
-        print(f"\nΣύνολο: σωστό προϊόν/ράφι {summary['sku_shelf_pct']}% · σωστές προσόψεις {summary['facings_pct']}% · "
-              f"επιπλέον {summary['false_pos']} · σφάλματα {summary['errors']} · μέσος χρόνος {summary['avg_seconds']} s")
+                   "reference": config.VISION_REFERENCE, "shelf_set": config.SHELF_SET or "shelf",
+                   "sku_pct": pct("sku"), "facings_pct": pct("facings"), "false_pos": total["false_pos"],
+                   "missing_hit": f"{total['missing_hit']}/{total['missing_total']}",
+                   "shelf_ok_pct": round(100 * total["ok_hits"] / total["ok_total"], 1) if total["ok_total"] else None,
+                   "errors": total["errors"], "avg_seconds": round(total["latency"] / total["n"], 1), "rows": rows}
+        print(f"\nΣύνολο: κωδικοί {summary['sku_pct']}% · προσόψεις {summary['facings_pct']}% · "
+              f"επιπλέον {summary['false_pos']} · λείπει {summary['missing_hit']} · "
+              f"σωστό ράφι {summary['shelf_ok_pct']}% · σφάλματα {summary['errors']} · "
+              f"μέσος χρόνος {summary['avg_seconds']} s")
         out = config.WORKSPACE / "eval"
         out.mkdir(parents=True, exist_ok=True)
         path = out / f"eval_{time.strftime('%Y%m%d_%H%M%S')}_{model.replace('/', '_')}_{PROMPT_VERSION}.json"
-        path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
         print(f"Αποθηκεύτηκε: {path.relative_to(config.ROOT)}\n")
 
 

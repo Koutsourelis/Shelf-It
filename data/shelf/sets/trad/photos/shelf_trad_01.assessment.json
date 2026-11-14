@@ -1,0 +1,228 @@
+{
+  "shelf_ok": true,
+  "occluded": false,
+  "shelves": [
+    {
+      "level": "top",
+      "items": [
+        {
+          "label": "Εξαιρετικό παρθένο ελαιόλαδο 1L",
+          "sku": "T01",
+          "facings": 4,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            200,
+            74,
+            560,
+            346
+          ]
+        },
+        {
+          "label": "Εξαιρετικό παρθένο ελαιόλαδο 1L",
+          "sku": "T02",
+          "facings": 6,
+          "target_facings": 6,
+          "placement_ok": true,
+          "box_2d": [
+            200,
+            354,
+            560,
+            626
+          ]
+        },
+        {
+          "label": "Ελαιόλαδο 1L",
+          "sku": "T03",
+          "facings": 4,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            200,
+            634,
+            560,
+            906
+          ]
+        }
+      ]
+    },
+    {
+      "level": "eye",
+      "items": [
+        {
+          "label": "Ελιές Καλαμών 370g",
+          "sku": "T04",
+          "facings": 3,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            590,
+            74,
+            860,
+            276
+          ]
+        },
+        {
+          "label": "Πράσινες ελιές 370g",
+          "sku": "T05",
+          "facings": 3,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            590,
+            284,
+            860,
+            486
+          ]
+        },
+        {
+          "label": "Ταχίνι 400g",
+          "sku": "T06",
+          "facings": 5,
+          "target_facings": 5,
+          "placement_ok": true,
+          "box_2d": [
+            590,
+            494,
+            860,
+            696
+          ]
+        },
+        {
+          "label": "Μέλι θυμαρίσιο 450g",
+          "sku": "T07",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            590,
+            704,
+            860,
+            906
+          ]
+        }
+      ]
+    },
+    {
+      "level": "bottom",
+      "items": [
+        {
+          "label": "Κριθαράκι 500g",
+          "sku": "T08",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            880,
+            74,
+            1100,
+            206
+          ]
+        },
+        {
+          "label": "Χυλοπίτες 500g",
+          "sku": "T09",
+          "facings": 3,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            880,
+            214,
+            1100,
+            346
+          ]
+        },
+        {
+          "label": "Κριθαράκι 1kg",
+          "sku": "T10",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            880,
+            354,
+            1100,
+            486
+          ]
+        },
+        {
+          "label": "Πλιγούρι 500g",
+          "sku": "T11",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            880,
+            494,
+            1100,
+            626
+          ]
+        },
+        {
+          "label": "Φύλλα δάφνης 20g",
+          "sku": "T12",
+          "facings": 2,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            880,
+            634,
+            1100,
+            766
+          ]
+        },
+        {
+          "label": "Λουκάνικα χωριάτικα 500g",
+          "sku": "T13",
+          "facings": 3,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            880,
+            774,
+            1100,
+            906
+          ]
+        }
+      ]
+    }
+  ],
+  "missing": [],
+  "misplaced": [],
+  "foreign": [],
+  "visual_issues": [],
+  "suggested_layout": [
+    {
+      "level": "top",
+      "order": [
+        "T01",
+        "T02",
+        "T03"
+      ],
+      "why": "Ελαιόλαδα πάνω: μπουκάλια, βαριά, κοιτιούνται από ψηλά."
+    },
+    {
+      "level": "eye",
+      "order": [
+        "T04",
+        "T05",
+        "T06",
+        "T07"
+      ],
+      "why": "Ελιές και ταχίνι στο ύψος των ματιών: μεγαλύτερο περιθώριο."
+    },
+    {
+      "level": "bottom",
+      "order": [
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13"
+      ],
+      "why": "Ζυμαρικά, δημητριακά, αλλαντικά: βαριά, κάτω."
+    }
+  ],
+  "summary": "Το ράφι είναι όπως πρέπει."
+}

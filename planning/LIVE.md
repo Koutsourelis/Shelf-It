@@ -24,9 +24,9 @@
   agentkit/live.py
     1. αποθήκευση στο workspace/live/   (όχι στο workspace/photos, αλλιώς ο watcher ξεκινά agent σε κάθε frame)
     2. σχεδόν ίδιο με το προηγούμενο → skip, χωρίς κλήση στο μοντέλο
-    3. agentkit/vision.read_photo → ανάγνωση (Gemini)
+    3. agentkit/vision.assess_photo → το Gemini κρίνει το ράφι σε μία κλήση
     4. occluded → skip
-    5. findings(): λείπει / λίγες προσόψεις / λάθος ράφι / εκτός πλανογράμματος / παρουσίαση (κώδικας)
+    5. to_findings(): λείπει / λίγες προσόψεις / λάθος επίπεδο / ξένο / παρουσίαση (μετάφραση της εκτίμησης)
     6. ίδια ευρήματα σε LIVE_CONFIRM_FRAMES frames → agentkit/tasks.py: sync()
          · νέο εύρημα → εργασία με εικόνα (crop του σημείου) και τεμάχια από την αποθήκη
          · δεν υπάρχει στην αποθήκη → παραγγελία αμέσως αν ≤ AUTO_ORDER_MAX_CASES και ≤ AUTO_ORDER_MAX_EUR,
@@ -36,8 +36,19 @@
     7. (LIVE_START_AGENT=1) ο agent, σενάριο `live`, εξηγεί και προτείνει διάταξη στο /dev. Δεν ρωτά τίποτα
 ```
 
-Τα βήματα 5–6 είναι όλα κώδικας: η εργασία και η παραγγελία βγαίνουν αμέσως μετά την ανάγνωση. Ο agent δεν
+Τα βήματα 5–6 είναι κώδικας: η εργασία και η παραγγελία βγαίνουν αμέσως μετά την ανάγνωση. Ο agent δεν
 χρειάζεται γι' αυτές· τρέχει δίπλα για το «show the work».
+
+## Η κρίση είναι του μοντέλου, όχι καρτεσιανή
+
+Δεν υπάρχει «σωστή θέση 3» στο πλανόγραμμα που ελέγχει ο κώδικας. Το `agentkit/vision/assessment.py` δίνει στο
+Gemini τον κατάλογο του τμήματος (ποια προϊόντα πουλάμε, με περιθώριο κέρδους) και τους κανόνες κατηγορίας, και
+ζητά σε **μία κλήση**: τι φαίνεται σε κάθε επίπεδο (top / eye / bottom), πόσες προσόψεις, τι λείπει, τι είναι σε
+λάθος επίπεδο, τι είναι ξένο, τι πρόβλημα παρουσίασης υπάρχει, και **πώς πρέπει να στηθεί** το ράφι.
+
+Ο κώδικας δεν συγκρίνει θέσεις. Μετατρέπει μόνο «λείπουν 2 προσόψεις» σε τεμάχια, κιβώτια και ευρώ
+(`agentkit/tasks.py`), γιατί εκεί θέλουμε νούμερα που ελέγχονται. Το πλανόγραμμα έμεινε μόνο για το βάθος θέσης
+(πόσα τεμάχια πίσω από μία πρόσοψη)· αν λείπει, χρησιμοποιείται `DEFAULT_DEPTH = 3`.
 
 ## Αυτονομία
 
@@ -60,7 +71,9 @@
 | Αρχεία | `agentkit/vision/`, `scripts/eval_vision.py`, `data/shelf/eval/`, `data/shelf/refs/` | `agentkit/live.py`, `agentkit/tasks.py`, `console/shelf.html`, `console/tasks.html`, `console/home.html` |
 | Επόμενο | 10–15 φωτογραφίες στο eval, tuning ως sku_shelf ≥ 90% | Πραγματική κάμερα, Telegram, interval στο demo (8–10 s) |
 
-**Συμβόλαιο:** η έξοδος του `read_photo()` στο `agentkit/vision/schema.py` (`occluded`, `items`, `gaps`, `visual_issues`).
+**Συμβόλαιο:** η έξοδος του `assess_photo()` στο `agentkit/vision/assessment.py` (`shelf_ok`, `shelves`, `missing`,
+`misplaced`, `foreign`, `visual_issues`, `suggested_layout`, `summary`). Το παλιό `read_photo()` / `schema.py` μένει
+μόνο για tests του Gemini client και δεν χρησιμοποιείται από τη ροή.
 
 ## Δοκιμή χωρίς κλειδί
 

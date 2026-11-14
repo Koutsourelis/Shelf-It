@@ -1,0 +1,42 @@
+{
+  "photo": "data/shelf/photos/newim2.jpeg",
+  "items": [
+    {
+      "sku": "C01",
+      "facings": 2
+    },
+    {
+      "sku": "C02",
+      "facings": 1
+    },
+    {
+      "sku": "C03",
+      "facings": 2
+    },
+    {
+      "sku": "C05",
+      "facings": 2
+    },
+    {
+      "sku": "C06",
+      "facings": 2
+    },
+    {
+      "sku": "C07",
+      "facings": 2
+    },
+    {
+      "sku": "C08",
+      "facings": 2
+    },
+    {
+      "sku": "C09",
+      "facings": 3
+    }
+  ],
+  "missing": [
+    "C04"
+  ],
+  "shelf_ok": false,
+  "note": "Μετρημένο πάνω στη φωτογραφία: πάνω C01x2, C02x1, κενό, C03x2, C08x2· μέση κενό, C05x2, C06x2· κάτω C07x2, κενό, C09x3."
+}

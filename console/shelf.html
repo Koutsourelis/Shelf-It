@@ -40,6 +40,8 @@
   .devonly { display: none !important; } body.dev .devonly { display: initial !important; } body.dev .devflex { display: flex !important; }
   #devinfo { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--mut); white-space: pre-wrap; margin-top: 10px; }
   .setup { border: 1px dashed var(--accent); }
+  .lay { display: grid; grid-template-columns: 64px 1fr; gap: 4px 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .lay span { line-height: 1.35; } .lay small { grid-column: 2; }
 </style>
 </head>
 <body>
@@ -82,6 +84,10 @@
     <div class="card" style="margin-bottom:16px">
       <h2>Εργασίες για τον υπάλληλο</h2>
       <div id="tasks"></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <h2>Πώς πρέπει να στηθεί</h2>
+      <div id="plan" class="mut">Περιμένω το πρώτο frame…</div>
     </div>
     <div class="card">
       <h2>Τι έκανε ο agent</h2>
@@ -151,7 +157,7 @@ function toPx(box, f) {                      // [ymin, xmin, ymax, xmax] 0-1000 
 function draw() {
   overlay.width = overlay.clientWidth; overlay.height = overlay.clientHeight;
   ctx.clearRect(0, 0, overlay.width, overlay.height);
-  if (!last || !last.items) return;
+  if (!last || !last.shelves) return;
   const f = frameRect(), statusOf = {};
   (last.findings || []).forEach(x => { if (x.sku) statusOf[x.sku] = x.type; });
   ctx.lineWidth = 3; ctx.font = "600 14px system-ui";
@@ -163,12 +169,11 @@ function draw() {
     ctx.fillStyle = color; ctx.fillRect(x, Math.max(y - 22, 0), tw, 22);
     ctx.fillStyle = "#fff"; ctx.fillText(text, x + 6, Math.max(y - 6, 16));
   };
-  last.items.forEach(it => {
+  (last.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
     if (!it.box_2d) return;
-    const st = !it.sku ? "unknown" : (statusOf[it.sku] || "ok");
+    const st = !it.sku ? "unknown" : (statusOf[it.sku] || (it.placement_ok === false ? "misplaced" : "ok"));
     box(it.box_2d, COLORS[st], st === "ok" ? "" : (it.sku || "?"));
-  });
-  (last.gaps || []).forEach(g => box(g.box_2d, COLORS.gap, "κενό"));
+  }));
 }
 
 // ---- εμφάνιση ------------------------------------------------------------------
@@ -204,6 +209,9 @@ function render(d) {
 
   $("tasks").innerHTML = tasks.length ? tasks.map(taskCard).join("")
     : `<div class="empty"><div class="big">✅</div>Καμία εργασία</div>`;
+  $("plan").innerHTML = (d.summary ? `<p class="mut" style="margin:0 0 10px">${esc(d.summary)}</p>` : "")
+    + (d.suggested_layout || []).map(l => `<div class="lay"><b>${esc({top:"Πάνω",eye:"Μάτια",bottom:"Κάτω"}[l.level] || l.level)}</b>
+        <span>${esc((l.order || []).join(" → "))}</span><small class="mut">${esc(l.why || "")}</small></div>`).join("");
   $("timeline").innerHTML = (d.history || []).slice().reverse().map(h =>
     `<li><time>${hhmm(h.ts)}</time><span>${ICON[h.kind] || "•"}</span><span>${esc(h.text)}</span></li>`).join("")
     || `<li><span></span><span></span><span class="mut">Τίποτα ακόμη. Η κάμερα ελέγχει κάθε ${interval} δευτερόλεπτα.</span></li>`;

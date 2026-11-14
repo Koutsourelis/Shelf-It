@@ -23,7 +23,7 @@ from .data import _table, run_sql
 
 UPLOADS = config.WORKSPACE / "photos"          # εδώ πέφτουν οι φωτογραφίες από το κινητό
 STATUS = {"ok": "σωστό", "missing": "λείπει από το ράφι", "low": "λιγότερες προσόψεις", "extra": "περισσότερες προσόψεις",
-          "misplaced": "σε λάθος ράφι", "unknown": "εκτός πλανογράμματος", "order": "λάθος σειρά"}
+          "misplaced": "λάθος επίπεδο", "unknown": "εκτός καταλόγου", "order": "λάθος σειρά", "visual": "παρουσίαση"}
 # Το schema και τα prompts της ανάγνωσης είναι στο agentkit/vision (schema.py, prompts.py).
 
 
@@ -64,22 +64,24 @@ def _current_photo() -> str:
     {"photo": {"type": "string", "description": "π.χ. 'workspace/photos/shelf_101500.jpg' ή 'data/shelf/photos/sample_before.png'"}},
 )
 async def read_shelf(ctx, photo: str) -> str:
-    from ..vision import read_photo          # prompt, schema, cache και mock ζουν στο agentkit/vision
+    from ..vision import assess_photo          # μία κλήση: τι υπάρχει, τι λείπει, τι είναι σε λάθος επίπεδο
+    from ..vision.assessment import LEVEL_TO_SHELF
     path = find_photo(photo)
-    reading = await read_photo(path)
+    verdict = await assess_photo(path)
+    _VERDICTS[path.name] = verdict
 
     name = path.name
     items, gaps = [], []
-    for it in reading.get("items") or []:
-        sku = it.get("sku")
-        box = _box(it.get("box_2d")) or (None, None, None, None)
-        items.append((name, int(it.get("shelf") or 0), int(it.get("position") or 0), sku,
-                      str(it.get("label") or ""), max(int(it.get("facings") or 0), 0), *box))
-    for g in reading.get("gaps") or []:
-        box = _box(g.get("box_2d"))
-        if box:
-            gaps.append((name, int(g.get("shelf") or 0), *box))
-    if reading.get("occluded"):
+    for sh in verdict["shelves"]:
+        shelf = LEVEL_TO_SHELF[sh["level"]]
+        for pos, it in enumerate(sh["items"], 1):
+            box = it.get("box_2d") or (None, None, None, None)
+            items.append((name, shelf, pos, it.get("sku"), it.get("label") or "", it.get("facings") or 0,
+                          *[box[i] for i in range(4)]))
+    for sh in verdict["shelves"]:                       # τα κενά δεν τα δίνει πια το μοντέλο χωριστά
+        pass
+
+    if verdict.get("occluded"):
         return "Κάτι κρύβει μέρος του ραφιού (άνθρωπος ή αντικείμενο). Ζήτα νέα λήψη χωρίς εμπόδια."
     if not items:
         return "Δεν αναγνωρίστηκε κανένα προϊόν στη φωτογραφία. Ζήτα νέα λήψη, πιο κοντινή και με καλύτερο φως."
@@ -92,76 +94,89 @@ async def read_shelf(ctx, photo: str) -> str:
     await asyncio.to_thread(store)
 
     ctx.audit("extract", source=name, values={
-        (i[3] or f"άγνωστο: {i[4]}"): f"ράφι {i[1]}, θέση {i[2]}, {i[5]} προσόψεις" for i in items})
-    rows = [(i[1], i[2], i[3] or "-", i[4], i[5]) for i in sorted(items, key=lambda i: (i[1], i[2]))]
-    return (f"Φωτογραφία {name}: {len(items)} ομάδες προϊόντων, {len(gaps)} κενά.\n"
-            + _table(["ράφι", "θέση", "κωδικός", "ετικέτα", "προσόψεις"], rows)
-            + "".join(f"\nΠαρουσίαση, ράφι {v['shelf']}: {v['detail']}" for v in reading.get("visual_issues") or []))
+        (i[3] or f"άγνωστο: {i[4]}"): f"επίπεδο {i[1]}, {i[5]} προσόψεις, {'σωστά' if True else ''}" for i in items})
+    rows = [(i[1], i[3] or "-", i[4], i[5]) for i in items]
+    lines = [f"Φωτογραφία {name}: {len(items)} ομάδες προϊόντων.",
+             _table(["επίπεδο", "κωδικός", "ετικέτα", "προσόψεις"], rows)]
+    if verdict["missing"]:
+        lines.append("Λείπουν: " + ", ".join(m["product"] or str(m["sku"]) for m in verdict["missing"]))
+    if verdict["misplaced"]:
+        lines.append("Λάθος επίπεδο: " + ", ".join(
+            f"{m['product']} ({m['from_level']} → {m['to_level']})" for m in verdict["misplaced"]))
+    if verdict["foreign"]:
+        lines.append("Ξένα στο ράφι: " + ", ".join(f["label"] for f in verdict["foreign"]))
+    if verdict["visual_issues"]:
+        lines.append("Παρουσίαση: " + "; ".join(v["detail"] for v in verdict["visual_issues"]))
+    if verdict.get("summary"):
+        lines.append("Εκτίμηση: " + verdict["summary"])
+    return "\n".join(lines)
+
+
+_VERDICTS: dict[str, dict] = {}      # photo όνομα -> εκτίμηση του μοντέλου (τι λείπει, τι είναι λάθος)
+
+
+def _verdict(photo: str) -> dict:
+    if photo in _VERDICTS:
+        return _VERDICTS[photo]
+    raise ValueError("Δεν υπάρχει εκτίμηση για αυτή τη φωτογραφία. Κάλεσε πρώτα το read_shelf.")
 
 
 def _compare() -> dict:
-    """Σύγκριση παρατήρησης με πλανόγραμμα, ανά κωδικό. Καθαρός κώδικας, χωρίς μοντέλο."""
+    """Ευρήματα από την εκτίμηση του μοντέλου. Εδώ ΔΕΝ συγκρίνονται θέσεις· ο κώδικας μετράει μόνο το ποσοστό."""
+    from ..vision.assessment import LEVEL_TO_SHELF
     photo = _current_photo()
-    _, plan = run_sql("select pl.shelf, pl.position, pl.sku, p.name, pl.facings from planogram pl "
-                      "join products p using (sku) order by pl.shelf, pl.position")
-    _, obs = run_sql("select shelf, position, sku, label, facings from shelf_observation order by shelf, position")
-    seen: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
-    for shelf, _pos, sku, _label, facings in obs:
-        if sku:
-            seen[sku][shelf] += facings
-    planned = {r[2] for r in plan}
+    verdict = _verdict(photo)
+    _, catalog = run_sql("select sku, name from products order by sku")
+    names = dict(catalog)
 
-    issues, status_of, ok = [], {}, 0
-    for shelf, _pos, sku, name, facings in plan:
-        here = seen[sku].get(shelf, 0)
-        elsewhere = sorted(s for s in seen[sku] if s != shelf)
-        if here == 0 and elsewhere:
-            status, detail = "misplaced", f"βρέθηκε στο ράφι {', '.join(map(str, elsewhere))}, η θέση του είναι στο ράφι {shelf}"
-        elif here == 0:
-            status, detail = "missing", f"καμία πρόσοψη στο ράφι {shelf}"
-        elif here < facings:
-            status, detail = "low", f"{here} από {facings} προσόψεις"
-        elif here > facings:
-            status, detail = "extra", f"{here} προσόψεις αντί για {facings}"
-        else:
-            status, detail = "ok", ""
-            ok += 1
-        status_of[sku] = status
-        if status != "ok":
-            issues.append((photo, sku, name, shelf, status, facings, here, detail))
-        if status in ("ok", "low", "extra") and elsewhere:
-            issues.append((photo, sku, name, shelf, "misplaced", facings, here,
-                           f"υπάρχει και στο ράφι {', '.join(map(str, elsewhere))}"))
+    issues, status_of = [], {}
+    for item in (i for sh in verdict["shelves"] for i in sh["items"]):
+        sku, target, seen = item.get("sku"), item.get("target_facings") or 0, item.get("facings") or 0
+        if not sku:
+            continue
+        if not item.get("placement_ok", True):
+            level = next(sh["level"] for sh in verdict["shelves"] if item in sh["items"])
+            status, detail = "misplaced", "δεν ταιριάζει στο επίπεδο που στέκει"
+            issues.append((photo, sku, names.get(sku, item["label"]), LEVEL_TO_SHELF[level], "misplaced", target, seen, detail))
+        elif target and seen < target:
+            level = next(sh["level"] for sh in verdict["shelves"] if item in sh["items"])
+            issues.append((photo, sku, names.get(sku, item["label"]), LEVEL_TO_SHELF[level], "low", target, seen,
+                           f"{seen} από {target} προσόψεις"))
+        status_of[sku] = "ok" if not any(i[1] == sku for i in issues) else "low"
+    for m in verdict["missing"]:
+        issues.append((photo, m.get("sku"), names.get(m["sku"]) if m.get("sku") else m["product"], 0, "missing",
+                       m.get("target_facings") or 0, 0, m.get("why") or "δεν φαίνεται στο ράφι"))
+        if m.get("sku"):
+            status_of[m["sku"]] = "missing"
+    for m in verdict["misplaced"]:
+        issues.append((photo, m.get("sku"), names.get(m["sku"]) if m.get("sku") else m["product"],
+                       LEVEL_TO_SHELF[m["from_level"]], "misplaced", 0, 0,
+                       f"πρέπει να πάει στο επίπεδο {m['to_level']}: {m.get('why') or ''}"))
+        if m.get("sku"):
+            status_of[m["sku"]] = "misplaced"
+    for f in verdict["foreign"]:
+        issues.append((photo, None, f["label"], LEVEL_TO_SHELF[f["level"]], "unknown", 0, 0,
+                       f"«{f['label']}» δεν ανήκει στο τμήμα"))
+    for v in verdict["visual_issues"]:
+        issues.append((photo, None, v["detail"], LEVEL_TO_SHELF[v["level"]], "visual", 0, 0, v["detail"]))
 
-    for shelf, _pos, sku, label, facings in obs:
-        if not sku or sku not in planned:
-            issues.append((photo, sku, label, shelf, "unknown", 0, facings, f"«{label}» στο ράφι {shelf}"))
-
-    for shelf in sorted({r[0] for r in plan}):
-        want = [r[2] for r in plan if r[0] == shelf]
-        got = []
-        for o in obs:
-            if o[0] == shelf and o[2] in want and o[2] not in got:
-                got.append(o[2])
-        expected = [s for s in want if s in got]
-        if got != expected:
-            issues.append((photo, None, f"Ράφι {shelf}", shelf, "order", 0, 0,
-                           f"σειρά {' → '.join(got)}, το πλανόγραμμα θέλει {' → '.join(expected)}"))
-
-    compliance = round(100 * ok / len(plan), 1) if plan else 0.0
-    return {"photo": photo, "issues": issues, "ok": ok, "slots": len(plan), "compliance": compliance,
-            "status_of": status_of, "planned": planned}
+    present = {i.get("sku") for sh in verdict["shelves"] for i in sh["items"] if i.get("sku")}
+    ok = len([s for s in present if status_of.get(s) == "ok"])
+    slots = len(catalog) or 1
+    return {"photo": photo, "issues": issues, "ok": ok, "slots": slots,
+            "compliance": round(100 * ok / slots, 1), "status_of": status_of, "planned": {r[0] for r in catalog},
+            "summary": verdict.get("summary", ""), "suggested_layout": verdict.get("suggested_layout", []),
+            "shelf_ok": verdict.get("shelf_ok", False)}
 
 
 def _annotate(photo: str, result: dict) -> Path | None:
-    """Ζωγραφίζει τα ευρήματα πάνω στη φωτογραφία: πράσινο σωστό, πορτοκαλί προσόψεις, κόκκινο λάθος ή κενό."""
+    """Ζωγραφίζει ό,τι είδε το μοντέλο: πράσινο σωστό, πορτοκαλί λίγες προσόψεις, κόκκινο λάθος ή ξένο."""
     from matplotlib import font_manager
     from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-    _, boxes = run_sql("select o.sku, o.label, o.shelf, o.ymin, o.xmin, o.ymax, o.xmax, pl.shelf "
-                       "from shelf_observation o left join planogram pl using (sku) where o.ymin is not null")
-    _, gaps = run_sql("select ymin, xmin, ymax, xmax from shelf_gaps")
-    if not boxes and not gaps:
+    _, boxes = run_sql("select sku, label, shelf, ymin, xmin, ymax, xmax from shelf_observation "
+                       "where ymin is not null")
+    if not boxes:
         return None
     colors = {"ok": (46, 160, 67), "low": (230, 150, 0), "extra": (230, 150, 0)}
     red = (207, 34, 46)
@@ -175,26 +190,16 @@ def _annotate(photo: str, result: dict) -> Path | None:
     def rect(ymin, xmin, ymax, xmax):
         return [xmin * w / 1000, ymin * h / 1000, xmax * w / 1000, ymax * h / 1000]
 
-    for sku, label, shelf, ymin, xmin, ymax, xmax, planned_shelf in boxes:
-        status = "unknown" if not sku or planned_shelf is None else (
-            "misplaced" if planned_shelf != shelf else result["status_of"].get(sku, "ok"))
+    for sku, label, shelf, ymin, xmin, ymax, xmax in boxes:
+        status = result["status_of"].get(sku, "unknown" if not sku else "ok")
         color = colors.get(status, red)
         r = rect(ymin, xmin, ymax, xmax)
         draw.rectangle(r, outline=color, width=line)
-        text = (sku or "?") + ("" if status == "ok" else " · " + STATUS[status])
+        text = (sku or label or "?") + ("" if status == "ok" else " · " + STATUS.get(status, status))
         tb = draw.textbbox((0, 0), text, font=font)
-        top = max(r[1] - (tb[3] - tb[1]) - 8, 0)                  # η ετικέτα κάθεται πάνω από το πλαίσιο
+        top = max(r[1] - (tb[3] - tb[1]) - 8, 0)
         draw.rectangle([r[0], top, r[0] + tb[2] + 10, top + tb[3] + 8], fill=color)
         draw.text((r[0] + 5, top + 2), text, fill="white", font=font)
-    for ymin, xmin, ymax, xmax in gaps:
-        r = rect(ymin, xmin, ymax, xmax)
-        draw.rectangle(r, outline=red, width=line)
-        draw.line([r[0], r[1], r[2], r[3]], fill=red, width=line)
-        draw.line([r[0], r[3], r[2], r[1]], fill=red, width=line)
-        tb = draw.textbbox((0, 0), "κενό", font=font)
-        cx, cy = (r[0] + r[2]) / 2, (r[1] + r[3]) / 2
-        draw.rectangle([cx - tb[2] / 2 - 6, cy - tb[3] / 2 - 4, cx + tb[2] / 2 + 6, cy + tb[3] / 2 + 6], fill=red)
-        draw.text((cx - tb[2] / 2, cy - tb[3] / 2), "κενό", fill="white", font=font)
 
     out = config.WORKSPACE / f"shelf_check_{Path(photo).stem}.png"
     im.save(out)
@@ -229,10 +234,14 @@ async def check_planogram(ctx) -> str:
     if previous:
         out.append(f"Προηγούμενος έλεγχος ({previous[0][0]}): {previous[0][1]}%, {previous[0][2]} ευρήματα.")
     if result["issues"]:
-        out.append(_table(["κωδικός", "προϊόν", "ράφι", "εύρημα", "λεπτομέρεια"],
-                          [(i[1] or "-", i[2], i[3], STATUS[i[4]], i[7]) for i in result["issues"]]))
+        out.append(_table(["κωδικός", "προϊόν", "επίπεδο", "εύρημα", "λεπτομέρεια"],
+                          [(i[1] or "-", i[2], i[3], STATUS.get(i[4], i[4]), i[7]) for i in result["issues"]]))
     else:
-        out.append("Το ράφι συμφωνεί πλήρως με το πλανόγραμμα.")
+        out.append("Το ράφι είναι όπως πρέπει.")
+    if result.get("summary"):
+        out.append("Εκτίμηση: " + result["summary"])
+    for lay in result.get("suggested_layout") or []:
+        out.append(f"Πρόταση, επίπεδο {lay['level']}: {' → '.join(lay['order'])} — {lay['why']}")
     if image:
         out.append(f"Σημειωμένη φωτογραφία: workspace/{image.name}")
     return "\n".join(out)
