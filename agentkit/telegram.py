@@ -359,10 +359,9 @@ async def _handle_photo(chat_id: str, file_id: str) -> None:
     if res.get("status") == "occluded":
         await send(chat_id, "Κάτι κρύβει το ράφι στη φωτογραφία· δοκίμασε ξανά καθαρή λήψη.")
         return
-    last_info = res.get("last") or {}
-    if last_info.get("status") != "acted":
+    if res.get("status") != "acted":
         open_now = tasks.open_tasks()
-        secs = last_info.get("seconds") or res.get("seconds")
+        secs = res.get("seconds")
         timing = f" ({secs}s)" if secs else ""
         if not open_now:
             await send(chat_id, f"✓ Το ράφι είναι σωστό{timing}.")

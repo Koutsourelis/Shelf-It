@@ -1,0 +1,1248 @@
+{
+  "source": "Open Food Facts, ODbL 1.0",
+  "fetched_at": "2026-11-15T10:03:24+00:00",
+  "shelf_set": "trad",
+  "counts": {
+    "matched": 4,
+    "similar": 5,
+    "weak": 4,
+    "not_found": 0,
+    "error": 0
+  },
+  "products": {
+    "T01": {
+      "query": {
+        "name": "Εξαιρετικό παρθένο ελαιόλαδο 1L",
+        "brand": "Cretan Gold",
+        "category": "Ελαιόλαδο"
+      },
+      "status": "similar",
+      "score": 0.6,
+      "how": "search",
+      "match": {
+        "barcode": "5201216002252",
+        "name": "xenia έξτρα παρθένο ελαιόλαδο",
+        "brand": "xenia",
+        "quantity": "1L",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "fats",
+          "vegetable-fats",
+          "olive-tree-products",
+          "vegetable-oils",
+          "olive-oils"
+        ],
+        "countries": [
+          "greece"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/121/600/2252/front_el.4.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201216002252"
+      },
+      "candidates": [
+        {
+          "barcode": "5200000013214",
+          "name": "Horizon Organic Virgin Olive Oil",
+          "brand": "Horizon",
+          "quantity": "1 l",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils",
+            "greek-oils-and-fats",
+            "olive-oils-from-greece",
+            "extra-virgin-olive-oils",
+            "virgin-olive-oils"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/000/001/3214/front_en.4.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5200000013214",
+          "score": 0.6
+        },
+        {
+          "barcode": "5200119890133",
+          "name": "Huile d'olive EXTRA VIERGE",
+          "brand": "",
+          "quantity": "1 L",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils",
+            "extra-virgin-olive-oils",
+            "virgin-olive-oils"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/011/989/0133/front_el.6.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5200119890133",
+          "score": 0.6
+        },
+        {
+          "barcode": "5201190150017",
+          "name": "huile d'olive vierge extra",
+          "brand": "agricultural coop of Chainia",
+          "quantity": "1l",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils"
+          ],
+          "countries": [
+            "greece",
+            "guadeloupe"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/5201190150017",
+          "score": 0.55
+        }
+      ]
+    },
+    "T02": {
+      "query": {
+        "name": "Εξαιρετικό παρθένο ελαιόλαδο 1L",
+        "brand": "Αγρινό",
+        "category": "Ελαιόλαδο"
+      },
+      "status": "similar",
+      "score": 0.6,
+      "how": "search",
+      "match": {
+        "barcode": "5201216002252",
+        "name": "xenia έξτρα παρθένο ελαιόλαδο",
+        "brand": "xenia",
+        "quantity": "1L",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "fats",
+          "vegetable-fats",
+          "olive-tree-products",
+          "vegetable-oils",
+          "olive-oils"
+        ],
+        "countries": [
+          "greece"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/121/600/2252/front_el.4.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201216002252"
+      },
+      "candidates": [
+        {
+          "barcode": "5200000013214",
+          "name": "Horizon Organic Virgin Olive Oil",
+          "brand": "Horizon",
+          "quantity": "1 l",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils",
+            "greek-oils-and-fats",
+            "olive-oils-from-greece",
+            "extra-virgin-olive-oils",
+            "virgin-olive-oils"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/000/001/3214/front_en.4.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5200000013214",
+          "score": 0.6
+        },
+        {
+          "barcode": "5200119890133",
+          "name": "Huile d'olive EXTRA VIERGE",
+          "brand": "",
+          "quantity": "1 L",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils",
+            "extra-virgin-olive-oils",
+            "virgin-olive-oils"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/011/989/0133/front_el.6.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5200119890133",
+          "score": 0.6
+        },
+        {
+          "barcode": "5201190150017",
+          "name": "huile d'olive vierge extra",
+          "brand": "agricultural coop of Chainia",
+          "quantity": "1l",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils"
+          ],
+          "countries": [
+            "greece",
+            "guadeloupe"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/5201190150017",
+          "score": 0.55
+        }
+      ]
+    },
+    "T03": {
+      "query": {
+        "name": "Ελαιόλαδο 1L",
+        "brand": "Minerva",
+        "category": "Ελαιόλαδο"
+      },
+      "status": "matched",
+      "score": 0.9,
+      "how": "search",
+      "match": {
+        "barcode": "5201106128482",
+        "name": "Greek extra virgin olive oil",
+        "brand": "Minerva",
+        "quantity": "",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "fats",
+          "vegetable-fats",
+          "olive-tree-products",
+          "vegetable-oils",
+          "olive-oils",
+          "extra-virgin-olive-oils",
+          "virgin-olive-oils"
+        ],
+        "countries": [
+          "switzerland"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/110/612/8482/front_fr.3.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201106128482"
+      },
+      "candidates": [
+        {
+          "barcode": "5201106125306",
+          "name": "Huile D'olive",
+          "brand": "Minerva",
+          "quantity": "750ml",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils",
+            "extra-virgin-olive-oils",
+            "virgin-olive-oils"
+          ],
+          "countries": [
+            "france"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/110/612/5306/front_fr.3.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201106125306",
+          "score": 0.9
+        },
+        {
+          "barcode": "5201106310627",
+          "name": "Huile d'olive grecque extra vierge",
+          "brand": "Minerva",
+          "quantity": "",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils",
+            "extra-virgin-olive-oils",
+            "virgin-olive-oils",
+            "huile-d-olive-vierge-extra"
+          ],
+          "countries": [
+            "switzerland"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/110/631/0627/front_fr.3.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201106310627",
+          "score": 0.9
+        },
+        {
+          "barcode": "5201106310542",
+          "name": "Greek extra virgin olive oil",
+          "brand": "Minerva",
+          "quantity": "",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "fats",
+            "vegetable-fats",
+            "olive-tree-products",
+            "vegetable-oils",
+            "olive-oils",
+            "extra-virgin-olive-oils",
+            "virgin-olive-oils"
+          ],
+          "countries": [
+            "switzerland"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/110/631/0542/front_fr.3.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201106310542",
+          "score": 0.9
+        }
+      ]
+    },
+    "T04": {
+      "query": {
+        "name": "Ελιές Καλαμών 370g",
+        "brand": "Delphi",
+        "category": "Ελιές"
+      },
+      "status": "matched",
+      "score": 0.9,
+      "how": "search",
+      "match": {
+        "barcode": "5201306811481",
+        "name": "Kalamta Marinated Olives in Brine. Pasteurized",
+        "brand": "Delphi",
+        "quantity": "180 g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "pickles",
+          "olive-tree-products",
+          "plant-based-pickles",
+          "olives",
+          "black-olives",
+          "black-olives-in-brine",
+          "olives-marinated"
+        ],
+        "countries": [
+          "bulgaria"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/130/681/1481/front_en.55.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201306811481"
+      },
+      "candidates": [
+        {
+          "barcode": "5201306817025",
+          "name": "Griechische Grüne Oliven mit Knoblauch, in Salzlake",
+          "brand": "Delphi",
+          "quantity": "200 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pickles",
+            "olive-tree-products",
+            "plant-based-pickles",
+            "olives",
+            "green-olives"
+          ],
+          "countries": [
+            "germany"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/130/681/7025/front_de.19.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201306817025",
+          "score": 0.82
+        },
+        {
+          "barcode": "5201306817070",
+          "name": "Griechische grüne Oliven",
+          "brand": "Delphi",
+          "quantity": "0pcs",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pickles",
+            "olive-tree-products",
+            "plant-based-pickles",
+            "olives",
+            "green-olives"
+          ],
+          "countries": [
+            "germany"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/130/681/7070/front_de.4.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201306817070",
+          "score": 0.82
+        },
+        {
+          "barcode": "5201306817117",
+          "name": "Kajamata Olives paste",
+          "brand": "Delphi",
+          "quantity": "190 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pickles",
+            "olive-tree-products",
+            "plant-based-pickles",
+            "olives"
+          ],
+          "countries": [
+            "czech-republic"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/130/681/7117/front_cs.9.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201306817117",
+          "score": 0.82
+        }
+      ]
+    },
+    "T05": {
+      "query": {
+        "name": "Πράσινες ελιές 370g",
+        "brand": "Delphi",
+        "category": "Ελιές"
+      },
+      "status": "matched",
+      "score": 0.9,
+      "how": "search",
+      "match": {
+        "barcode": "5201306817025",
+        "name": "Griechische Grüne Oliven mit Knoblauch, in Salzlake",
+        "brand": "Delphi",
+        "quantity": "200 g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "pickles",
+          "olive-tree-products",
+          "plant-based-pickles",
+          "olives",
+          "green-olives"
+        ],
+        "countries": [
+          "germany"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/130/681/7025/front_de.19.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201306817025"
+      },
+      "candidates": [
+        {
+          "barcode": "5201306817070",
+          "name": "Griechische grüne Oliven",
+          "brand": "Delphi",
+          "quantity": "0pcs",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pickles",
+            "olive-tree-products",
+            "plant-based-pickles",
+            "olives",
+            "green-olives"
+          ],
+          "countries": [
+            "germany"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/130/681/7070/front_de.4.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201306817070",
+          "score": 0.9
+        },
+        {
+          "barcode": "5201306811481",
+          "name": "Kalamta Marinated Olives in Brine. Pasteurized",
+          "brand": "Delphi",
+          "quantity": "180 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pickles",
+            "olive-tree-products",
+            "plant-based-pickles",
+            "olives",
+            "black-olives",
+            "black-olives-in-brine",
+            "olives-marinated"
+          ],
+          "countries": [
+            "bulgaria"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/130/681/1481/front_en.55.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201306811481",
+          "score": 0.82
+        },
+        {
+          "barcode": "5201306817117",
+          "name": "Kajamata Olives paste",
+          "brand": "Delphi",
+          "quantity": "190 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pickles",
+            "olive-tree-products",
+            "plant-based-pickles",
+            "olives"
+          ],
+          "countries": [
+            "czech-republic"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/130/681/7117/front_cs.9.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201306817117",
+          "score": 0.82
+        }
+      ]
+    },
+    "T06": {
+      "query": {
+        "name": "Ταχίνι 400g",
+        "brand": "Άττικα",
+        "category": "Ταχίνι"
+      },
+      "status": "similar",
+      "score": 0.5,
+      "how": "search",
+      "match": {
+        "barcode": "5201049211425",
+        "name": "Tahini",
+        "brand": "",
+        "quantity": "300 g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "cereals-and-potatoes",
+          "spreads",
+          "cereals-and-their-products",
+          "plant-based-spreads",
+          "oilseed-purees",
+          "cereal-butters",
+          "tahini"
+        ],
+        "countries": [
+          "greece",
+          "united-states"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/104/921/1425/front_en.5.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201049211425"
+      },
+      "candidates": [
+        {
+          "barcode": "5202336109159",
+          "name": "tahini",
+          "brand": "Nature's Promise",
+          "quantity": "300g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "spreads",
+            "cereals-and-their-products",
+            "plant-based-spreads",
+            "oilseed-purees",
+            "cereal-butters",
+            "tahini"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/233/610/9159/front_en.3.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5202336109159",
+          "score": 0.5
+        },
+        {
+          "barcode": "5203159025398",
+          "name": "Ταχίνι",
+          "brand": "",
+          "quantity": "",
+          "categories": [],
+          "countries": [
+            "greece"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/5203159025398",
+          "score": 0.25
+        },
+        {
+          "barcode": "5201049106639",
+          "name": "Ταχίνι κλασικό",
+          "brand": "Γνήσιο σβήσαμε νοο",
+          "quantity": "",
+          "categories": [],
+          "countries": [
+            "greece"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/5201049106639",
+          "score": 0.25
+        }
+      ]
+    },
+    "T07": {
+      "query": {
+        "name": "Μέλι θυμαρίσιο 450g",
+        "brand": "Μέλισσα",
+        "category": "Μέλι"
+      },
+      "status": "similar",
+      "score": 0.53,
+      "how": "search",
+      "match": {
+        "barcode": "5200124970080",
+        "name": "Μέλι ΑΓΡΕΒΗ",
+        "brand": "Μέλι ΑΓΡΕΒΗ",
+        "quantity": "460gr",
+        "categories": [
+          "breakfasts",
+          "spreads",
+          "sweet-spreads",
+          "bee-products",
+          "farming-products",
+          "sweeteners",
+          "honeys"
+        ],
+        "countries": [
+          "greece"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/012/497/0080/front_en.10.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5200124970080"
+      },
+      "candidates": [
+        {
+          "barcode": "5207333010125",
+          "name": "Wildflower honey from northern Macedonia",
+          "brand": "The Grecials",
+          "quantity": "450g and 800g Glass Jars",
+          "categories": [
+            "snacks",
+            "breakfasts",
+            "spreads",
+            "sweet-snacks",
+            "confectioneries",
+            "sweet-spreads",
+            "bee-products",
+            "farming-products",
+            "sweeteners",
+            "honeys",
+            "honey-based-preparations",
+            "honey-and-royal-jelly-mixtures"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/733/301/0125/front_en.13.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5207333010125",
+          "score": 0.53
+        },
+        {
+          "barcode": "5201193210022",
+          "name": "Κοράλλι ριγέ με κόκκινη φακή",
+          "brand": "Μέλισσα",
+          "quantity": "",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pastas"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/119/321/0022/front_el.3.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201193210022",
+          "score": 0.5
+        },
+        {
+          "barcode": "5201193131921",
+          "name": "Τορτελίνι",
+          "brand": "Μέλισσα",
+          "quantity": "250 g",
+          "categories": [
+            "meals",
+            "pasta-dishes",
+            "stuffed-pastas",
+            "tortellini"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/119/313/1921/front_en.9.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201193131921",
+          "score": 0.5
+        }
+      ]
+    },
+    "T08": {
+      "query": {
+        "name": "Κριθαράκι 500g",
+        "brand": "Κρηθαράκι",
+        "category": "Ζυμαρικά"
+      },
+      "status": "similar",
+      "score": 0.6,
+      "how": "search",
+      "match": {
+        "barcode": "5201193106011",
+        "name": "Greek Deli Melissa Greek Kritharaki Pasta 500G",
+        "brand": "Melissa",
+        "quantity": "500 g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "pastas"
+        ],
+        "countries": [
+          "france"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/119/310/6011/front_en.3.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201193106011"
+      },
+      "candidates": [
+        {
+          "barcode": "4061458049009",
+          "name": "Kritharaki",
+          "brand": "Lyttos, Kreta Food, Aldi",
+          "quantity": "500g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "cereals-and-their-products",
+            "pastas",
+            "cereal-pastas",
+            "noodles",
+            "durum-wheat-pasta",
+            "griechische-nudeln"
+          ],
+          "countries": [
+            "germany",
+            "ireland"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/406/145/804/9009/front_en.30.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/4061458049009",
+          "score": 0.5
+        },
+        {
+          "barcode": "5201013014502",
+          "name": "Hartweizen Kritharaki",
+          "brand": "Delphi",
+          "quantity": "150g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "seeds",
+            "cereals-and-their-products",
+            "cereal-grains",
+            "pastas",
+            "noodles",
+            "wheats",
+            "durum-wheats"
+          ],
+          "countries": [
+            "germany",
+            "ireland"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/101/301/4502/front_en.11.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201013014502",
+          "score": 0.5
+        },
+        {
+          "barcode": "20344009",
+          "name": "Σπαγγετίνη No 10, Combino",
+          "brand": "Lidl, Combino",
+          "quantity": "500g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "cereals-and-their-products",
+            "pastas",
+            "cereal-pastas",
+            "dry-pastas",
+            "durum-wheat-pasta"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/20344009/front_el.5.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/20344009",
+          "score": 0.45
+        }
+      ]
+    },
+    "T09": {
+      "query": {
+        "name": "Χυλοπίτες 500g",
+        "brand": "Χυλοπίτες",
+        "category": "Ζυμαρικά"
+      },
+      "status": "weak",
+      "score": 0.45,
+      "how": "search",
+      "match": {
+        "barcode": "20344009",
+        "name": "Σπαγγετίνη No 10, Combino",
+        "brand": "Lidl, Combino",
+        "quantity": "500g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "cereals-and-potatoes",
+          "cereals-and-their-products",
+          "pastas",
+          "cereal-pastas",
+          "dry-pastas",
+          "durum-wheat-pasta"
+        ],
+        "countries": [
+          "greece"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/20344009/front_el.5.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/20344009"
+      },
+      "candidates": [
+        {
+          "barcode": "5201193790210",
+          "name": "Spaghetti",
+          "brand": "Primo gusto",
+          "quantity": "500g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pastas",
+            "spaghetti"
+          ],
+          "countries": [
+            "bulgaria",
+            "greece"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/5201193790210",
+          "score": 0.45
+        },
+        {
+          "barcode": "5201193207992",
+          "name": "Pennette Rigate",
+          "brand": "Melissa",
+          "quantity": "500 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "pastas"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/119/320/7992/front_en.4.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201193207992",
+          "score": 0.45
+        },
+        {
+          "barcode": "8076808150072",
+          "name": "Barilla Spaghettoni n.7",
+          "brand": "Barilla,  Barilla - Barilla G. e R. Fratelli - Società per Azioni - Via Mantova,  166,  43122 Parma - Italy",
+          "quantity": "500 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "cereals-and-their-products",
+            "pastas",
+            "cereal-pastas",
+            "dry-pastas",
+            "durum-wheat-pasta",
+            "spaghetti",
+            "dry-durum-wheat-pasta"
+          ],
+          "countries": [
+            "australia",
+            "belgium",
+            "france",
+            "germany",
+            "greece",
+            "spain",
+            "switzerland"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/807/680/815/0072/front.15.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/8076808150072",
+          "score": 0.45
+        }
+      ]
+    },
+    "T10": {
+      "query": {
+        "name": "Κριθαράκι 1kg",
+        "brand": "Misko",
+        "category": "Ζυμαρικά"
+      },
+      "status": "matched",
+      "score": 0.9,
+      "how": "search",
+      "match": {
+        "barcode": "5201010144523",
+        "name": "Κριθαράκι Μέτριο",
+        "brand": "Misko",
+        "quantity": "500 g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "cereals-and-potatoes",
+          "cereals-and-their-products",
+          "pastas"
+        ],
+        "countries": [
+          "greece"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/520/101/014/4523/front_el.12.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/5201010144523"
+      },
+      "candidates": [
+        {
+          "barcode": "5201010144592",
+          "name": "Misko Αστράκι",
+          "brand": "Misko",
+          "quantity": "500 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "cereals-and-their-products",
+            "pastas"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/101/014/4592/front_el.5.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201010144592",
+          "score": 0.75
+        },
+        {
+          "barcode": "5201010105135",
+          "name": "Thin Noodles",
+          "brand": "Misko",
+          "quantity": "250 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "cereals-and-their-products",
+            "pastas",
+            "noodles",
+            "основни-храни"
+          ],
+          "countries": [
+            "bulgaria"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/101/010/5135/front_bg.22.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201010105135",
+          "score": 0.75
+        },
+        {
+          "barcode": "5201010144721",
+          "name": "Pâte",
+          "brand": "Misko",
+          "quantity": "500 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "cereals-and-their-products",
+            "pastas"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/101/014/4721/front_el.12.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201010144721",
+          "score": 0.75
+        }
+      ]
+    },
+    "T11": {
+      "query": {
+        "name": "Πλιγούρι 500g",
+        "brand": "Πιτάνη",
+        "category": "Δημητριακά"
+      },
+      "status": "weak",
+      "score": 0.45,
+      "how": "search",
+      "match": {
+        "barcode": "20344009",
+        "name": "Σπαγγετίνη No 10, Combino",
+        "brand": "Lidl, Combino",
+        "quantity": "500g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "cereals-and-potatoes",
+          "cereals-and-their-products",
+          "pastas",
+          "cereal-pastas",
+          "dry-pastas",
+          "durum-wheat-pasta"
+        ],
+        "countries": [
+          "greece"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/20344009/front_el.5.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/20344009"
+      },
+      "candidates": [
+        {
+          "barcode": "8011780009512",
+          "name": "Serpentini 500g",
+          "brand": "Riscossa",
+          "quantity": "",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "cereals-and-their-products",
+            "pastas",
+            "cereal-pastas",
+            "dry-pastas",
+            "durum-wheat-pasta"
+          ],
+          "countries": [
+            "france",
+            "italy",
+            "ukraine"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/8011780009512",
+          "score": 0.35
+        },
+        {
+          "barcode": "13251212512000091587",
+          "name": "Quinoa 500g",
+          "brand": "",
+          "quantity": "",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "seeds",
+            "cereals-and-their-products",
+            "cereal-grains",
+            "quinoa"
+          ],
+          "countries": [
+            "france"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/13251212512000091587",
+          "score": 0.35
+        },
+        {
+          "barcode": "5201059089731",
+          "name": "Λευκό Κινόα",
+          "brand": "Fytro",
+          "quantity": "450g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "cereals-and-potatoes",
+            "seeds",
+            "cereals-and-their-products",
+            "cereal-grains",
+            "quinoa"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/105/908/9731/front_el.4.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201059089731",
+          "score": 0.35
+        }
+      ]
+    },
+    "T12": {
+      "query": {
+        "name": "Φύλλα δάφνης 20g",
+        "brand": "Δάφνη",
+        "category": "Μπαχαρικά"
+      },
+      "status": "weak",
+      "score": 0.45,
+      "how": "search",
+      "match": {
+        "barcode": "8428201321335",
+        "name": "Cardamomo",
+        "brand": "Artemis",
+        "quantity": "20g",
+        "categories": [
+          "plant-based-foods-and-beverages",
+          "plant-based-foods",
+          "condiments",
+          "spices",
+          "cardamom",
+          "green-cardamom",
+          "groceries"
+        ],
+        "countries": [
+          "greece"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/842/820/132/1335/front_en.13.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/8428201321335"
+      },
+      "candidates": [
+        {
+          "barcode": "5201589033082",
+          "name": "Μείγμα για ψάρι",
+          "brand": "Ανατολή",
+          "quantity": "25 g",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "condiments",
+            "spices",
+            "spice-mix"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/158/903/3082/front_en.3.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201589033082",
+          "score": 0.35
+        },
+        {
+          "barcode": "5201080113269",
+          "name": "",
+          "brand": "",
+          "quantity": "",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "condiments",
+            "spices"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/520/108/011/3269/front_en.3.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/5201080113269",
+          "score": 0.35
+        },
+        {
+          "barcode": "5202336141050",
+          "name": "ΓΛΥΚΟ ΚΑΡΥ ΤΡΙΜΜΕΝΟ",
+          "brand": "AB",
+          "quantity": "37",
+          "categories": [
+            "plant-based-foods-and-beverages",
+            "plant-based-foods",
+            "condiments",
+            "spices",
+            "curry-powder"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/5202336141050",
+          "score": 0.35
+        }
+      ]
+    },
+    "T13": {
+      "query": {
+        "name": "Λουκάνικα χωριάτικα 500g",
+        "brand": "Bravo",
+        "category": "Αλλαντικά"
+      },
+      "status": "weak",
+      "score": 0.4,
+      "how": "search",
+      "match": {
+        "barcode": "9008700204804",
+        "name": "Bravo",
+        "brand": "RAUCH bravo",
+        "quantity": "",
+        "categories": [],
+        "countries": [
+          "italy"
+        ],
+        "image": "https://images.openfoodfacts.org/images/products/900/870/020/4804/front_en.6.200.jpg",
+        "url": "https://world.openfoodfacts.org/product/9008700204804"
+      },
+      "candidates": [
+        {
+          "barcode": "22520562",
+          "name": "Chips Bravo",
+          "brand": "Bravo",
+          "quantity": "",
+          "categories": [],
+          "countries": [
+            "ireland"
+          ],
+          "image": "",
+          "url": "https://world.openfoodfacts.org/product/22520562",
+          "score": 0.4
+        },
+        {
+          "barcode": "4260495870144",
+          "name": "Chicken Luncheon Meat",
+          "brand": "Hana",
+          "quantity": "830g",
+          "categories": [
+            "canned-foods",
+            "meats-and-their-products",
+            "meats",
+            "prepared-meats",
+            "sausages",
+            "canned-meats"
+          ],
+          "countries": [
+            "greece"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/426/049/587/0144/front_en.22.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/4260495870144",
+          "score": 0.35
+        },
+        {
+          "barcode": "8008110001186",
+          "name": "",
+          "brand": "AIA",
+          "quantity": "360 g",
+          "categories": [
+            "meats-and-their-products",
+            "meat-preparations",
+            "meats",
+            "prepared-meats",
+            "poultries",
+            "sausages",
+            "turkey-and-its-products",
+            "turkeys",
+            "poultry-sausages",
+            "turkey-preparations",
+            "turkey-sausages"
+          ],
+          "countries": [
+            "greece",
+            "serbia"
+          ],
+          "image": "https://images.openfoodfacts.org/images/products/800/811/000/1186/front_en.25.200.jpg",
+          "url": "https://world.openfoodfacts.org/product/8008110001186",
+          "score": 0.35
+        }
+      ]
+    }
+  }
+}

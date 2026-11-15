@@ -282,7 +282,8 @@
 
         <div class="seg" role="tablist" aria-label="Επιλογή σελίδας κινητού">
           <button type="button" class="on" role="tab" aria-selected="true" data-qr="/tasks">Εργασίες</button>
-          <button type="button" role="tab" aria-selected="false" data-qr="/capture">Σάρωση</button>
+          <button type="button" role="tab" aria-selected="false" data-qr="/cam">Ζωντανά</button>
+          <button type="button" role="tab" aria-selected="false" data-qr="/capture">Φωτό</button>
           <button type="button" role="tab" aria-selected="false" data-qr="telegram" id="tgQrTab" hidden>Telegram</button>
         </div>
 
@@ -337,6 +338,7 @@
   }
   const urlFor = p => {
     if (p === "telegram" && links.telegram?.url) return { url: links.telegram.url, reachable: true };
+    if (p === "/cam" && links.cam) return links.cam;
     return p === "/capture" ? links.capture : links.tasks;
   };
 

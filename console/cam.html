@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Ζωντανή Κάμερα · ShelfSense</title>
+<link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/app.css">
+<script src="/ui/shell.js"></script>
+<style>
+  .cam-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 12px 14px 32px;
+  }
+  .mode-seg { margin-bottom: 12px; }
+  .mode-seg a {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    border-radius: 7px;
+    font-size: var(--fs-callout);
+    font-weight: 500;
+    color: var(--label-secondary);
+    text-decoration: none;
+  }
+  .mode-seg a.on {
+    background: var(--surface);
+    color: var(--label-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .vf-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    max-height: calc(100dvh - 250px);
+    min-height: 320px;
+    background: #0B0B0D;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--surface-border);
+  }
+  @media (min-width: 768px) {
+    .vf-stage { aspect-ratio: 16 / 9; max-height: 520px; }
+  }
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* Clean Gemini-Live style framing reticle */
+  .reticle {
+    position: absolute;
+    inset: 11% 9%;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    border-radius: 22px;
+    pointer-events: none;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .vf-stage.scanning .reticle {
+    border-color: #0A84FF;
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.24);
+  }
+  .vf-stage.ok .reticle { border-color: rgba(52, 199, 89, 0.8); }
+  .vf-stage.bad .reticle { border-color: rgba(255, 59, 48, 0.85); }
+
+  .hud-top {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    z-index: 3;
+  }
+  .hud-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(18, 18, 22, 0.76);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 500;
+    max-width: calc(100% - 56px);
+  }
+  .hud-pill span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hud-icon-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(18, 18, 22, 0.76);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #FFFFFF;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hud-icon-btn svg { width: 20px; height: 20px; stroke-width: 1.85; }
+
+  .hud-hint {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    text-align: center;
+    background: rgba(12, 12, 14, 0.86);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 14px;
+    line-height: 1.5;
+    z-index: 4;
+  }
+  .hud-hint a { color: #0A84FF; }
+
+  .cam-controls {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .cam-meta {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--fs-foot);
+    color: var(--label-secondary);
+    padding: 0 2px;
+  }
+</style>
+</head>
+<body class="has-tabbar">
+<header class="topbar">
+  <a class="brand" href="/"><img src="/ui/logo.svg" alt="">ShelfSense</a>
+  <nav class="seg-nav" aria-label="Κύρια πλοήγηση">
+    <a href="/">Αρχική</a>
+    <a href="/shelf">Ράφι</a>
+    <a href="/tasks">Εργασίες</a>
+    <a href="/portal/orders">Αποθήκη</a>
+    <a href="/dev">Κονσόλα</a>
+  </nav>
+  <div class="right">
+    <button type="button" class="theme-btn" data-theme-toggle aria-label="Εναλλαγή θέματος">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16Z" fill="currentColor" stroke="none"/></svg>
+      <span class="theme-lbl">Auto</span>
+    </button>
+  </div>
+</header>
+
+<main class="cam-wrap">
+  <div class="seg mode-seg" role="navigation" aria-label="Τρόπος σάρωσης">
+    <a class="on" href="/cam">Ζωντανή κάμερα</a>
+    <a href="/capture">Μία φωτογραφία</a>
+  </div>
+
+  <div class="vf-stage" id="vfStage">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div class="reticle" aria-hidden="true"></div>
+
+    <div class="hud-top">
+      <div class="hud-pill" role="status" aria-live="polite">
+        <span class="sdot" id="hudDot"></span>
+        <span id="hudText">Εκκίνηση κάμερας…</span>
+      </div>
+      <button type="button" class="hud-icon-btn" id="flipBtn" aria-label="Εναλλαγή κάμερας">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 11A8 8 0 0 0 5.3 6.7L4 8m0-4v4h4M4 13a8 8 0 0 0 14.7 4.3L20 16m0 4v-4h-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="hud-hint" id="hint" hidden></div>
+  </div>
+
+  <div class="cam-controls">
+    <button type="button" id="scanNow">Έλεγχος τώρα</button>
+    <button type="button" class="ghost" id="pauseBtn">Παύση</button>
+  </div>
+
+  <div class="cam-meta">
+    <span id="subInfo">Αυτόματη μετάδοση στην οθόνη ραφιού (/shelf)</span>
+    <span class="mono" id="timerLbl">…</span>
+  </div>
+</main>
+
+<nav class="ios-tabbar" aria-label="Πλοήγηση κινητού">
+  <a href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" stroke-linejoin="round"/></svg>
+    <span>Αρχική</span>
+  </a>
+  <a href="/tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round"/></svg>
+    <span>Εργασίες</span>
+    <span class="tab-badge" data-tab-tasks-badge hidden>0</span>
+  </a>
+  <a class="on" href="/cam">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    <span>Σάρωση</span>
+  </a>
+  <a href="/portal/orders">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8Z" stroke-linejoin="round"/><path d="M3.3 8L12 13l8.7-5M12 13v8"/></svg>
+    <span>Αποθήκη</span>
+  </a>
+</nav>
+
+<script>
+const $ = id => document.getElementById(id);
+const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
+const COLORS = { ok: "#34C759", low: "#FF9500", missing: "#FF3B30", misplaced: "#FF3B30", unknown: "#AF52DE", gap: "#FF3B30" };
+
+let devices = [], devIdx = 0, facing = "environment";
+let interval = 5, countdown = 2, paused = false, sending = false, previewBusy = false, last = null;
+
+async function keepAwake() {
+  try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch {}
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) keepAwake(); });
+
+async function startCam(opts) {
+  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+  const constraints = opts || { facingMode: { ideal: facing }, width: { ideal: 1600 }, height: { ideal: 1200 } };
+  video.srcObject = await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
+  await video.play();
+  devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+  keepAwake();
+}
+
+$("flipBtn").onclick = async () => {
+  try {
+    if (devices.length > 1) {
+      devIdx = (devIdx + 1) % devices.length;
+      await startCam({ deviceId: { exact: devices[devIdx].deviceId }, width: { ideal: 1600 }, height: { ideal: 1200 } });
+    } else {
+      facing = facing === "environment" ? "user" : "environment";
+      await startCam();
+    }
+  } catch {}
+};
+
+function grabBlob(maxSide, quality) {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) return Promise.resolve(null);
+  const scale = Math.min(1, maxSide / Math.max(vw, vh));
+  const c = document.createElement("canvas");
+  c.width = Math.round(vw * scale);
+  c.height = Math.round(vh * scale);
+  c.getContext("2d").drawImage(video, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(res, "image/jpeg", quality));
+}
+
+function drawBoxes() {
+  const W = overlay.clientWidth, H = overlay.clientHeight;
+  overlay.width = W; overlay.height = H;
+  ctx.clearRect(0, 0, W, H);
+  if (!last || !last.shelves || !video.videoWidth) return;
+  // Cover-fit geometry matching object-fit: cover
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const s = Math.max(W / vw, H / vh), dw = vw * s, dh = vh * s;
+  const ox = (W - dw) / 2, oy = (H - dh) / 2;
+  const statusOf = {};
+  (last.findings || []).forEach(x => { if (x.sku) statusOf[x.sku] = x.type; });
+
+  ctx.lineWidth = 2;
+  ctx.font = "600 11px 'SF Mono', ui-monospace, monospace";
+  (last.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
+    if (!it.box_2d) return;
+    const [y0, x0, y1, x1] = it.box_2d;
+    const x = ox + x0 * dw / 1000, y = oy + y0 * dh / 1000;
+    const w = (x1 - x0) * dw / 1000, h = (y1 - y0) * dh / 1000;
+    const st = !it.sku ? "unknown" : (statusOf[it.sku] || (it.placement_ok === false ? "misplaced" : "ok"));
+    const col = COLORS[st] || "#34C759";
+    ctx.strokeStyle = col;
+    ctx.strokeRect(x, y, w, h);
+    if (st !== "ok") {
+      const lbl = it.sku || "?";
+      const tw = ctx.measureText(lbl).width + 8;
+      ctx.fillStyle = col;
+      ctx.fillRect(x, Math.max(y - 18, 0), tw, 18);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(lbl, x + 4, Math.max(y - 18, 0) + 13);
+    }
+  }));
+}
+
+function updateHud(d) {
+  last = d;
+  const tasks = d.tasks || [];
+  window.ShelfSenseShell?.setTaskBadge(tasks.length);
+  const stg = $("vfStage"), dot = $("hudDot"), txt = $("hudText");
+  stg.classList.remove("ok", "bad");
+  dot.className = "sdot";
+  if (d.status === "occluded") {
+    dot.classList.add("warn"); txt.textContent = "Περιορισμένη ορατότητα";
+  } else if (d.unknown_shelf) {
+    dot.classList.add("warn"); txt.textContent = "Ράφι εκτός καταλόγου";
+  } else if (tasks.length) {
+    stg.classList.add("bad"); dot.classList.add("bad");
+    txt.textContent = `${tasks.length} ${tasks.length === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`;
+  } else if (d.status !== "idle") {
+    stg.classList.add("ok"); dot.classList.add("ok");
+    txt.textContent = "Το ράφι είναι σωστό";
+  } else {
+    txt.textContent = "Στόχευσε το ράφι…";
+  }
+  drawBoxes();
+}
+
+async function sendFrame(force = false) {
+  if (sending || !video.videoWidth) return;
+  sending = true;
+  $("vfStage").classList.add("scanning");
+  $("timerLbl").textContent = "Gemini…";
+  try {
+    const blob = await grabBlob(1600, 0.86);
+    if (!blob) return;
+    const body = new FormData(); body.append("file", blob, "cam.jpg");
+    const r = await fetch("/api/shelf/frame" + (force ? "?force=1" : ""), { method: "POST", body });
+    const data = await r.json();
+    if (r.ok) updateHud(data);
+  } catch {}
+  finally {
+    sending = false;
+    $("vfStage").classList.remove("scanning");
+  }
+}
+
+// Lightweight 1 FPS RAM preview relay so laptop /shelf mirrors live phone camera smoothly
+setInterval(async () => {
+  if (paused || document.hidden || previewBusy || !video.videoWidth) return;
+  previewBusy = true;
+  try {
+    const blob = await grabBlob(760, 0.68);
+    if (blob) {
+      const body = new FormData(); body.append("file", blob, "preview.jpg");
+      await fetch("/api/shelf/preview", { method: "POST", body });
+    }
+  } catch {}
+  finally { previewBusy = false; }
+}, 1100);
+
+setInterval(() => {
+  if (paused) { $("timerLbl").textContent = "σε παύση"; return; }
+  if (sending) return;
+  countdown -= 1;
+  $("timerLbl").textContent = `έλεγχος σε ${Math.max(countdown, 0)}s`;
+  if (countdown <= 0) { countdown = interval; sendFrame(false); }
+}, 1000);
+
+$("scanNow").onclick = () => { countdown = interval; sendFrame(true); };
+$("pauseBtn").onclick = () => {
+  paused = !paused;
+  $("pauseBtn").textContent = paused ? "Συνέχεια" : "Παύση";
+};
+window.addEventListener("resize", drawBoxes);
+
+(async () => {
+  try {
+    const s = await (await fetch("/api/live/status")).json();
+    interval = Math.max(s.interval || 5, 3);
+    countdown = 2;
+    updateHud(s);
+  } catch {}
+  try {
+    await startCam();
+    $("hint").hidden = true;
+  } catch (e) {
+    $("hint").hidden = false;
+    $("hint").innerHTML = `<div>Η συνεχής ζωντανή κάμερα απαιτεί σύνδεση <b>HTTPS</b> (π.χ. <code>python scripts/run_tunnel.py</code>).<br><br><a href="/capture">Μετάβαση σε λήψη μίας φωτογραφίας →</a></div>`;
+  }
+})();
+</script>
+</body>
+</html>
