@@ -1,4 +1,4 @@
-# ShelfSense
+# Shelf-It
 
 **Shelf-it** turns a phone or aisle camera into an autonomous shelf-monitoring and merchandising system for supermarket teams. Built at the **Gen AI Summit Hackathon (Athens, 14–15 November 2026 — Open Track)**.
 
