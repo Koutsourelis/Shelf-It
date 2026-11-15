@@ -153,10 +153,7 @@
 <main class="mobile-wrap">
   <div class="title-bar">
     <h1 class="page-title">Εργασίες</h1>
-    <span class="status-inline" id="stateWrap" role="status" aria-live="polite">
-      <span class="sdot" id="stateDot"></span>
-      <span id="state">…</span>
-    </span>
+    <span id="stateWrap" role="status" aria-live="polite"><span class="state" data-kind="loading"><span class="state-txt"><span class="state-lbl">Φόρτωση…</span></span></span></span>
   </div>
 
   <a id="scan" class="btn tinted scan-cta" href="/capture">
@@ -211,10 +208,14 @@ function beep() {
   o.start(); o.stop(audio.currentTime + 0.18);
 }
 
-const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
+const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού", K7: "Προορισμός κάτω δεξιά" };
+const S = window.ShelfSenseShell;
+const claimErr = {};     // task id -> [label, detail] (user-facing only; diagnostics go to S.devLog)
+const claiming = new Set();
 function propCard(p) {
+  const ds = S.decisionState(p.decision);
   return `<div class="prop">
-    <div class="prop-head"><span>${esc(p.rule || "Πρόταση")} · ${esc(RULE[p.rule] || "Διάταξη")}</span></div>
+    <div class="prop-head"><span>${esc(p.rule || "Πρόταση")} · ${esc(RULE[p.rule] || "Διάταξη")}</span>${ds ? `<span style="margin-left:auto">${S.stateHTML(ds[0], ds[1])}</span>` : ""}</div>
     <b>${esc(p.text)}</b>
     <p class="why">${esc(p.reason)}</p>
     <div class="num">${esc(p.numbers)}</div>
@@ -226,9 +227,12 @@ function card(t, i, fresh) {
   const order = t.order && t.order.order_no ? ` · Παραγγέλθηκε ${esc(t.order.order_no)}` : "";
   const m = Math.round((Date.now() / 1000 - t.created) / 60), since = m < 1 ? "μόλις τώρα" : `πριν από ${m}′`;
   const idx = String(i + 1).padStart(2, "0");
+  const busyNow = claiming.has(t.id);
+  const err = claimErr[t.id];
   const act = t.status === "open"
-    ? `<div class="task-actions"><button data-claim="${esc(t.id)}">Ανάληψη</button></div>`
-    : `<div class="task-progress-note">Σε εξέλιξη από ${esc(t.claimed_by)} · κλείνει αυτόματα από την κάμερα</div>`;
+    ? `<div class="task-actions"><button data-claim="${esc(t.id)}"${busyNow ? ` disabled aria-busy="true"` : ""}>${busyNow ? "Καταχώρηση…" : "Ανάληψη"}</button></div>`
+      + (err ? `<div style="margin-top:8px">${S.stateHTML("error", err[0], err[1], { box: true })}</div>` : "")
+    : `<div class="task-progress-note">${S.stateHTML("pending", "Σε εξέλιξη από " + (t.claimed_by || "υπάλληλο"), "κλείνει αυτόματα όταν η κάμερα δει το ράφι σωστό")}</div>`;
   return `<div class="task-item ${t.status} ${fresh ? "fresh" : ""}">
     ${t.image ? `<img src="/files/${encodeURI(t.image)}" alt="Σημείο στο ράφι">` : ""}
     <div class="task-body">
@@ -239,25 +243,36 @@ function card(t, i, fresh) {
   </div>`;
 }
 
+let lastData = null;
 async function refresh() {
-  const d = await (await fetch("/api/tasks")).json();
+  let d;
+  try { d = (await S.api("/api/tasks")).data; }
+  catch (e) {
+    S.devLog("tasks", e);
+    $("stateWrap").innerHTML = S.stateHTML("error", "Χωρίς σύνδεση", "Η λίστα μπορεί να μην είναι τρέχουσα");
+    if (!lastData) $("list").innerHTML = `<div class="empty">${S.stateHTML("error", "Οι εργασίες δεν φορτώθηκαν", "Νέα προσπάθεια σε 15 δευτερόλεπτα.")}</div>`;
+    return;
+  }
+  lastData = d;
   const ids = new Set(d.tasks.map(t => t.id));
   const fresh = known ? d.tasks.filter(t => !known.has(t.id)).map(t => t.id) : [];
   if (fresh.length) beep();
   known = ids;
   window.ShelfSenseShell?.setTaskBadge(d.tasks.length);
 
-  $("state").textContent = d.tasks.length ? `${d.tasks.length} ${d.tasks.length === 1 ? "εκκρεμής" : "εκκρεμείς"}` : "Όλα εντάξει";
-  $("stateDot").className = "sdot " + (d.tasks.length ? "bad" : "ok");
+  $("stateWrap").innerHTML = d.tasks.length
+    ? S.stateHTML("warning", `${d.tasks.length} ${d.tasks.length === 1 ? "εκκρεμής" : "εκκρεμείς"}`)
+    : S.stateHTML("idle", "Καμία εκκρεμότητα");
+  Object.keys(claimErr).forEach(id => { if (!ids.has(id)) delete claimErr[id]; });
 
   $("list").innerHTML = d.tasks.length
     ? d.tasks.map((t, i) => card(t, i, fresh.includes(t.id))).join("")
-    : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>Το ράφι είναι σωστό. Θα ειδοποιηθείς αν προκύψει έλλειψη.</div>`;
+    : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>Καμία εκκρεμής εργασία. Θα ειδοποιηθείς αν προκύψει έλλειψη.</div>`;
 
   const ps = d.proposals || [];
   $("proposals").innerHTML = ps.length
     ? ps.map(propCard).join("")
-    : `<div class="empty">${d.agent_status === "running" ? "Ανάλυση πωλήσεων και διάταξης σε εξέλιξη…" : "Καμία πρόταση αλλαγής θέσης."}</div>`;
+    : `<div class="empty">${d.agent_status === "running" ? S.stateHTML("loading", "Ανάλυση πωλήσεων και διάταξης σε εξέλιξη…") : "Καμία πρόταση αλλαγής θέσης."}</div>`;
 
   $("done").innerHTML = (d.done || []).map(t =>
     `<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${esc(t.text)}</span></li>`
@@ -266,12 +281,22 @@ async function refresh() {
 
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-claim]"); if (!b) return;
-  b.disabled = true; b.textContent = "Καταχώρηση…";
-  await fetch(`/api/tasks/${encodeURIComponent(b.dataset.claim)}/claim`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ who: WHO })
-  });
+  const id = b.dataset.claim;
+  if (claiming.has(id)) return;
+  claiming.add(id); delete claimErr[id];
+  S.busy(b, "Καταχώρηση…");
+  try {
+    await S.api(`/api/tasks/${encodeURIComponent(id)}/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ who: WHO })
+    });
+    S.announce("Η εργασία αναλήφθηκε.");
+  } catch (err) {
+    S.devLog("claim", err);
+    claimErr[id] = ["Η ανάληψη δεν καταχωρήθηκε", err.status === 404 ? "Την έχει ήδη αναλάβει κάποιος ή έκλεισε." : S.errorCopy(err)];
+    S.announce("Η ανάληψη δεν καταχωρήθηκε.", true);
+  } finally { claiming.delete(id); }
   refresh();
 });
 

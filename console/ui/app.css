@@ -20,6 +20,13 @@ html[data-theme="light"] {
   --sys-indigo: #5856D6;
   --sys-indigo-tint: rgba(88, 86, 214, 0.11);
 
+  /* Readable status text on light surfaces (Apple accessible variants, >=4.5:1 on white) */
+  --sys-blue-text: #0062CC;
+  --sys-green-text: #1B7A34;
+  --sys-orange-text: #A84F00;
+  --sys-red-text: #D70015;
+  --sys-indigo-text: #3634A3;
+
   /* Semantic Surfaces (macOS Light) */
   --bg-canvas: #F5F5F7;
   --bg-primary: #FFFFFF;
@@ -94,6 +101,12 @@ html[data-theme="dark"] {
   --sys-indigo: #5E5CE6;
   --sys-indigo-tint: rgba(94, 92, 230, 0.18);
 
+  --sys-blue-text: #409CFF;
+  --sys-green-text: #30D158;
+  --sys-orange-text: #FFB340;
+  --sys-red-text: #FF6961;
+  --sys-indigo-text: #A5A4FF;
+
   /* macOS Dark Surfaces */
   --bg-canvas: #1E1E1E;
   --bg-primary: #2C2C2E;
@@ -135,6 +148,11 @@ html[data-theme="dark"] {
     --sys-red-tint: rgba(255, 69, 58, 0.17);
     --sys-indigo: #5E5CE6;
     --sys-indigo-tint: rgba(94, 92, 230, 0.18);
+    --sys-blue-text: #409CFF;
+    --sys-green-text: #30D158;
+    --sys-orange-text: #FFB340;
+    --sys-red-text: #FF6961;
+    --sys-indigo-text: #A5A4FF;
     --bg-canvas: #1E1E1E;
     --bg-primary: #2C2C2E;
     --bg-secondary: #3A3A3C;
@@ -684,6 +702,92 @@ a.group-row:active { background: var(--bg-active); }
 .pill.ok { background: var(--sys-green-tint); color: var(--sys-green); }
 .pill.warn { background: var(--sys-orange-tint); color: var(--sys-orange); }
 .pill.bad { background: var(--sys-red-tint); color: var(--sys-red); }
+
+/* ==========================================================================
+   Unified State Treatment (idle · loading · pending · info · success ·
+   warning · error · neutral · unknown). Icon + short label + optional detail:
+   colour is never the only signal. Markup comes from ShelfSenseShell.stateHTML().
+   ========================================================================== */
+
+.state {
+  --st-fg: var(--label-secondary);
+  --st-ico: var(--label-tertiary);
+  --st-bg: var(--bg-secondary);
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--fs-callout);
+  line-height: 1.38;
+  color: var(--label-secondary);
+}
+.state-ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--st-ico);
+}
+@media (max-width: 767px) {
+  .state-ico { width: 16px; height: 16px; margin-top: 1px; }
+}
+.state-txt { min-width: 0; }
+.state-lbl { font-weight: 600; color: var(--st-fg); }
+.state-det { color: var(--label-secondary); }
+.state-lbl + .state-det::before { content: " · "; color: var(--label-tertiary); }
+.state-act { margin-left: 4px; font-weight: 500; }
+
+/* Block variant: sits next to the affected component and stays until the next action */
+.state.box {
+  display: flex;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--r-control);
+  background: var(--st-bg);
+}
+.state.box .state-lbl + .state-det::before { content: ""; }
+.state.box .state-det { display: block; margin-top: 1px; }
+
+.state[data-kind="loading"],
+.state[data-kind="info"]    { --st-fg: var(--sys-blue-text);   --st-ico: var(--sys-blue);   --st-bg: var(--sys-blue-tint); }
+.state[data-kind="pending"] { --st-fg: var(--sys-indigo-text); --st-ico: var(--sys-indigo); --st-bg: var(--sys-indigo-tint); }
+.state[data-kind="success"] { --st-fg: var(--sys-green-text);  --st-ico: var(--sys-green);  --st-bg: var(--sys-green-tint); }
+.state[data-kind="warning"] { --st-fg: var(--sys-orange-text); --st-ico: var(--sys-orange); --st-bg: var(--sys-orange-tint); }
+.state[data-kind="error"]   { --st-fg: var(--sys-red-text);    --st-ico: var(--sys-red);    --st-bg: var(--sys-red-tint); }
+.state[data-kind="idle"],
+.state[data-kind="neutral"],
+.state[data-kind="unknown"] { --st-fg: var(--label-primary); }
+
+.state-ico.spin { animation: stateSpin 0.9s linear infinite; transform-origin: 50% 50%; }
+@keyframes stateSpin { to { transform: rotate(360deg); } }
+
+/* Busy buttons: keep the label readable, block repeat clicks, show progress */
+button[aria-busy="true"], .btn[aria-busy="true"] {
+  opacity: 0.72;
+  cursor: progress;
+  pointer-events: none;
+}
+button[aria-busy="true"]::before, .btn[aria-busy="true"]::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.6px solid currentColor;
+  border-right-color: transparent;
+  animation: stateSpin 0.8s linear infinite;
+}
+
+/* Visually hidden live region for status announcements */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* Restrained Empty State (HIG D5: Muted icon + concise text) */
 .empty {

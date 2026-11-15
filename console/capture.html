@@ -41,14 +41,9 @@
     display: block;
   }
 
-  #status {
-    margin-top: 12px;
-    font-size: var(--fs-callout);
-    color: var(--label-secondary);
-    line-height: 1.45;
-    display: none;
-  }
-  #status.on { display: block; }
+  #status { margin-top: 12px; }
+  #status:empty { display: none; }
+  label.btn[aria-disabled="true"] { opacity: 0.72; cursor: progress; pointer-events: none; }
   .secondary-nav { margin-top: 12px; }
 </style>
 </head>
@@ -79,7 +74,7 @@
   <p class="lead">Στάσου μετωπικά ώστε να φαίνονται καθαρά και τα τρία επίπεδα. Η φωτογραφία αναλύεται αμέσως και ενημερώνει την ουρά εργασιών.</p>
 
   <div class="group-surface group-pad">
-    <label id="open" class="btn full-btn" for="photo">
+    <label id="open" class="btn full-btn" for="photo" role="button" tabindex="0">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
       <span id="openLbl">Άνοιγμα κάμερας</span>
     </label>
@@ -133,43 +128,57 @@ async function shrink(file) {
     return await new Promise(ok => c.toBlob(b => ok(b || file), "image/jpeg", 0.88));
   } catch { return file; }
 }
-function busy(on) {
-  $("open").setAttribute("aria-disabled", on);
-  $("openLbl").textContent = on ? "Ανάλυση εικόνας…" : "Νέα φωτογραφία";
+const S = window.ShelfSenseShell;
+let working = false;
+function busy(on, label = "Ανάλυση εικόνας…") {
+  working = on;
+  $("open").setAttribute("aria-disabled", String(on));
+  $("open").setAttribute("aria-busy", String(on));
+  $("photo").disabled = on;             // the label opens the picker; block it during the request
+  $("openLbl").textContent = on ? label : "Νέα φωτογραφία";
 }
-function setMsg(text) {
-  const s = $("status");
-  s.textContent = text;
-  s.classList.toggle("on", Boolean(text));
+$("open").addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && !working) { e.preventDefault(); $("photo").click(); }
+});
+function setMsg(kind, label, detail = "") {
+  $("status").innerHTML = kind ? S.stateHTML(kind, label, detail, { box: true }) : "";
 }
 $("photo").onchange = async () => {
   const file = $("photo").files[0];
-  if (!file) return;
+  if (!file || working) return;
   $("preview").src = URL.createObjectURL(file);
   $("vf").style.display = "block";
-  setMsg("Αποστολή και έλεγχος ραφιού…");
+  setMsg("loading", "Αποστολή και έλεγχος ραφιού…", "Μην κλείσεις τη σελίδα.");
   busy(true);
+  let redirect = false;
   try {
     const body = new FormData();
     body.append("file", await shrink(file), "shelf.jpg");
-    const r = await fetch("/api/shelf/frame?single=1", { method: "POST", body });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.detail || r.statusText);
-    if (d.status === "busy" || d.status === "occluded") {
-      setMsg(d.status === "busy"
-        ? "Εκτελείται ήδη ανάλυση άλλης εικόνας. Δοκίμασε ξανά σε λίγο."
-        : "Περιορισμένη ορατότητα στο πλάνο. Δοκίμασε ξανά χωρίς εμπόδια.");
-    } else {
+    const { data: d } = await S.api("/api/shelf/frame?single=1", { method: "POST", body });
+    if (d.status === "busy") {
+      // The server was busy with another frame: this photo was NOT analysed. Never shown as a result.
+      setMsg("warning", "Η φωτογραφία δεν ελέγχθηκε", "Εκτελείται ήδη άλλη ανάλυση. Πάτησε «Νέα φωτογραφία» σε λίγο.");
+    } else if (d.status === "occluded") {
+      setMsg("warning", "Περιορισμένη ορατότητα", "Κάτι κρύβει το ράφι. Τράβηξε νέα φωτογραφία χωρίς εμπόδια.");
+    } else if ((d.status === "acted" || d.status === "confirmed") && d.unknown_shelf) {
+      setMsg("warning", "Ράφι εκτός καταλόγου", "Αξιολογήθηκε μόνο η διάταξη, χωρίς αυτόματες εργασίες. Δες τις προτάσεις.");
+    } else if (d.status === "acted" || d.status === "confirmed") {
       const n = (d.tasks || []).length;
-      window.ShelfSenseShell?.setTaskBadge(n);
-      setMsg((n ? `Έτοιμο: ${n} ${n === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}.` : "Έτοιμο: το ράφι είναι σωστό.")
-        + " Μετάβαση στις εργασίες…");
-      setTimeout(() => location.href = "/tasks", 1000);
+      S.setTaskBadge(n);
+      setMsg(n ? "warning" : "success",
+        n ? `Ελέγχθηκε: ${n} ${n === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}` : "Ελέγχθηκε: το ράφι είναι σωστό",
+        "Μετάβαση στις εργασίες…");
+      redirect = true;
+    } else {
+      setMsg("unknown", "Η φωτογραφία ελήφθη", "Το αποτέλεσμα δεν είναι ακόμη οριστικό. Δες τις εργασίες.");
     }
   } catch (e) {
-    setMsg("Αποτυχία ανάγνωσης: " + e.message);
+    S.devLog("capture", e);
+    setMsg("error", "Ο έλεγχος απέτυχε", S.errorCopy(e, "Πάτησε «Νέα φωτογραφία» για νέα προσπάθεια."));
+    S.announce("Ο έλεγχος της φωτογραφίας απέτυχε.", true);
   }
   busy(false);
+  if (redirect) setTimeout(() => location.href = "/tasks", 1400);
   $("photo").value = "";
 };
 </script>

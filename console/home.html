@@ -326,10 +326,16 @@
 
 <script>
 (async () => {
-  const [links, st] = await Promise.all([
-    fetch("/api/links").then(r => r.json()),
-    fetch("/api/live/status").then(r => r.json())
-  ]);
+  const S = window.ShelfSenseShell;
+  let links, st;
+  try {
+    [links, st] = await Promise.all([S.api("/api/links"), S.api("/api/live/status")]).then(r => r.map(x => x.data));
+  } catch (e) {
+    S.devLog("home", e);
+    document.getElementById("status").innerHTML =
+      S.stateHTML("error", "Δεν υπάρχει σύνδεση με τον διακομιστή", "Ανανέωσε τη σελίδα όταν ξεκινήσει.");
+    return;
+  }
   window.ShelfSenseShell?.setTaskBadge(st.open);
 
   let activePath = "/tasks";
@@ -367,13 +373,21 @@
   updateQr("/tasks");
 
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const dotCls = st.shelf_ok ? "ok" : "bad";
-  const shelfText = st.shelf_ok ? "Ράφι σωστό" : `${st.open} ${st.open === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`;
+  // Before the first frame the backend defaults shelf_ok to true: that is "no check yet", not "correct".
+  // Success only for a confirmed assessment; a missing or unrecognised status is never "correct".
+  const shelfState = st.open
+    ? ["warning", `${st.open} ${st.open === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`]
+    : st.unknown_shelf ? ["warning", "Ράφι εκτός καταλόγου"]
+    : st.status === "idle" ? ["idle", "Αναμονή πρώτης λήψης"]
+    : st.status === "pending" ? ["pending", "Αναμονή επιβεβαίωσης"]
+    : st.status === "occluded" ? ["warning", "Περιορισμένη ορατότητα"]
+    : (st.status === "confirmed" || st.status === "acted") && st.shelf_ok ? ["success", "Ράφι σωστό"]
+    : ["unknown", "Άγνωστη κατάσταση ραφιού"];
   const modelText = st.provider === "mock" ? "mock" : esc(st.model);
   const orderText = st.auto_order ? `έως ${st.max_cases} κιβ. / ${st.max_eur} €` : "με έγκριση";
 
   document.getElementById("status").innerHTML =
-    `<span class="status-inline"><span class="sdot ${dotCls}"></span><strong style="color:var(--label-primary);font-weight:500">${shelfText}</strong></span>` +
+    S.stateHTML(shelfState[0], shelfState[1]) +
     `<span class="sep">·</span><span>Μοντέλο <span class="mono">${modelText}</span></span>` +
     `<span class="sep">·</span><span>Αυτονομία <span class="mono">${orderText}</span></span>`;
 })();
