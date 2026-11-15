@@ -52,17 +52,15 @@
     padding: 4px 2px 12px;
     flex-wrap: wrap;
   }
-  .light .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--label-tertiary);
-    flex: none;
-    transform: translateY(-1px);
-  }
-  .light.ok .dot { background: var(--sys-green); }
-  .light.warn .dot { background: var(--sys-orange); }
-  .light.bad .dot { background: var(--sys-red); }
+  .light { align-items: flex-start; flex-wrap: nowrap; }
+  .light .light-ico { display: inline-flex; flex: none; margin-top: 1px; color: var(--label-tertiary); }
+  .light .light-main { flex: 1 1 0; }
+  .light .light-ico .state-ico { width: 18px; height: 18px; margin: 0; color: inherit; }
+  .light[data-kind="loading"] .light-ico { color: var(--sys-blue); }
+  .light[data-kind="pending"] .light-ico { color: var(--sys-indigo); }
+  .light[data-kind="success"] .light-ico { color: var(--sys-green); }
+  .light[data-kind="warning"] .light-ico { color: var(--sys-orange); }
+  .light[data-kind="error"] .light-ico { color: var(--sys-red); }
   .light-main { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
   .light b {
     font-size: var(--fs-title);
@@ -149,6 +147,8 @@
     margin-top: 12px;
     flex-wrap: wrap;
   }
+  .bar .bar-state { flex: 1 1 220px; min-width: 0; }
+  .bar .bar-state:empty { display: none; }
   .bar .count {
     margin-left: auto;
     font-family: var(--font-mono);
@@ -238,6 +238,7 @@
     color: var(--label-secondary);
     line-height: 1.38;
   }
+  .task-row .row-state { margin-top: 6px; }
   .task-row .acts {
     margin-top: 8px;
     display: flex;
@@ -325,9 +326,10 @@
 
 <main class="split-view">
   <section class="stage-pane">
-    <div class="light" id="light" role="status" aria-live="polite">
-      <span class="dot"></span>
+    <div class="light" id="light" data-kind="loading" role="status" aria-live="polite">
+      <span class="light-ico" id="lightIco" aria-hidden="true"></span>
       <div class="light-main">
+        <span id="lightPrev" hidden>Προηγούμενο αποτέλεσμα:</span>
         <b id="lightTitle">Εκκίνηση κάμερας…</b>
         <span id="lightSub"></span>
       </div>
@@ -343,10 +345,11 @@
     </div>
 
     <div class="bar">
-      <button id="now">Έλεγχος τώρα</button>
+      <button id="now" type="button">Έλεγχος τώρα</button>
       <button id="pause" class="ghost">Παύση</button>
       <button id="ref" class="ghost" title="Αποθήκευση τρέχοντος frame ως εικόνας αναφοράς">Ορισμός αναφοράς</button>
-      <span class="count" id="count"></span>
+      <span class="bar-state" id="barState"></span>
+      <span class="count" id="count" aria-hidden="true"></span>
     </div>
 
     <div class="devbar">
@@ -475,18 +478,43 @@ function snapshot() {
   return new Promise(res => c.toBlob(res, "image/jpeg", 0.88));
 }
 
+const S = window.ShelfSenseShell;
+const devLog = (label, err) => {
+  if (!err) return;
+  S.devLog(label, err);
+  const line = `[${new Date().toLocaleTimeString("el-GR", { hour12: false })}] ${label}: ${err.tech || err.message || err}`;
+  $("devinfo").dataset.err = line;
+  $("devinfo").textContent = line + "\n" + ($("devinfo").dataset.base || "");
+};
+function setBarState(kind, label, detail = "") {
+  $("barState").innerHTML = kind ? S.stateHTML(kind, label, detail) : "";
+}
+function syncNow() {
+  const b = $("now");
+  b.disabled = sending;
+  if (sending) { b.setAttribute("aria-busy", "true"); b.textContent = "Έλεγχος…"; }
+  else { b.removeAttribute("aria-busy"); b.textContent = "Έλεγχος τώρα"; }
+}
+
 async function send(blob, force = false) {
   if (sending || !blob) return;
-  sending = true; $("scan").classList.add("on");
+  sending = true; $("scan").classList.add("on"); syncNow();
+  if (hasPrevResult() && $("light").dataset.assessment === "1") {
+    // Keep the last completed result visible, but label it as previous while the new frame is analysed.
+    $("lightPrev").hidden = false;
+    $("lightRight").innerHTML = S.stateHTML("loading", "Ανάλυση νέας λήψης…");
+  } else {
+    setLight("loading", "Ανάλυση λήψης…", "Το αποτέλεσμα εμφανίζεται μόλις ολοκληρωθεί.");
+  }
   const body = new FormData(); body.append("file", blob, "frame.jpg");
   try {
-    const r = await fetch("/api/shelf/frame" + (force ? "?force=1" : ""), { method: "POST", body });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.detail || r.statusText);
+    const { data } = await S.api("/api/shelf/frame" + (force ? "?force=1" : ""), { method: "POST", body });
     render(data);
   } catch (e) {
-    setLight("warn", "Αδυναμία ανάγνωσης ραφιού", e.message);
-  } finally { sending = false; $("scan").classList.remove("on"); }
+    devLog("frame", e);
+    setLight("error", "Ο έλεγχος απέτυχε", S.errorCopy(e, "Πάτησε «Έλεγχος τώρα» για νέα προσπάθεια."));
+    S.announce("Ο έλεγχος του ραφιού απέτυχε.", true);
+  } finally { sending = false; $("scan").classList.remove("on"); syncNow(); }
 }
 async function scan(force = false) {
   if (usingFile) return;
@@ -562,44 +590,56 @@ function arrow(p, f) {
 }
 
 const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
-const evidCache = {};
+const evidCache = {};          // proposal id -> html (successful loads only; errors are retried)
+const evidErr = {};            // proposal id -> state html
 const openTalkerForms = new Set();
+const inflight = new Set();    // "rec:<rid>", "order:<taskId>", "evid:<pid>" — survives re-renders from SSE
+const propUi = {};             // rid -> [kind, label, detail, tech] shown next to the proposal
+const rowUi = {};              // task id -> [kind, label, detail, tech]
+
+const busyAttr = (key, label) => inflight.has(key) ? ` disabled aria-busy="true" data-busy-label="${esc(label)}"` : "";
 
 function propCard(p) {
   const rid = p.recommendation_id || "";
   const sku = p.featured_sku || (p.b && p.b.sku) || "";
   const dec = p.decision;
-  const decBadge = dec === "accepted" || dec === "corrected"
-    ? `<span class="ok-txt" style="margin-left:auto">✓ Εγκρίθηκε</span>`
-    : dec === "rejected"
-    ? `<span class="tert" style="margin-left:auto">Απορρίφθηκε</span>`
-    : "";
+  const ds = S.decisionState(dec);
+  const decBadge = ds ? `<span style="margin-left:auto">${S.stateHTML(ds[0], ds[1])}</span>` : "";
+  const recBusy = inflight.has("rec:" + rid);
+  const decided = dec === "accepted" || dec === "corrected";
 
   let actions = "";
   if (rid) {
+    const lock = recBusy ? " disabled" : "";
     actions = `<div class="prop-acts">
-      ${dec !== "accepted" && dec !== "corrected" ? `<button type="button" data-rec="${esc(rid)}" data-dec="accepted">Αποδοχή</button>` : ""}
-      <button type="button" class="ghost" data-talker-toggle="${esc(rid)}">Ταμπελάκι</button>
-      ${sku ? `<button type="button" class="ghost" data-evid="${esc(sku)}" data-prop="${esc(p.id)}">Τεκμήρια</button>` : ""}
-      ${dec !== "rejected" ? `<button type="button" class="ghost" data-rec="${esc(rid)}" data-dec="rejected">Απόρριψη</button>` : ""}
+      ${!decided ? `<button type="button" data-rec="${esc(rid)}" data-dec="accepted"${recBusy && propUi[rid]?.[4] === "accepted" ? ` disabled aria-busy="true"` : lock}>${recBusy && propUi[rid]?.[4] === "accepted" ? "Αποθήκευση…" : "Αποδοχή"}</button>` : ""}
+      <button type="button" class="${decided && !p.talker_file ? "tinted" : "ghost"}" data-talker-toggle="${esc(rid)}" aria-expanded="${openTalkerForms.has(rid)}"${lock}>Ταμπελάκι</button>
+      ${sku ? `<button type="button" class="ghost" data-evid="${esc(sku)}" data-prop="${esc(p.id)}" aria-expanded="${Boolean(evidCache[p.id])}"${busyAttr("evid:" + p.id, "Φόρτωση…")}>${inflight.has("evid:" + p.id) ? "Φόρτωση…" : (evidCache[p.id] ? "Απόκρυψη τεκμηρίων" : "Τεκμήρια")}</button>` : ""}
+      ${dec !== "rejected" ? `<button type="button" class="ghost" data-rec="${esc(rid)}" data-dec="rejected"${recBusy && propUi[rid]?.[4] === "rejected" ? ` disabled aria-busy="true"` : lock}>${recBusy && propUi[rid]?.[4] === "rejected" ? "Αποθήκευση…" : "Απόρριψη"}</button>` : ""}
     </div>`;
   }
 
   const formOpen = rid && openTalkerForms.has(rid);
   const defName = p.featured_name || (p.b && p.b.name) || "";
   const defPrice = p.unit_price ? Number(p.unit_price).toFixed(2) : "2.50";
+  const talkBusy = recBusy && propUi[rid]?.[4] === "corrected";
   const formHtml = rid ? `<form class="prop-form" data-talker-form="${esc(rid)}" data-sku="${esc(sku)}" ${formOpen ? "" : "hidden"}>
-      <input type="text" name="pname" value="${esc(defName)}" aria-label="Όνομα προϊόντος" required>
-      <input type="number" name="pprice" step="0.01" min="0.05" value="${esc(defPrice)}" aria-label="Τιμή EUR" class="mono" required>
-      <button type="submit">Δημιουργία</button>
+      <input type="text" name="pname" value="${esc(defName)}" aria-label="Όνομα προϊόντος" required${talkBusy ? " disabled" : ""}>
+      <input type="number" name="pprice" step="0.01" min="0.05" value="${esc(defPrice)}" aria-label="Τιμή EUR" class="mono" required${talkBusy ? " disabled" : ""}>
+      <button type="submit"${talkBusy ? ` disabled aria-busy="true"` : ""}>${talkBusy ? "Δημιουργία…" : "Δημιουργία"}</button>
     </form>` : "";
 
+  // Shown only when the backend reports a generated file for this proposal.
   const talkerHtml = p.talker_file
-    ? `<div class="prop-talker"><img src="/files/${encodeURI(p.talker_file)}" alt="Ταμπελάκι">
-       <a href="/files/${encodeURI(p.talker_file)}" target="_blank" rel="noopener">Άνοιγμα ταμπέλας PNG (${p.talker_source === "fal" ? "fal" : "έτοιμο"})</a></div>`
+    ? `<div class="prop-talker"><img src="/files/${encodeURI(p.talker_file)}" alt="Ταμπελάκι ${esc(defName)}">
+       <span>${S.stateHTML("success", "Ταμπελάκι έτοιμο", p.talker_source === "fal" ? "εικόνα fal" : "τοπική απόδοση")}<br>
+       <a href="/files/${encodeURI(p.talker_file)}" target="_blank" rel="noopener">Άνοιγμα PNG</a></span></div>`
     : "";
 
-  const evidHtml = evidCache[p.id] ? `<div class="prop-evid">${evidCache[p.id]}</div>` : "";
+  const ui = propUi[rid];
+  const uiHtml = ui ? `<div style="margin-top:8px">${S.stateHTML(ui[0], ui[1], ui[2], { box: true })}</div>` : "";
+  const evidHtml = evidCache[p.id] ? `<div class="prop-evid">${evidCache[p.id]}</div>`
+    : evidErr[p.id] ? `<div class="prop-evid">${evidErr[p.id]}</div>` : "";
 
   return `<div class="prop">
     <div class="prop-head"><span>${esc(p.rule || "Πρόταση")} · ${esc(RULE[p.rule] || "Διάταξη")}</span>${decBadge}</div>
@@ -607,12 +647,15 @@ function propCard(p) {
     <p class="why">${esc(p.reason)}</p>
     <div class="num">${esc(p.numbers)}</div>
     <small>${esc(p.note)} Πηγή: ${esc(p.source)}.</small>
-    ${talkerHtml}${actions}${formHtml}${evidHtml}
+    ${talkerHtml}${actions}${formHtml}${uiHtml}${evidHtml}
   </div>`;
 }
 
-function setLight(cls, title, sub, right = "") {
-  $("light").className = "light " + cls;
+function setLight(kind, title, sub, right = "") {
+  $("lightPrev").hidden = true;
+  $("light").dataset.assessment = "";   // set to "1" only by render() when the light shows a shelf assessment
+  $("light").dataset.kind = kind || "idle";
+  $("lightIco").innerHTML = S.stateIcon(kind || "idle");
   $("lightTitle").textContent = title;
   $("lightSub").textContent = sub || "";
   $("lightRight").innerHTML = right;
@@ -630,20 +673,46 @@ function taskCard(t) {
   const thumbCls = t.image ? "thumb" : `thumb ${esc(t.kind || "")}`;
   const orderInfo = t.order && t.order.order_no
     ? ` · <span class="mono">${esc(t.order.order_no)} (${t.order.eur.toFixed(2)} €)</span>`
-    : t.order && t.order.rejected ? ` · <span class="warn">Απορρίφθηκε</span>` : "";
-  const appr = t.needs_approval
-    ? `<div class="acts"><button class="ok" data-order="${esc(t.id)}" data-v="1">Έγκριση ${t.needs_approval.cases} κιβ. (${t.needs_approval.eur.toFixed(2)} €)</button>
-       <button class="ghost" data-order="${esc(t.id)}" data-v="0">Απόρριψη</button></div><div class="meta warn">${esc(t.needs_approval.why)}</div>`
     : "";
-  const worker = t.status === "in_progress" ? `<span class="warn">Σε εξέλιξη (${esc(t.claimed_by || "υπάλληλος")})</span> · ` : "";
+  const orderRejected = t.order && t.order.rejected
+    ? `<div class="row-state">${S.stateHTML("neutral", "Παραγγελία απορρίφθηκε από εσάς")}</div>` : "";
+  const key = "order:" + t.id, busyNow = inflight.has(key), which = rowUi[t.id]?.[4];
+  const appr = t.needs_approval
+    ? `<div class="acts"><button class="ok" data-order="${esc(t.id)}" data-v="1"${busyNow ? (which === "1" ? ` disabled aria-busy="true"` : " disabled") : ""}>${busyNow && which === "1" ? "Έγκριση…" : `Έγκριση ${t.needs_approval.cases} κιβ. (${t.needs_approval.eur.toFixed(2)} €)`}</button>
+       <button class="ghost" data-order="${esc(t.id)}" data-v="0"${busyNow ? (which === "0" ? ` disabled aria-busy="true"` : " disabled") : ""}>${busyNow && which === "0" ? "Απόρριψη…" : "Απόρριψη"}</button></div>
+       <div class="row-state">${S.stateHTML("warning", "Χρειάζεται έγκριση", t.needs_approval.why)}</div>`
+    : "";
+  const worker = t.status === "in_progress"
+    ? `<div class="row-state">${S.stateHTML("pending", "Σε εξέλιξη", t.claimed_by || "υπάλληλος")}</div>` : "";
+  const ui = rowUi[t.id] && !busyNow ? `<div class="row-state">${S.stateHTML(rowUi[t.id][0], rowUi[t.id][1], rowUi[t.id][2], { box: true })}</div>` : "";
   return `<div class="task-row">
     <div class="${thumbCls}" ${img}>${t.image ? "" : (KIND_LABEL[t.kind] || "SKU")}</div>
     <div>
       <b>${esc(t.text)}</b>
-      <div class="meta">${worker}<span class="mono">${ago(t.created)}</span>${orderInfo}</div>
-      ${appr}
+      <div class="meta"><span class="mono">${ago(t.created)}</span>${orderInfo}</div>
+      ${worker}${orderRejected}${appr}${ui}
     </div>
   </div>`;
+}
+
+// Only a confirmed assessment can read as success. "busy", "unchanged", missing or unknown statuses never do.
+const SETTLED = new Set(["confirmed", "acted"]);
+const KNOWN = new Set(["idle", "pending", "occluded", "confirmed", "acted"]);
+let prevAssessment = null;   // { status } of the last assessment shown on screen
+// "idle" (no frame analysed yet) is not a result, so it is never presented as a "previous result".
+const hasPrevResult = () => Boolean(prevAssessment && prevAssessment.status !== "idle");
+
+function assessment(d, status) {
+  const tasks = d.tasks || [];
+  if (d.unknown_shelf) return ["warning", "Ράφι εκτός καταλόγου", "Αξιολόγηση διάταξης χωρίς αυτόματες παραγγελίες."];
+  if (status === "occluded") return ["warning", "Περιορισμένη ορατότητα", "Η λήψη δεν μέτρησε. Καθάρισε το πλάνο και ξαναδοκίμασε."];
+  if (status === "idle") return ["idle", "Αναμονή πρώτης λήψης", "Ο έλεγχος ξεκινά αυτόματα."];
+  if (tasks.length) return ["warning", `${tasks.length} ${tasks.length === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`,
+    "Στάλθηκαν στον υπάλληλο" + orderNote(d.orders)];
+  if (status === "pending") return ["pending", "Αναμονή επιβεβαίωσης", `Χρειάζεται ίδιο αποτέλεσμα σε επόμενη λήψη (${d.confirm || "-"}).`];
+  if (SETTLED.has(status)) return ["success", "Το ράφι είναι σωστό",
+    d.done && d.done.length ? `Τελευταία διόρθωση: ${d.done[0].text}` : "Όλοι οι κωδικοί στη θέση τους."];
+  return ["unknown", "Άγνωστη κατάσταση ραφιού", "Περίμενε την επόμενη λήψη."];
 }
 
 function render(d) {
@@ -652,17 +721,22 @@ function render(d) {
   $("taskCount").textContent = String(tasks.length);
   window.ShelfSenseShell?.setTaskBadge(tasks.length);
 
-  if (d.unknown_shelf) setLight("warn", "Ράφι εκτός καταλόγου",
-    "Αξιολόγηση διάταξης χωρίς αυτόματες παραγγελίες.");
-  else if (d.status === "occluded") setLight("warn", "Περιορισμένη ορατότητα",
-    "Αναμονή για καθαρή εικόνα ραφιού.");
-  else if (d.status === "idle") setLight("", "Αναμονή πρώτης λήψης…", "");
-  else if (!tasks.length) setLight("ok", "Το ράφι είναι σωστό",
-    d.done && d.done.length ? `Τελευταία διόρθωση: ${esc(d.done[0].text)}` : "Όλοι οι κωδικοί στη θέση τους.");
-  else setLight("bad", `${tasks.length} ${tasks.length === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`,
-    "Στάλθηκαν στον υπάλληλο" + orderNote(d.orders));
+  // "unchanged": the scene did not change, so the last completed assessment still stands (whatever it was).
+  let status = d.status;
+  if (status === "unchanged") status = prevAssessment ? prevAssessment.status : "unknown";
 
-  if (d.status === "pending") $("lightRight").innerHTML = `επιβεβαίωση ${esc(d.confirm || "")}`;
+  if (status === "busy") {
+    // Another frame is being analysed: progress first, the earlier result only as a labelled "previous".
+    const prev = hasPrevResult() ? assessment(d, prevAssessment.status) : null;
+    setLight("loading", "Άλλη ανάλυση σε εξέλιξη",
+      prev ? `Προηγούμενο αποτέλεσμα: ${prev[1]}` : "Το αποτέλεσμα εμφανίζεται μόλις ολοκληρωθεί.");
+  } else {
+    const [k, t, sub] = assessment(d, status);
+    setLight(k, t, sub);
+    $("light").dataset.assessment = "1";
+    if (KNOWN.has(status)) prevAssessment = { status };
+    if (status === "pending" && tasks.length) $("lightRight").textContent = `επιβεβαίωση ${d.confirm || ""}`;
+  }
 
   $("tasks").innerHTML = tasks.length
     ? tasks.map(taskCard).join("")
@@ -672,15 +746,23 @@ function render(d) {
     + (d.summary ? `<p class="lay-summary">${esc(d.summary)}</p>` : "")
     + (d.suggested_layout || []).map(l => `<div class="lay"><b>${esc({top:"Πάνω",eye:"Μάτια",bottom:"Κάτω"}[l.level] || l.level)}</b>
         <span>${esc((l.order || []).join(" → "))}</span><small>${esc(l.why || "")}</small></div>`).join("");
-  $("plan").innerHTML = planHtml || `<div class="empty">Καμία παρατήρηση διάταξης.</div>`;
+  $("plan").innerHTML = planHtml || (d.status === "idle"
+    ? `<div class="empty">${S.stateHTML("idle", "Αναμονή πρώτης λήψης")}</div>`
+    : `<div class="empty">Καμία παρατήρηση διάταξης.</div>`);
 
   $("timeline").innerHTML = (d.history || []).slice().reverse().map(h =>
     `<li><time>${hhmm(h.ts)}</time><span class="sdot ${KIND_DOT[h.kind] || ""}"></span><span>${esc(h.text)}</span></li>`
   ).join("") || `<li><time>—</time><span class="sdot"></span><span class="mut">Έλεγχος ανά ${interval}s.</span></li>`;
 
-  $("devinfo").textContent = `frame ${d.frame || "-"} · ${d.status} · ${d.seconds ?? "-"}s · επιβεβαίωση ${d.confirm || "-"} · ` +
+  const base = `frame ${d.frame || "-"} · ${d.status} · ${d.seconds ?? "-"}s · επιβεβαίωση ${d.confirm || "-"} · ` +
     `${d.frames} frames / ${d.model_calls} κλήσεις μοντέλου` + (d.diff !== undefined ? ` · διαφορά ${d.diff}` : "") +
     (d.agent_run ? ` · agent ${d.agent_run}` : "") + "\n" + JSON.stringify(d.findings || [], null, 1).slice(0, 1500);
+  $("devinfo").dataset.base = base;
+  $("devinfo").textContent = ($("devinfo").dataset.err ? $("devinfo").dataset.err + "\n" : "") + base;
+}
+async function refreshStatus() {
+  const { data } = await S.api("/api/live/status");
+  render(data);
 }
 
 setInterval(() => {
@@ -693,58 +775,120 @@ setInterval(() => {
 new EventSource("/api/events").onmessage = m => {
   const ev = JSON.parse(m.data);
   if (ev.run_id === "system" && ev.type === "shelf_log" && Date.now() / 1000 - ev.ts < 5)
-    fetch("/api/live/status").then(r => r.json()).then(s => { if (!sending) render(s); });
+    S.api("/api/live/status").then(({ data }) => { if (!sending) render(data); }).catch(() => {});
 };
 
-$("pause").onclick = () => { paused = !paused; $("pause").textContent = paused ? "Συνέχεια" : "Παύση"; };
-$("now").onclick = () => { usingFile = false; $("still").hidden = true; scan(true); countdown = interval; };
+$("pause").onclick = () => {
+  paused = !paused;
+  $("pause").textContent = paused ? "Συνέχεια" : "Παύση";
+  $("pause").setAttribute("aria-pressed", String(paused));
+  S.announce(paused ? "Ο αυτόματος έλεγχος σε παύση." : "Ο αυτόματος έλεγχος συνεχίζεται.");
+};
+$("now").onclick = () => {
+  if (sending) return;
+  if (!usingFile && !video.videoWidth) {
+    setBarState("warning", "Δεν υπάρχει ενεργή κάμερα", isDev ? "Χρησιμοποίησε «Από αρχείο…»." : "Άνοιξε τις Δοκιμές για φόρτωση αρχείου.");
+    return;
+  }
+  setBarState("");
+  usingFile = false; $("still").hidden = true; scan(true); countdown = interval;
+};
 $("ref").onclick = async () => {
-  if (!video.videoWidth) return;
-  const body = new FormData(); body.append("file", await snapshot(), "ref.jpg");
-  const r = await fetch("/api/shelf/reference", { method: "POST", body });
-  if (r.ok) {
-    $("ref").textContent = "Αποθηκεύτηκε";
-    setTimeout(() => $("ref").textContent = "Ορισμός αναφοράς", 2200);
-    fetch("/api/live/status").then(r => r.json()).then(render);
+  const btn = $("ref");
+  if (btn.disabled) return;
+  if (!video.videoWidth) { setBarState("warning", "Δεν υπάρχει ενεργή κάμερα", "Η αναφορά χρειάζεται εικόνα από την κάμερα."); return; }
+  const restore = S.busy(btn, "Αποθήκευση…");
+  try {
+    const body = new FormData(); body.append("file", await snapshot(), "ref.jpg");
+    await S.api("/api/shelf/reference", { method: "POST", body });
+    restore();
+    setBarState("success", "Η αναφορά αποθηκεύτηκε");
+    S.announce("Η εικόνα αναφοράς αποθηκεύτηκε.");
+    refreshStatus().catch(() => {});
+  } catch (e) {
+    restore(); devLog("reference", e);
+    setBarState("error", "Η αναφορά δεν αποθηκεύτηκε", S.errorCopy(e));
+    S.announce("Η εικόνα αναφοράς δεν αποθηκεύτηκε.", true);
   }
 };
-$("cam").onchange = e => openCamera(e.target.value);
+$("cam").onchange = e => openCamera(e.target.value).then(() => setBarState("")).catch(err => {
+  devLog("camera", err);
+  setBarState("error", "Η κάμερα δεν άνοιξε", cameraCopy(err));
+});
 $("file").onclick = () => $("fileInput").click();
 $("fileInput").onchange = e => {
   const f = e.target.files[0]; if (!f) return;
-  usingFile = true; $("still").src = URL.createObjectURL(f); $("still").hidden = false; $("hint").hidden = true; send(f, true);
+  usingFile = true; $("still").src = URL.createObjectURL(f); $("still").hidden = false; $("hint").hidden = true;
+  setBarState(""); send(f, true);
+  e.target.value = "";
 };
+async function devAction(btn, label, url, okLabel) {
+  if (btn.disabled) return false;
+  const restore = S.busy(btn, label);
+  try {
+    await S.api(url, { method: "POST" });
+    restore(); setBarState("success", okLabel);
+    return true;
+  } catch (e) {
+    restore(); devLog(url, e);
+    setBarState("error", "Η ενέργεια απέτυχε", S.errorCopy(e));
+    return false;
+  }
+}
 $("reset").onclick = async () => {
-  await fetch("/api/live/reset", { method: "POST" });
-  render(await (await fetch("/api/live/status")).json());
+  if (await devAction($("reset"), "Μηδενισμός…", "/api/live/reset", "Η κατάσταση μηδενίστηκε"))
+    refreshStatus().catch(e => devLog("status", e));
 };
 document.querySelectorAll("[data-mock]").forEach(b => b.onclick = async () => {
-  await fetch("/api/live/mock/" + b.dataset.mock, { method: "POST" });
-  usingFile = false; $("still").hidden = true; scan(true);
+  if (await devAction(b, "Φόρτωση…", "/api/live/mock/" + b.dataset.mock, "Η δοκιμαστική κατάσταση ορίστηκε")) {
+    if (!video.videoWidth) { setBarState("info", "Η δοκιμαστική κατάσταση ορίστηκε", "Χωρίς κάμερα: φόρτωσε εικόνα «Από αρχείο…» για έλεγχο."); return; }
+    usingFile = false; $("still").hidden = true; scan(true);
+  }
 });
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-order]");
   if (b) {
-    b.disabled = true;
-    await fetch(`/api/tasks/${encodeURIComponent(b.dataset.order)}/order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ approved: b.dataset.v === "1" })
-    });
-    render(await (await fetch("/api/live/status")).json());
+    const id = b.dataset.order, key = "order:" + id;
+    if (inflight.has(key)) return;
+    inflight.add(key); rowUi[id] = [null, "", "", "", b.dataset.v];
+    if (last) render(last);
+    try {
+      await S.api(`/api/tasks/${encodeURIComponent(id)}/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approved: b.dataset.v === "1" })
+      });
+      delete rowUi[id];
+      S.announce(b.dataset.v === "1" ? "Η παραγγελία εγκρίθηκε." : "Η παραγγελία απορρίφθηκε.");
+    } catch (err) {
+      devLog("order", err);
+      rowUi[id] = ["error", b.dataset.v === "1" ? "Η έγκριση δεν καταχωρήθηκε" : "Η απόρριψη δεν καταχωρήθηκε", S.errorCopy(err)];
+      S.announce("Η απόφαση για την παραγγελία δεν καταχωρήθηκε.", true);
+    } finally { inflight.delete(key); }
+    await refreshStatus().catch(() => { if (last) render(last); });
     return;
   }
 
   const fb = e.target.closest("[data-rec]");
   if (fb) {
-    fb.disabled = true;
-    const rid = fb.dataset.rec, dec = fb.dataset.dec;
-    await fetch(`/api/recommendations/${encodeURIComponent(rid)}/feedback`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ submission_id: `ui-${dec}-${Date.now()}`, decision: dec, decided_by: "manager" })
-    });
-    render(await (await fetch("/api/live/status")).json());
+    const rid = fb.dataset.rec, dec = fb.dataset.dec, key = "rec:" + rid;
+    if (inflight.has(key)) return;
+    inflight.add(key); propUi[rid] = ["loading", "Αποθήκευση απόφασης…", "", "", dec];
+    if (last) render(last);
+    try {
+      await S.api(`/api/recommendations/${encodeURIComponent(rid)}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submission_id: `ui-${dec}-${Date.now()}`, decision: dec, decided_by: "manager" })
+      });
+      delete propUi[rid];   // the saved decision now shows from the backend's own proposal state
+      S.announce(dec === "accepted" ? "Η αποδοχή αποθηκεύτηκε. Η μετακίνηση δεν έχει επιβεβαιωθεί." : "Η απόρριψη αποθηκεύτηκε.");
+    } catch (err) {
+      devLog("feedback", err);
+      propUi[rid] = ["error", "Η απόφαση δεν αποθηκεύτηκε", S.errorCopy(err)];
+      S.announce("Η απόφαση δεν αποθηκεύτηκε.", true);
+    } finally { inflight.delete(key); }
+    await refreshStatus().catch(() => { if (last) render(last); });
     return;
   }
 
@@ -753,21 +897,27 @@ document.addEventListener("click", async e => {
     const rid = tg.dataset.talkerToggle;
     if (openTalkerForms.has(rid)) openTalkerForms.delete(rid); else openTalkerForms.add(rid);
     if (last) render(last);
+    if (openTalkerForms.has(rid)) document.querySelector(`[data-talker-form="${CSS.escape(rid)}"] input`)?.focus();
     return;
   }
 
   const evBtn = e.target.closest("[data-evid]");
   if (evBtn) {
-    const pid = evBtn.dataset.prop, sku = evBtn.dataset.evid;
+    const pid = evBtn.dataset.prop, sku = evBtn.dataset.evid, key = "evid:" + pid;
+    if (inflight.has(key)) return;
     if (evidCache[pid]) { delete evidCache[pid]; if (last) render(last); return; }
-    evBtn.disabled = true; evBtn.textContent = "…";
+    inflight.add(key); delete evidErr[pid];
+    if (last) render(last);
     try {
-      const pack = await (await fetch(`/api/evidence/${encodeURIComponent(sku)}`)).json();
+      const { data: pack } = await S.api(`/api/evidence/${encodeURIComponent(sku)}`);
       const srcs = (pack.sources || []).slice(0, 3);
       evidCache[pid] = srcs.length
         ? srcs.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.domain || s.url)}</a>`).join("")
         : `<span>Περιθώριο ${esc(pack.margin_pct ?? "—")}% · Δεν βρέθηκαν εξωτερικές πηγές.</span>`;
-    } catch { evidCache[pid] = "<span>Αδυναμία φόρτωσης τεκμηρίων.</span>"; }
+    } catch (err) {
+      devLog("evidence", err);
+      evidErr[pid] = S.stateHTML("error", "Τα τεκμήρια δεν φορτώθηκαν", "Πάτησε «Τεκμήρια» ξανά.");
+    } finally { inflight.delete(key); }
     if (last) render(last);
   }
 });
@@ -776,13 +926,15 @@ document.addEventListener("submit", async e => {
   const form = e.target.closest("[data-talker-form]");
   if (!form) return;
   e.preventDefault();
-  const rid = form.dataset.talkerForm, sku = form.dataset.sku;
+  const rid = form.dataset.talkerForm, sku = form.dataset.sku, key = "rec:" + rid;
+  if (inflight.has(key)) return;
   const pname = form.elements.pname.value.trim();
   const pprice = parseFloat(form.elements.pprice.value);
-  const btn = form.querySelector("button[type=submit]");
-  btn.disabled = true; btn.textContent = "Δημιουργία…";
+  inflight.add(key); propUi[rid] = ["loading", "Δημιουργία ταμπελακιού…", "Αποθήκευση ονόματος και τιμής", "", "corrected"];
+  if (last) render(last);
+  let saved = false;
   try {
-    await fetch(`/api/recommendations/${encodeURIComponent(rid)}/feedback`, {
+    await S.api(`/api/recommendations/${encodeURIComponent(rid)}/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -795,28 +947,63 @@ document.addEventListener("submit", async e => {
         }
       })
     });
-    const r = await fetch(`/api/recommendations/${encodeURIComponent(rid)}/talker`, {
+    saved = true;
+    propUi[rid] = ["loading", "Δημιουργία ταμπελακιού…", "Η διόρθωση αποθηκεύτηκε", "", "corrected"];
+    if (last) render(last);
+    await S.api(`/api/recommendations/${encodeURIComponent(rid)}/talker`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ theme: "fresh" })
     });
-    if (r.ok) openTalkerForms.delete(rid);
-    render(await (await fetch("/api/live/status")).json());
-  } finally {
-    btn.disabled = false; btn.textContent = "Δημιουργία";
-  }
+    openTalkerForms.delete(rid);
+    delete propUi[rid];
+  } catch (err) {
+    devLog("talker", err);
+    const st = err.status === 409 ? "missing_inputs" : err.status === 404 ? "not_found"
+      : err.status === 422 ? "invalid_input" : err.status === 502 ? "provider_failed" : null;
+    const [k, l, dtl] = !saved
+      ? ["error", "Η διόρθωση δεν αποθηκεύτηκε", S.errorCopy(err)]
+      : st ? S.talkerState(st) : ["error", "Το ταμπελάκι δεν δημιουργήθηκε", S.errorCopy(err)];
+    propUi[rid] = [k, l, saved ? `Η διόρθωση αποθηκεύτηκε. ${dtl}` : dtl];
+    S.announce(l, true);
+  } finally { inflight.delete(key); }
+  try {
+    const { data } = await S.api("/api/live/status");
+    const p = (data.proposals || []).find(x => x.recommendation_id === rid);
+    if (!propUi[rid] && p && !p.talker_file)
+      propUi[rid] = ["unknown", "Δεν επιβεβαιώθηκε αρχείο ταμπελακιού", "Ανανέωσε σε λίγο", ""];
+    else if (!propUi[rid] && p && p.talker_file) S.announce("Το ταμπελάκι είναι έτοιμο.");
+    render(data);
+  } catch { if (last) render(last); }
 });
+function cameraCopy(e) {
+  const n = e && e.name;
+  if (!navigator.mediaDevices) return "Η κάμερα ανοίγει μόνο από localhost ή HTTPS.";
+  if (n === "NotAllowedError" || n === "SecurityError") return "Δεν δόθηκε άδεια για την κάμερα.";
+  if (n === "NotFoundError" || n === "OverconstrainedError") return "Δεν βρέθηκε κάμερα σε αυτή τη συσκευή.";
+  if (n === "NotReadableError") return "Η κάμερα χρησιμοποιείται από άλλη εφαρμογή.";
+  return "Η κάμερα δεν ξεκίνησε.";
+}
 window.addEventListener("resize", draw);
 video.addEventListener("loadedmetadata", draw);
 
 (async () => {
-  const s = await (await fetch("/api/live/status")).json();
-  interval = s.interval; render(s);
-  $("mode").textContent = s.provider === "mock" ? "mock" : s.model;
+  setLight("loading", "Εκκίνηση κάμερας…", "");
+  try {
+    const { data: s } = await S.api("/api/live/status");
+    interval = s.interval; render(s);
+    $("mode").textContent = s.provider === "mock" ? "mock" : s.model;
+  } catch (e) {
+    devLog("status", e);
+    setLight("error", "Δεν υπάρχει σύνδεση με τον διακομιστή", "Έλεγξε ότι τρέχει ο server και ανανέωσε τη σελίδα.");
+    $("mode").textContent = "εκτός σύνδεσης";
+  }
   try { await openCamera(); $("hint").hidden = true; countdown = 2; }
   catch (e) {
+    devLog("camera", e);
     $("hint").hidden = false;
-    $("hint").innerHTML = `<div>Δεν βρέθηκε ενεργή κάμερα (${esc(e.message)}).<br>Άνοιξε από <code>localhost</code> / HTTPS ή ενεργοποίησε τις <a href="?dev=1">Δοκιμές</a> για φόρτωση αρχείου.</div>`;
+    $("hint").innerHTML = `<div><strong>${esc(cameraCopy(e))}</strong><br>Άνοιξε από <code>localhost</code> / HTTPS ή ενεργοποίησε τις <a href="?dev=1">Δοκιμές</a> για φόρτωση αρχείου.</div>`;
+    if (!last || last.status === "idle") setLight("warning", "Η κάμερα δεν είναι διαθέσιμη", cameraCopy(e));
   }
 })();
 </script>
