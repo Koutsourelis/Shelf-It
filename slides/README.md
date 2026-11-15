@@ -10,6 +10,21 @@ A self-contained slide deck (one `index.html`, no build step) that reads without
 
 ## Deploy on Vercel
 
-1. Vercel → Add New → Project → import the GitHub repo.
-2. Framework Preset: **Other**. Root Directory: **`slides`**. No build command, no output directory.
-3. Deploy. Every push to the deployed branch updates the page.
+The deck lives on the branch `p3/slides`, folder `slides/`. Either way below works.
+
+**A. From the command line (no GitHub connection needed, works for any team member):**
+
+```bash
+git fetch origin
+git switch p3/slides
+npx vercel deploy slides --prod
+```
+
+The first run asks you to log in and to create a project; accept the defaults (no build command, no output directory).
+
+**B. From the Vercel dashboard (needs the Vercel GitHub app on the repo owner's account):**
+
+1. Add New → Project → import the GitHub repo.
+2. Framework Preset: **Other**. Root Directory: **`slides`**.
+3. Settings → Git → Production Branch: **`p3/slides`** (until the branch is merged into `main`). Otherwise only a
+   preview deployment is built, and Vercel may put previews behind a login.
