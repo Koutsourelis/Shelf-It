@@ -20,7 +20,7 @@
 3. **Proposes sourced layout moves (`agentkit/rules.py`, `agentkit/tools/shelf.py`):** Evaluates category-management rules **K1–K7** over 28-day DuckDB sales and margin data (`layout_suggestions`, `propose_move`) and draws swap/facing arrows directly over the shelf feed.
 4. **Closes the merchandising loop (`agentkit/recommendations.py`, `agentkit/feedback_api.py`, `agentkit/shelf_talker.py`, `agentkit/tools/evidence.py`):**
    - Stores append-only owner decisions (`accepted`, `rejected`, `corrected`) in SQLite.
-   - Pulls external market & category evidence via **`treg`** (with automatic DuckDuckGo fallback) and curated Greek retail sources.
+   - Market evidence via **`treg`**: live web search, news and Google search trends (with automatic DuckDuckGo fallback), plus curated Greek retail sources. The shelf screen shows the sources, the search trend and the treg calls behind each pack.
    - Generates printable PNG shelf talkers from owner-confirmed product names and prices via **`fal` (`fal-ai/flux/schnell`)** or an offline Pillow renderer.
 
 ---
@@ -180,7 +180,7 @@ python scripts/eval_vision.py --runs 1
 ## Third-Party Tools & Credits
 
 - **Google AI (`gemini-3.8-flash`)** — Structured multimodal shelf perception, `0–1000` spatial bounding boxes, and agent tool reasoning.
-- **`treg` & DuckDuckGo** — Category demand trends and Greek grocery trade press evidence.
+- **`treg`** — Market evidence: live web search, news and Google search trends (DataForSEO through treg). DuckDuckGo is the fallback when no treg token is set.
 - **`fal` (`fal-ai/flux/schnell`) & Pillow** — Decorative shelf-talker background generation composed locally with confirmed product copy and prices.
 - **Open Food Facts** — Real barcode, brand, and pack-size metadata (`ODbL`).
 - **FastAPI, DuckDB, SQLite, Playwright & Cloudflared** — Backend runtime, SQL analytics, append-only state, browser automation, and mobile HTTPS tunneling.

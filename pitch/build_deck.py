@@ -57,7 +57,8 @@ CONTENT = {
               "[Feature built during the hackathon]", "[Feature built during the hackathon]"],
     "boilerplate": ["Generic agent loop and console", "General tools: files, SQL, web, browser, email, PDF",
                     "Synthetic sample data"],
-    "stack": ["[Model]", "[Sponsor tool]", "[Sponsor tool]", "Python · FastAPI", "DuckDB", "Playwright"],
+    "stack": ["Gemini 3.8 Flash", "treg", "fal", "Open Food Facts", "Python · FastAPI", "DuckDB"],
+    "stack_line": "Market evidence via treg: live web search, news and Google search trends.",
 
     "next_title": "What comes next",
     "next": [
@@ -227,7 +228,9 @@ def build(out: Path):
 
     # 6 — Built during the hackathon
     d.slide("15 seconds. Be exact about what was built this weekend and what was boilerplate; the judges score only "
-            "the weekend's work and they respect teams that say so plainly. The git history shows the same split.")
+            "the weekend's work and they respect teams that say so plainly. The git history shows the same split. "
+            "Name the sponsor tools out loud: market evidence via treg (live web search, news and Google search "
+            "trends), shelf talkers via fal.")
     d.title(C["built_title"])
     d.box(M, 2.0, 7.2, 3.4, fill=PANEL2)
     d.text("BUILT THIS WEEKEND", M + 0.4, 2.25, 6, 0.4, size=13, bold=True, color=OK)
@@ -242,6 +245,7 @@ def build(out: Path):
         x = M + i * (cw + 0.2)
         d.box(x, 5.75, cw, 0.6, fill=BG, line=LINE, radius=0.5)
         d.text(chip, x, 5.75, cw, 0.6, size=14, color=TEXT, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    d.text(C["stack_line"], M, 6.5, W - 2 * M, 0.4, size=14, color=MUTED, align=PP_ALIGN.CENTER)
 
     # 7 — Next + close
     d.slide("15 seconds. One concrete next step, then the closing sentence, then stop talking. "
