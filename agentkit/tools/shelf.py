@@ -486,13 +486,9 @@ async def layout_suggestions(ctx) -> str:
     return "\n".join(out)
 
 
-ELASTICITY = 0.17          # ελαστικότητα χώρου, Eisend 2014 (planning/DECISION_RULES.md, Κ3)
-SOURCES = {
-    "K3": "Eisend 2014, ελαστικότητα χώρου 0,17",
-    "K4": "Drèze, Hoch & Purk 1994· Chandon κ.ά. 2009 (ύψος ματιών)",
-    "K5": "Atalay, Bodur & Rasolofoarison 2012 (οριζόντιο κέντρο)",
-    "K7": "Κανόνας της ομάδας: ο προορισμός δεν χρειάζεται το ύψος των ματιών (πρακτική merchandising)",
-}
+# Parameters and sources come from data/shelf/rules.json, the same file agentkit/rules.py reads, so the live
+# proposals and the batch suggestions cannot drift apart (planning/RESEARCH_CHECK.md, section 2).
+SALES_NOTE = "πωλήσεις {days} ημερών από τα δεδομένα του demo, όχι του καταστήματος"
 LEVEL_EL = {"top": "πάνω", "eye": "ύψος ματιών", "bottom": "κάτω"}
 
 
@@ -501,23 +497,26 @@ def _layout_stats() -> dict[str, dict]:
     _, rows = run_sql("""
         with s as (select sku, sum(revenue) rev, sum(revenue - cost) margin, sum(qty) qty from sales group by 1)
         select pl.sku, p.name, p.brand, p.category, pl.shelf, pl.level, pl.position, pl.facings, p.unit_price,
-               coalesce(s.rev, 0), coalesce(s.margin, 0), coalesce(s.qty, 0)
+               coalesce(s.rev, 0), coalesce(s.margin, 0), coalesce(s.qty, 0), pl.depth
         from planogram pl join products p using (sku) left join s using (sku) order by pl.shelf, pl.position""")
     total_facings = sum(r[7] for r in rows) or 1
     total_rev = sum(r[9] for r in rows) or 1
     total_qty = sum(r[11] for r in rows) or 1
-    known = {d.sku for d in decision_rules.destinations(_slots(), decision_rules.load())}      # Κ7
+    slots, rules = _slots(), decision_rules.load()
+    known = {d.sku for d in decision_rules.destinations(slots, rules)}      # Κ7
+    heavy = {s.sku for s in decision_rules.heavy(slots, rules)}             # Κ8
     per_shelf: dict[int, list[int]] = defaultdict(list)
     for r in rows:
         per_shelf[r[4]].append(r[6])
     stats = {}
-    for sku, name, brand, category, shelf, level, position, facings, unit_price, rev, margin, qty in rows:
+    for sku, name, brand, category, shelf, level, position, facings, unit_price, rev, margin, qty, depth in rows:
         slots = sorted(per_shelf[shelf])
         center = len(slots) % 2 == 1 and len(slots) > 1 and position == slots[len(slots) // 2]
         space, sales = 100 * facings / total_facings, 100 * rev / total_rev
         from ..identity import display_name
         stats[sku] = {"sku": sku, "name": display_name(name, brand), "brand": brand, "category": category, "shelf": shelf, "level": level,
-                      "position": position, "center": center, "facings": facings,
+                      "position": position, "center": center, "facings": facings, "depth": depth or 0,
+                      "heavy": sku in heavy,
                       "rightmost": position == max(per_shelf[shelf]), "destination": sku in known,
                       "unit_share": round(100 * qty / total_qty, 1),
                       "unit_price": round(float(unit_price or 0), 2),
@@ -561,6 +560,7 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
     if "€" in reason or "%" in reason:
         return "Δεν καταχωρήθηκε: το σκεπτικό δεν περιέχει ποσά ή ποσοστά. Ξαναγράψ' το χωρίς αριθμούς."
     a, b = stats[sku_from], stats[sku_to]
+    rules = decision_rules.load()
 
     numbers = ""
     if kind == "swap":
@@ -586,9 +586,16 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
         if not numbers and inn["destination"]:
             return (f"Δεν καταχωρήθηκε: το {inn['sku']} είναι προορισμός ({inn['unit_share']}% των τεμαχίων του ραφιού)· "
                     "ο πελάτης το ψάχνει όπου κι αν είναι, άρα πάει κάτω δεξιά (Κ7), όχι στην καλή θέση.")
+        if not numbers and rule == "K4" and inn["heavy"]:
+            return (f"Δεν καταχωρήθηκε: το {inn['sku']} είναι βαριά συσκευασία και μένει στο κάτω ράφι (Κ8), "
+                    "όχι στο ύψος των ματιών.")
         if not numbers and inn["per_facing"] <= out["per_facing"]:
             return (f"Δεν καταχωρήθηκε: {spot} θα πήγαινε το {inn['sku']} με {inn['per_facing']} € περιθώριο ανά "
                     f"πρόσοψη την ημέρα, λιγότερο από τα {out['per_facing']} € του {out['sku']} που είναι ήδη εκεί.")
+        if not numbers and rule == "K4" and inn["per_facing"] <= rules["K4"]["min_advantage"] * out["per_facing"]:
+            edge = round(100 * (rules["K4"]["min_advantage"] - 1))
+            return (f"Δεν καταχωρήθηκε: το {inn['sku']} ({inn['per_facing']} €) δεν ξεπερνά κατά {edge}% το "
+                    f"{out['sku']} ({out['per_facing']} €). Για μικρές διαφορές ο Κ4 δεν προτείνει αλλαγή.")
         if not numbers:
             diff = round(inn["per_facing"] - out["per_facing"], 2)
             ctx.audit("compute", label=f"{rule}: περιθώριο ανά πρόσοψη ανά ημέρα (€), {inn['sku']} έναντι {out['sku']}",
@@ -601,14 +608,19 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
         featured, other = inn, out
     elif kind == "facing":
         rule = "K3"
+        e, cover = rules["K3"]["space_elasticity"], rules["K3"]["min_cover_days"]
         if a["facings"] <= 1:
             return f"Δεν καταχωρήθηκε: το {a['sku']} έχει μία μόνο πρόσοψη και δεν μπορεί να δώσει άλλη."
-        gain = b["margin"] * (((b["facings"] + 1) / b["facings"]) ** ELASTICITY - 1)
-        loss = a["margin"] * (1 - ((a["facings"] - 1) / a["facings"]) ** ELASTICITY)
+        if (a["facings"] - 1) * a["depth"] < a["units"] * cover:
+            return (f"Δεν καταχωρήθηκε: με {a['facings'] - 1} προσόψεις των {a['depth']} τεμαχίων το {a['sku']} δεν "
+                    f"χωρά {a['units']} τεμάχια, δηλαδή {cover:g} ημέρα πωλήσεων, και θα άδειαζε (Κ3).")
+        gain = b["margin"] * (((b["facings"] + 1) / b["facings"]) ** e - 1)
+        loss = a["margin"] * (1 - ((a["facings"] - 1) / a["facings"]) ** e)
         net = round(gain - loss, 2)
         ctx.audit("compute", label=f"K3: μία πρόσοψη από {a['sku']} σε {b['sku']}, καθαρό περιθώριο ανά ημέρα (€)",
-                  expression="m_to * (((n_to + 1) / n_to) ^ 0.17 - 1) - m_from * (1 - ((n_from - 1) / n_from) ^ 0.17)",
-                  variables={"m_to": b["margin"], "n_to": b["facings"], "m_from": a["margin"], "n_from": a["facings"]},
+                  expression="m_to * (((n_to + 1) / n_to) ^ e - 1) - m_from * (1 - ((n_from - 1) / n_from) ^ e)",
+                  variables={"m_to": b["margin"], "n_to": b["facings"], "m_from": a["margin"], "n_from": a["facings"],
+                             "e": e},
                   result=net)
         if net <= 0:
             return (f"Δεν καταχωρήθηκε: κέρδος {gain:.2f} € − απώλεια {loss:.2f} € = {net:.2f} € την ημέρα. "
@@ -620,7 +632,7 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
     else:
         return "Δεν καταχωρήθηκε: το kind είναι swap ή facing."
 
-    source = f"{SOURCES[rule]}· πωλήσεις {DAYS} ημερών"
+    source = f"{rules[rule]['source']}· {SALES_NOTE.format(days=DAYS)}"
     rec_id = _register_proposal_recommendation(getattr(ctx, "run_id", "") or "live", kind, rule, reason, featured, other)
     prop = await asyncio.to_thread(tasks.add_proposal, {
         "kind": kind, "rule": rule, "text": text, "numbers": numbers, "reason": reason, "source": source, "note": note,
