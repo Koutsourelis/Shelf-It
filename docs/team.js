@@ -51,9 +51,9 @@ window.TEAM = [
     built: "Created the first frontend and backend prototype for the JPEG-based shelf demo, connecting shelf-image input to the application interface. Validated the integration and logic of the codebase's core features, identified gaps and edge cases, and helped make the workflow more robust and stable. Helped coordinate the team, shaped the final delivery process, proposed Gemini-inspired object detection with visual outlines, and created the final demo video.",
     background: "Digital Systems undergraduate at the University of Thessaly, focused on cybersecurity, AI application security, social-engineering research, and hardware experimentation. Experienced with Python, Go, Linux, embedded systems, and security tooling.",
     skills: ["Frontend", "Backend", "Python", "AI systems", "Cybersecurity", "Hardware"],
-    linkedin: "",
+    linkedin: "https://www.linkedin.com/in/christos-psychogyios-20608832b/",
     github: "",
-    photo: "",
+    photo: "team/christos-psychogyios.jpg",
   },
   {
     name: "Ioannis Gkougkousis",
