@@ -206,6 +206,43 @@
   .tree a small { color: rgba(255,255,255,0.55); }
   .tree a .arr { color: var(--mint); font-size: 1.3rem; }
   .fine { max-width: 640px; margin: 44px auto 0; font-size: 0.84rem; color: rgba(255,255,255,0.5); }
+  /* ---------- demo video ---------- */
+  .demo { background: var(--night-2); color: #fff; padding: 72px 0; }
+  .demo .eyebrow { color: var(--mint); }
+  .video { position: relative; aspect-ratio: 16 / 9; margin-top: 30px; border-radius: 20px; overflow: hidden; background: #000; box-shadow: 0 40px 80px -40px rgba(0,0,0,0.8); }
+  .video iframe, .video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+  /* ---------- architecture ---------- */
+  .arch { margin-top: 48px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+  .lane { padding: 0 14px; position: relative; }
+  .lane:not(:last-child)::after { content: "→"; position: absolute; right: -10px; top: 50%; transform: translateY(-50%); font: 700 1.4rem var(--display); color: var(--soft); z-index: 1; }
+  .lane h4 { margin: 0 0 12px; font: 700 0.72rem var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); display: flex; gap: 8px; align-items: center; }
+  .node { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; font-size: 0.86rem; line-height: 1.4; }
+  .node b { display: block; font-family: var(--display); font-size: 0.98rem; margin-bottom: 2px; }
+  .node code { font: 0.74rem var(--mono); color: var(--soft); }
+  .node.m { border-color: #c9d3ff; background: #f3f5ff; }
+  .node.c { border-color: #bfe6d3; background: #f0faf5; }
+  .node.p { border-color: #f6d9a4; background: #fff8ea; }
+  .loop { margin-top: 14px; border: 2px dashed var(--line); border-radius: 16px; padding: 14px 18px; display: flex; gap: 12px; align-items: center; font-size: 0.92rem; color: var(--soft); }
+  .loop strong { color: var(--ink); font-family: var(--display); }
+  .loop .sym { font: 700 1.5rem var(--display); color: var(--green); }
+  .trail { margin-top: 10px; background: var(--night); color: rgba(255,255,255,0.75); border-radius: 16px; padding: 14px 18px; font: 0.82rem var(--mono); }
+  .trail span { color: var(--mint); }
+  @media (max-width: 900px) {
+    .arch { grid-template-columns: 1fr; gap: 26px; }
+    .lane { padding: 0; }
+    .lane:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -26px; transform: translateX(-50%); }
+  }
+
+  /* ---------- team ---------- */
+  .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 44px; }
+  .member { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font: 800 1.3rem var(--display); color: var(--night); background: var(--mint); margin-bottom: 14px; overflow: hidden; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .member .role { font: 600 0.75rem var(--mono); color: var(--green); margin: 4px 0 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .member p { font-size: 0.9rem; color: var(--soft); margin: 0; }
+  .member a { display: inline-block; margin-top: 12px; font-size: 0.85rem; font-weight: 600; color: var(--green); text-decoration: none; }
+
   footer { background: var(--night); color: rgba(255,255,255,0.4); text-align: center; padding: 0 20px 40px; font: 0.78rem var(--mono); }
 </style>
 </head>
@@ -220,8 +257,10 @@
     <div class="links">
       <a href="#problem">Problem</a>
       <a href="#how">How it works</a>
+      <a href="#arch">Architecture</a>
       <a href="#inside">Features</a>
       <a href="#data">Data</a>
+      <a href="#team" hidden>Team</a>
       <a href="#links">Links</a>
     </div>
   </div>
@@ -272,6 +311,15 @@
     <span>Gemini</span><span>treg</span><span>fal</span><span>Telegram</span><span>FastAPI</span><span>DuckDB</span>
   </div>
 </div>
+
+<!-- Filled from PAGE.video in the script at the end of this file. Stays hidden while it is empty. -->
+<section class="demo" id="demo" hidden>
+  <div class="wrap">
+    <span class="eyebrow">Demo</span>
+    <h2>Two minutes, start to finish.</h2>
+    <div class="video" id="video"></div>
+  </div>
+</section>
 
 <section id="problem">
   <div class="wrap">
@@ -329,6 +377,40 @@
       <div style="background:#e7f6ee"><b>Code decides.</b>Every count, ranking and euro is computed and logged.</div>
       <div style="background:#fff5e3"><b>People approve.</b>Large orders wait for a yes on the phone.</div>
     </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="wrap">
+    <span class="eyebrow">Under the hood</span>
+    <h2>What talks to what.</h2>
+    <p class="intro">One agent, a handful of tools, and a hard line between what the model does and what code does.</p>
+    <div class="arch">
+      <div class="lane">
+        <h4><span class="who t-person">person</span> Capture</h4>
+        <div class="node p"><b>One-tap scan</b>Phone camera page <code>/capture</code></div>
+        <div class="node p"><b>Live camera</b>One frame a second <code>/cam</code></div>
+      </div>
+      <div class="lane">
+        <h4><span class="who t-model">model</span> Read</h4>
+        <div class="node m"><b>Gemini vision</b>Photo in, table out: shelf, position, product, facings, box</div>
+        <div class="node m"><b>Unknown shelf</b>A photo with no catalogue still gets gaps and obvious errors</div>
+      </div>
+      <div class="lane">
+        <h4><span class="who t-code">code</span> Decide</h4>
+        <div class="node c"><b>Planogram check</b>Missing, short, wrong shelf, wrong order</div>
+        <div class="node c"><b>Rules K1–K6</b>Ranking, refill, layout <code>rules.json</code></div>
+        <div class="node c"><b>Evidence pack</b>Market sources per product <code>treg</code></div>
+      </div>
+      <div class="lane">
+        <h4><span class="who t-code">code</span> Act</h4>
+        <div class="node c"><b>Task for the worker</b>Crop of the spot, units, where from <code>/tasks · Telegram</code></div>
+        <div class="node p"><b>Warehouse order</b>Up to 3 cases or €50 on its own, above that a person approves</div>
+        <div class="node c"><b>Shelf talker</b>Printable sign for an accepted change <code>fal</code></div>
+      </div>
+    </div>
+    <div class="loop"><span class="sym">↺</span><div><strong>The loop closes itself.</strong> The next frame shows the shelf fixed, and the task is marked done.</div></div>
+    <div class="trail"><span>audit trail</span> · every tool call and every figure is logged and shown in the console</div>
   </div>
 </section>
 
@@ -484,17 +566,20 @@
   </div>
 </section>
 
+<!-- Filled from PAGE.team in the script at the end of this file. Stays hidden while it is empty. -->
+<section id="team" hidden>
+  <div class="wrap">
+    <span class="eyebrow">Team</span>
+    <h2>Who built it.</h2>
+    <div class="team-grid" id="team-grid"></div>
+  </div>
+</section>
+
 <section class="links-sec" id="links">
   <div class="wrap">
     <span class="eyebrow" style="color:var(--mint)">Links</span>
     <h2>See it for yourself.</h2>
-    <div class="tree">
-      <!-- DEMO VIDEO: replace href with the video link and remove "hidden". -->
-      <a href="#" hidden><div><b>Watch the demo</b><small>Two minutes, start to finish</small></div><span class="arr">→</span></a>
-      <a href="https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent"><div><b>Code on GitHub</b><small>Agent, tools, rules and tests</small></div><span class="arr">→</span></a>
-      <a href="https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent/blob/main/planning/DECISION_RULES.md"><div><b>The rules and their papers</b><small>Formulas, parameters, full references</small></div><span class="arr">→</span></a>
-      <a href="https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent/blob/main/data/shelf/sources.csv"><div><b>Market sources per category</b><small>Where the evidence pack searches first</small></div><span class="arr">→</span></a>
-    </div>
+    <div class="tree" id="tree"></div>
     <p class="fine">Built in two days at the Gen AI Summit Hackathon, Athens. Before the event we prepared a generic
       agent skeleton with no shelf logic; it is declared in the README and tagged <code>boilerplate</code> in the history.</p>
   </div>
@@ -502,5 +587,60 @@
 
 <footer>ShelfSense · Gen AI Summit Hackathon · Athens 2026</footer>
 
+<script>
+/* =====================================================================
+   EDIT HERE. Everything the team adds to the page lives in PAGE below.
+   Empty video or empty team list = that section stays hidden.
+   ===================================================================== */
+const PAGE = {
+  // YouTube link (unlisted is fine), or a file next to this page such as "demo.mp4" (keep it under 25 MB).
+  video: "",
+
+  // One entry per person. photo is optional: a file in docs/team/ (e.g. "team/giannis.jpg") or leave "".
+  team: [
+    // { name: "Full Name", role: "Data and evidence", background: "One line about you.", link: "https://www.linkedin.com/in/...", photo: "" },
+  ],
+
+  // The link list at the bottom (and the QR). The demo video is added on top automatically.
+  links: [
+    { title: "Code on GitHub", note: "Agent, tools, rules and tests", url: "https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent" },
+    { title: "The rules and their papers", note: "Formulas, parameters, full references", url: "https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent/blob/main/planning/DECISION_RULES.md" },
+    { title: "Market sources per category", note: "Where the evidence pack searches first", url: "https://github.com/Koutsourelis/Gen-AI-Hackathon-Agent/blob/main/data/shelf/sources.csv" },
+    // { title: "Pitch deck (PDF)", note: "The slides from the final", url: "pitch.pdf" },
+    // { title: "Trailer", note: "30 seconds", url: "https://..." },
+  ],
+};
+
+/* ---------- rendering, no need to touch ---------- */
+(function () {
+  const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const yt = (u) => { const m = String(u).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/); return m && m[1]; };
+
+  if (PAGE.video) {
+    const id = yt(PAGE.video);
+    document.getElementById("video").innerHTML = id
+      ? `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0" title="ShelfSense demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+      : `<video controls playsinline preload="metadata" src="${esc(PAGE.video)}"></video>`;
+    document.getElementById("demo").hidden = false;
+  }
+
+  const team = (PAGE.team || []).filter((m) => m && m.name);
+  if (team.length) {
+    document.getElementById("team-grid").innerHTML = team.map((m) => {
+      const initials = m.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+      const avatar = m.photo ? `<img src="${esc(m.photo)}" alt="">` : esc(initials);
+      const link = m.link ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Profile →</a>` : "";
+      return `<div class="member"><div class="avatar">${avatar}</div><h3>${esc(m.name)}</h3><div class="role">${esc(m.role)}</div><p>${esc(m.background)}</p>${link}</div>`;
+    }).join("");
+    document.getElementById("team").hidden = false;
+    document.querySelector('nav.top a[href="#team"]').hidden = false;
+  }
+
+  const links = (PAGE.video ? [{ title: "Watch the demo", note: "Two minutes, start to finish", url: "#demo" }] : []).concat(PAGE.links || []);
+  document.getElementById("tree").innerHTML = links.map((l) =>
+    `<a href="${esc(l.url)}"${/^https?:/.test(l.url) ? ' target="_blank" rel="noopener"' : ""}><div><b>${esc(l.title)}</b><small>${esc(l.note)}</small></div><span class="arr">→</span></a>`
+  ).join("");
+})();
+</script>
 </body>
 </html>
