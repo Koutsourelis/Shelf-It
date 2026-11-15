@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shelf-It · the shelf checks itself</title>
+<meta name="description" content="Shelf-It finds shelf gaps from one phone photo, tells the shelf worker what to bring from the backroom, and orders what the store has run out of. Gen AI Summit Hackathon, Athens 2026.">
+<meta property="og:title" content="Shelf-It · the shelf checks itself">
+<meta property="og:description" content="An agent for supermarket department managers. One phone photo in, a fixed shelf out.">
+<meta property="og:image" content="assets/shelf-drinks.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #151515;
+    --panel-2: #1d1d1d;
+    --ink: #f2f2f2;
+    --soft: #a3a3a3;
+    --mute: #6b6b6b;
+    --line: rgba(255,255,255,0.12);
+    --lime: #c6f432;
+    --gap: #ff6a3d;
+    --model: #9db4ff;
+    --code: #c6f432;
+    --person: #ffc56b;
+    --serif: "Instrument Serif", Georgia, serif;
+    --sans: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+
+  /* ---------- stage: designed at 1600×900, scaled to fit ---------- */
+  .stage { position: absolute; left: 50%; top: 50%; width: 1600px; height: 900px; transform-origin: 50% 50%; background: var(--bg); overflow: hidden; }
+  .slide { position: absolute; inset: 0; padding: 96px 120px 110px; display: flex; flex-direction: column; opacity: 0; visibility: hidden; background: var(--bg); }
+  .slide.active { opacity: 1; visibility: visible; transition: opacity .35s ease; }
+  .slide :where(h1, h2, h3, p) { margin: 0; }
+  .eyebrow { font: 500 18px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--mute); margin-bottom: 28px; }
+  .serif { font-family: var(--serif); font-weight: 400; }
+  h2.head { font: 400 84px/1.0 var(--serif); letter-spacing: -0.015em; }
+  h2.head em, .accent { color: var(--lime); font-style: italic; }
+  .lede { font-size: 28px; line-height: 1.45; color: var(--soft); max-width: 1100px; margin-top: 28px; }
+  .source { position: absolute; left: 120px; right: 260px; bottom: 44px; font-size: 16px; line-height: 1.45; color: var(--mute); }
+  .tag { display: inline-block; font: 700 14px var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: 6px 10px; border-radius: 6px; }
+  .t-person { background: rgba(255,197,107,.14); color: var(--person); }
+  .t-model { background: rgba(157,180,255,.14); color: var(--model); }
+  .t-code { background: rgba(198,244,50,.12); color: var(--code); }
+
+  /* ---------- chrome: brand, counter, controls, progress ---------- */
+  .brand { position: absolute; left: 120px; top: 44px; font: 600 20px var(--sans); letter-spacing: -.01em; color: var(--ink); display: flex; align-items: center; gap: 10px; z-index: 5; }
+  .brand i { width: 12px; height: 12px; border-radius: 3px; background: var(--lime); display: inline-block; }
+  .counter { position: absolute; right: 120px; top: 46px; font: 500 16px var(--mono); color: var(--mute); z-index: 5; }
+  .progress { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--lime); transition: width .35s ease; z-index: 5; }
+  .controls { position: fixed; right: 18px; bottom: 18px; display: flex; gap: 8px; z-index: 10; }
+  .controls button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(20,20,20,.85); color: #fff; font-size: 20px; cursor: pointer; }
+  .controls button:hover { border-color: var(--lime); color: var(--lime); }
+  .controls button:disabled { opacity: .3; cursor: default; }
+  .hint { position: fixed; left: 18px; bottom: 24px; font: 12px var(--mono); color: rgba(255,255,255,.4); z-index: 10; }
+  @media (hover: none) { .hint { display: none; } }
+
+  /* ---------- 1 · title ---------- */
+  .s-title { justify-content: flex-end; padding-bottom: 120px; }
+  .s-title .bg { position: absolute; inset: 0; background: url(assets/shelf-drinks.jpg) center 35% / cover; opacity: .42; filter: grayscale(.35); }
+  .s-title .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,.15) 0%, rgba(10,10,10,.55) 45%, #0a0a0a 88%); }
+  .s-title > *:not(.bg):not(.shade) { position: relative; }
+  .s-title h1 { font: 400 168px/.92 var(--serif); letter-spacing: -.02em; }
+  .s-title h1 em { color: var(--lime); }
+  .s-title p { font-size: 32px; line-height: 1.4; color: #cfcfcf; max-width: 1080px; margin-top: 30px; }
+  .s-title .meta { font: 500 17px var(--mono); color: var(--soft); margin-top: 40px; letter-spacing: .06em; }
+
+  /* ---------- 2 · person ---------- */
+  .s-person .cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 90px; align-items: start; margin-top: 10px; }
+  .s-person .quote { font: 400 66px/1.06 var(--serif); letter-spacing: -.01em; }
+  .s-person .quote em { color: var(--lime); }
+  .pains { list-style: none; margin: 8px 0 0; padding: 0; }
+  .pains li { padding: 26px 0; border-top: 1px solid var(--line); font-size: 27px; line-height: 1.4; color: var(--soft); }
+  .pains li b { display: block; color: var(--ink); font-weight: 600; font-size: 30px; margin-bottom: 4px; }
+  .who { margin-top: 72px; font-size: 22px; color: var(--soft); max-width: 760px; line-height: 1.5; }
+  .who b { color: var(--ink); }
+
+  /* ---------- 3 · cost ---------- */
+  .s-cost .top { display: flex; align-items: flex-end; gap: 60px; }
+  .s-cost .big { font: 400 360px/.78 var(--serif); letter-spacing: -.04em; color: var(--lime); }
+  .s-cost .say { font: 400 58px/1.08 var(--serif); max-width: 760px; padding-bottom: 14px; }
+  .s-cost .say small { display: block; font: 400 25px/1.45 var(--sans); color: var(--soft); margin-top: 18px; }
+  .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; margin-top: 70px; border-top: 1px solid var(--line); padding-top: 34px; }
+  .row3 b { display: block; font: 400 68px/1 var(--serif); margin-bottom: 12px; }
+  .row3 span { font-size: 22px; line-height: 1.45; color: var(--soft); }
+
+  /* ---------- 4 · solution ---------- */
+  .s-solution .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 64px; }
+  .s-solution .three div { border-top: 2px solid var(--line); padding-top: 26px; }
+  .s-solution .three h3 { font: 400 50px/1.05 var(--serif); margin: 18px 0 14px; }
+  .s-solution .three h3 em { color: var(--lime); }
+  .s-solution .three p { font-size: 23px; line-height: 1.5; color: var(--soft); }
+
+  /* ---------- 5 · one shelf ---------- */
+  .s-shelf { flex-direction: row; gap: 64px; align-items: center; padding-top: 110px; }
+  .s-shelf .left { flex: 0 0 760px; }
+  .shot { position: relative; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 70px -30px rgba(0,0,0,.9), 0 0 0 1px var(--line); }
+  .shot img { display: block; width: 100%; height: auto; }
+  .gapbox { position: absolute; border: 3px dashed var(--gap); background: rgba(255,106,61,.18); border-radius: 6px; }
+  .gapbox span { position: absolute; left: -3px; top: -3px; transform: translateY(-100%); background: var(--gap); color: #111; font: 700 13px/1 var(--mono); padding: 6px 8px; border-radius: 6px 6px 6px 0; white-space: nowrap; }
+  .caption { font-size: 16px; line-height: 1.45; color: var(--mute); margin-top: 16px; }
+  .s-shelf .right { flex: 1; display: flex; flex-direction: column; gap: 22px; }
+  .s-shelf h2.head { font-size: 64px; }
+  .taskcard { background: #fff; color: #141414; border-radius: 14px; padding: 20px 24px; font-size: 19px; }
+  .taskcard .hd { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 21px; padding-bottom: 10px; }
+  .taskcard .hd i { width: 10px; height: 10px; border-radius: 50%; background: var(--gap); }
+  .taskcard .r { display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid #e6e6e6; }
+  .taskcard .r span:first-child { color: #6b6b6b; }
+  .taskcard .r span:last-child { font-weight: 600; }
+  .trail { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px; font: 15px/1.45 var(--mono); color: #cfcfcf; }
+  .trail div { display: grid; grid-template-columns: 220px 1fr; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.08); }
+  .trail div:first-child { border: 0; }
+  .trail span { color: var(--lime); }
+  .watch { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; background: var(--lime); color: #111; text-decoration: none; font-weight: 700; font-size: 20px; padding: 14px 22px; border-radius: 999px; }
+
+  /* ---------- 6 · steps ---------- */
+  .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-top: 64px; }
+  .step { background: var(--panel); border-radius: 18px; padding: 28px 24px; border: 1px solid var(--line); }
+  .step .n { font: 500 16px var(--mono); color: var(--mute); }
+  .step h3 { font: 400 46px/1 var(--serif); margin: 18px 0 14px; }
+  .step p { font-size: 19px; line-height: 1.5; color: var(--soft); margin-top: 16px; }
+  .verdict { margin-top: 44px; font: 400 34px/1.3 var(--serif); color: var(--soft); }
+  .verdict b { font-weight: 400; color: var(--ink); }
+
+  /* ---------- 7 · architecture ---------- */
+  .arch { flex-shrink: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 40px; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .arch > div { padding: 22px 22px; border-right: 1px solid var(--line); }
+  .arch > div:last-child { border-right: 0; }
+  .arch h3 { font: 400 40px/1 var(--serif); margin: 14px 0 12px; }
+  .arch ul { list-style: none; margin: 0; padding: 0; }
+  .arch li { padding: 9px 0; border-top: 1px solid var(--line); font-size: 16.5px; line-height: 1.38; color: var(--soft); }
+  .arch li b { display: block; color: var(--ink); font-weight: 600; font-size: 18px; }
+  .arch li code { font: 13px var(--mono); color: var(--lime); }
+  .note2 { display: flex; gap: 40px; margin-top: 24px; font-size: 20px; color: var(--soft); line-height: 1.45; }
+  .note2 div { flex: 1; }
+  .note2 b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- 8 · rules ---------- */
+  .s-rules .cols { display: grid; grid-template-columns: 1fr 470px; gap: 56px; margin-top: 40px; align-items: start; }
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 0 36px; }
+  .rule { padding: 15px 0; border-top: 1px solid var(--line); }
+  .rule .k { font: 700 15px var(--mono); color: var(--lime); }
+  .rule h3 { font-size: 21px; font-weight: 600; margin: 4px 0 3px; }
+  .rule p { font-size: 17px; color: var(--soft); line-height: 1.4; }
+  .rule small { font-size: 15px; color: var(--mute); }
+  .label { background: #fffdf6; color: #141414; border-radius: 8px; border-top: 12px solid var(--lime); padding: 24px 26px; transform: rotate(-1.2deg); font: 15px/1.5 var(--mono); box-shadow: 0 30px 60px -25px rgba(0,0,0,.9); }
+  .label .what { font: 400 30px/1.15 var(--serif); margin-bottom: 16px; }
+  .label dl { display: grid; grid-template-columns: 90px 1fr; gap: 8px 10px; margin: 0; }
+  .label dt { color: #777; text-transform: uppercase; font-size: 12px; letter-spacing: .08em; padding-top: 3px; }
+  .label dd { margin: 0; }
+  .label .plus { color: #2f7a12; font-weight: 700; }
+  .label-cap { font-size: 16px; color: var(--mute); margin-top: 22px; line-height: 1.45; }
+
+  /* ---------- 9 · data ---------- */
+  .data { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 50px; }
+  .data h3 { display: flex; align-items: center; gap: 14px; font: 400 44px/1 var(--serif); margin-bottom: 14px; }
+  .data ul { list-style: none; margin: 0; padding: 0; }
+  .data li { padding: 15px 0; border-top: 1px solid var(--line); font-size: 19px; line-height: 1.4; color: var(--soft); }
+  .data li b { display: block; color: var(--ink); font-weight: 600; font-size: 21px; }
+  .t-real { background: rgba(198,244,50,.12); color: var(--lime); }
+  .t-syn { background: rgba(255,255,255,.08); color: var(--soft); }
+
+  /* ---------- 10 · built ---------- */
+  .s-built .cols { display: grid; grid-template-columns: 1.25fr 1fr; gap: 64px; margin-top: 44px; }
+  .built { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 36px; }
+  .built li { break-inside: avoid; padding: 13px 0; border-top: 1px solid var(--line); font-size: 18px; line-height: 1.4; color: var(--soft); }
+  .built li b { display: block; color: var(--ink); font-weight: 600; font-size: 20px; }
+  .facts > div { padding: 18px 0; border-top: 1px solid var(--line); }
+  .facts b { display: block; font: 400 40px/1.05 var(--serif); margin-bottom: 6px; }
+  .facts span { font-size: 19px; color: var(--soft); line-height: 1.45; }
+  .stack { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .stack span { font: 500 15px var(--mono); padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); }
+
+  /* ---------- 11 · next ---------- */
+  .next { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 70px; }
+  .next > div { border-top: 2px solid var(--line); padding-top: 26px; }
+  .next > div:first-child { border-color: var(--lime); }
+  .next .when { font: 500 16px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+  .next h3 { font: 400 50px/1.05 var(--serif); margin: 14px 0 16px; }
+  .next p { font-size: 22px; line-height: 1.5; color: var(--soft); }
+
+  /* ---------- 12 · team & links ---------- */
+  .s-team .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; margin-top: 50px; }
+  .team { list-style: none; margin: 0; padding: 0; }
+  .team li { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 18px 0; border-top: 1px solid var(--line); }
+  .team b { font: 400 36px/1.1 var(--serif); }
+  .team span { font-size: 18px; color: var(--soft); text-align: right; }
+  .team .todo b { color: var(--gap); }
+  .links { display: grid; gap: 14px; }
+  .links a { display: flex; justify-content: space-between; align-items: center; padding: 22px 26px; border: 1px solid var(--line); border-radius: 16px; text-decoration: none; background: var(--panel); }
+  .links a:hover { border-color: var(--lime); }
+  .links a b { display: block; font-size: 24px; font-weight: 600; }
+  .links a small { display: block; font-size: 17px; color: var(--soft); margin-top: 4px; word-break: break-all; }
+  .links a i { font-style: normal; color: var(--lime); font-size: 28px; }
+  .fine { font-size: 17px; color: var(--mute); margin-top: 26px; line-height: 1.5; }
+
+  /* ---------- print / PDF: one slide per page ---------- */
+  @media print {
+    @page { size: 1600px 900px; margin: 0; }
+    html, body { overflow: visible; height: auto; background: var(--bg); }
+    .stage { position: static; transform: none !important; width: 1600px; height: auto; background: none; }
+    .slide { position: relative; width: 1600px; height: 900px; opacity: 1; visibility: visible; page-break-after: always; break-after: page; background: var(--bg); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .controls, .hint, .progress, .counter { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .slide, .progress { transition: none; } }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="brand"><i></i>Shelf-It</div>
+  <div class="counter" id="counter"></div>
+
+  <!-- 1 · Title -->
+  <section class="slide s-title" data-title="Title">
+    <div class="bg"></div><div class="shade"></div>
+    <div class="eyebrow">An agent for supermarket shelves</div>
+    <h1>The shelf checks <em>itself.</em></h1>
+    <p>Shelf-It finds shelf gaps from one phone photo, tells the shelf worker what to bring from the backroom,
+      and orders what the store has run out of.</p>
+    <div class="meta">Gen AI Summit Hackathon · Athens · 14–15 November 2026 · Open Track</div>
+  </section>
+
+  <!-- 2 · The person -->
+  <section class="slide s-person" data-title="Who it is for">
+    <div class="eyebrow">Who it is for</div>
+    <div class="cols">
+      <div>
+        <p class="quote">Every morning, a department manager walks the aisles and checks <em>every shelf by eye.</em></p>
+        <p class="who"><b>Shelf-It is for</b> department managers and shelf workers in small and mid-size grocery
+          stores that do not have fixed shelf cameras or sensors. All they need is a phone.</p>
+      </div>
+      <ul class="pains">
+        <li><b>Gaps are noticed late.</b>An empty spot sells nothing until someone walks past and sees it.</li>
+        <li><b>Stock waits in the backroom.</b>The product is in the store, but nobody brought it out.</li>
+        <li><b>Orders go in from memory.</b>What to reorder, and how much, depends on who is on shift.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3 · The cost -->
+  <section class="slide s-cost" data-title="The cost">
+    <div class="eyebrow">Why it matters</div>
+    <div class="top">
+      <div class="big">40%</div>
+      <p class="say">of the sales from an empty shelf are lost to the store.
+        <small>When a product is missing, 31% of shoppers buy it at another store and 9% do not buy it at all.</small></p>
+    </div>
+    <div class="row3">
+      <div><b>8.3%</b><span>of products are missing from the shelf at any given moment, on average.</span></div>
+      <div><b>1 in 4</b><span>gaps are products the store already has, just not on the shelf.</span></div>
+      <div><b>52 studies</b><span>in 29 countries behind these numbers.</span></div>
+    </div>
+    <p class="source">Source: Gruen, Corsten &amp; Bharadwaj (2002), <i>Retail Out-of-Stocks: A Worldwide Examination of Extent,
+      Causes and Consumer Responses</i>. 52 studies in 29 countries; the 8.3% average comes from the 40 studies that measured it.</p>
+  </section>
+
+  <!-- 4 · The solution -->
+  <section class="slide s-solution" data-title="The solution">
+    <div class="eyebrow">The solution</div>
+    <h2 class="head">Take a photo. <em>Get a fixed shelf.</em></h2>
+    <p class="lede">Shelf-It is an AI agent with a small set of tools. It reads a photo of the shelf, compares it with
+      the planogram, and turns every gap into work: a task for the shelf worker, or an order to the central warehouse.</p>
+    <div class="three">
+      <div><span class="tag t-model">model</span><h3>The model <em>reads.</em></h3>
+        <p>Gemini turns the photo into a table: shelf, position, product, facings, and a box around each one.</p></div>
+      <div><span class="tag t-code">code</span><h3>Code <em>computes.</em></h3>
+        <p>Every count, unit, case and euro is computed by Python and SQL, and written to an audit trail.</p></div>
+      <div><span class="tag t-person">person</span><h3>People <em>approve.</em></h3>
+        <p>Orders above 3 cases or €50 wait for a yes from the manager, in the console or on Telegram.</p></div>
+    </div>
+  </section>
+
+  <!-- 5 · One shelf, start to finish -->
+  <section class="slide s-shelf" data-title="One shelf, start to finish">
+    <div class="left">
+      <div class="shot">
+        <img src="assets/shelf-drinks.jpg" width="1400" height="1050" alt="A shelf of Greek beers and soft drinks with three empty slots marked.">
+        <div class="gapbox" style="left:25.0%;top:33.8%;width:17.0%;height:11.2%"><span>MISSING · MYTHOS 500ML</span></div>
+        <div class="gapbox" style="left:24.5%;top:48.9%;width:16.2%;height:8.4%"><span>MISSING · MYTHOS 330ML</span></div>
+        <div class="gapbox" style="left:31.8%;top:73.8%;width:13.2%;height:22.0%"><span>MISSING · ΛΟΥΞ COLA 1,5L</span></div>
+      </div>
+      <p class="caption">Test shelf composed by code from real Greek product photos (sklavenitis.gr), not a photo of a real store.
+        The three gaps are the ones in its planogram.</p>
+    </div>
+    <div class="right">
+      <div class="eyebrow" style="margin-bottom:0">One shelf, start to finish</div>
+      <h2 class="head">One photo in. <em>Three gaps, three actions.</em></h2>
+      <div class="taskcard">
+        <div class="hd"><i></i>Task · refill, beer</div>
+        <div class="r"><span>Product</span><span>Mythos lager can 330ml</span></div>
+        <div class="r"><span>On shelf</span><span>0 of 5 facings</span></div>
+        <div class="r"><span>Bring</span><span>20 units · from the backroom</span></div>
+        <div class="r"><span>Why first</span><span>Missing product</span></div>
+      </div>
+      <div class="trail">
+        <div><span>read_shelf</span>34 products on 5 shelves</div>
+        <div><span>check_planogram</span>3 missing: D12, D22, D43</div>
+        <div><span>replenishment_plan</span>D22: 20 units from backroom · K1, K2</div>
+        <div><span>order_from_warehouse</span>D12, D43: 3 cases, within limit → placed</div>
+        <div><span>layout_suggestions</span>up to two moves · K3–K8</div>
+      </div>
+      <a class="watch" id="watch" href="#" target="_blank" rel="noopener" hidden>▶ Watch the 1-minute demo</a>
+    </div>
+  </section>
+
+  <!-- 6 · How it works -->
+  <section class="slide s-how" data-title="How it works">
+    <div class="eyebrow">How it works</div>
+    <h2 class="head">Five steps, from photo <em>to refilled shelf.</em></h2>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>Snap</h3><span class="tag t-person">person</span>
+        <p>One tap on the phone, or a phone left on the shelf as a live camera, checked every 5 seconds.</p></div>
+      <div class="step"><div class="n">02</div><h3>Read</h3><span class="tag t-model">model</span>
+        <p>Gemini turns the photo into a table: shelf, position, product, facings, box.</p></div>
+      <div class="step"><div class="n">03</div><h3>Check</h3><span class="tag t-model">model</span> <span class="tag t-code">code</span>
+        <p>The shelf is compared with the planogram: missing, short, or on the wrong shelf.</p></div>
+      <div class="step"><div class="n">04</div><h3>Act</h3><span class="tag t-code">code</span>
+        <p>A task for the shelf worker, a Telegram alert, and an order to the central warehouse.</p></div>
+      <div class="step"><div class="n">05</div><h3>Refill</h3><span class="tag t-person">person</span>
+        <p>The worker brings the units in the task. With the live camera, the task closes only when a later frame shows the shelf fixed.</p></div>
+    </div>
+    <p class="verdict">The tag shows who does each step. <b>The model never decides a number.</b></p>
+  </section>
+
+  <!-- 7 · Architecture -->
+  <section class="slide s-arch" data-title="Architecture">
+    <div class="eyebrow">Architecture</div>
+    <h2 class="head">One agent, <em>a small set of tools.</em></h2>
+    <div class="arch">
+      <div><span class="tag t-person">person</span><h3>Capture</h3><ul>
+        <li><b>One-tap scan</b>Phone camera page <code>/capture</code></li>
+        <li><b>Live camera</b>A phone on the shelf, checked every 5 seconds <code>/cam</code></li>
+        <li><b>Telegram</b>Send a photo to the bot</li></ul></div>
+      <div><span class="tag t-model">model</span><h3>Read</h3><ul>
+        <li><b>Gemini vision</b>One structured call: products, shelf, facings, boxes, and what looks missing or misplaced</li>
+        <li><b>Unknown shelf</b>A photo outside the catalogue still gets its gaps and the products that do not belong</li></ul></div>
+      <div><span class="tag t-code">code</span><h3>Decide</h3><ul>
+        <li><b>Planogram check</b>Missing, short, wrong shelf, wrong order</li>
+        <li><b>Rules K1–K8</b>Refill and layout, in SQL on DuckDB</li>
+        <li><b>Evidence pack</b>Market sources per product <code>treg</code></li>
+        <li><b>Product identity</b>Barcode, brand, pack size <code>Open Food Facts</code></li></ul></div>
+      <div><span class="tag t-code">code</span><h3>Act</h3><ul>
+        <li><b>Task for the worker</b>Crop of the spot, units, where from <code>/tasks</code></li>
+        <li><b>Warehouse order</b>Up to 3 cases or €50 on its own; above that a person approves</li>
+        <li><b>Shelf talker</b>Printable sign once name and price are confirmed <code>fal</code></li></ul></div>
+    </div>
+    <div class="note2">
+      <div><b>An audit trail, not a black box.</b> Every tool call and every figure is logged and shown in the console next to the agent's work.</div>
+      <div><b>Runs without an API key.</b> A built-in offline model replays the whole flow, so a demo never depends on the venue Wi-Fi.</div>
+    </div>
+  </section>
+
+  <!-- 8 · Rules -->
+  <section class="slide s-rules" data-title="Eight rules">
+    <div class="eyebrow">Every number has a source</div>
+    <h2 class="head">Eight rules decide <em>what to suggest.</em></h2>
+    <div class="cols">
+      <div class="rules">
+        <div class="rule"><span class="k">K1</span><h3>Which gap first</h3><p>Daily sales × 0.40 lost</p><small>Gruen et al. 2002</small></div>
+        <div class="rule"><span class="k">K2</span><h3>Backroom or order</h3><p>Backroom first, then the warehouse</p><small>Gruen et al. 2002</small></div>
+        <div class="rule"><span class="k">K3</span><h3>How many facings</h3><p>Move one only if the gain beats the loss</p><small>Eisend 2014</small></div>
+        <div class="rule"><span class="k">K4</span><h3>Which height</h3><p>Best margin per facing at eye level</p><small>Drèze et al. 1994; Chandon et al. 2009</small></div>
+        <div class="rule"><span class="k">K5</span><h3>Left or right</h3><p>Target product in the centre</p><small>Atalay et al. 2012</small></div>
+        <div class="rule"><span class="k">K6</span><h3>Private label</h3><p>Next to the category leader</p><small>Sayman et al. 2002</small></div>
+        <div class="rule"><span class="k">K7</span><h3>Destination products</h3><p>What shoppers look for anyway goes bottom right</p><small>Team rule</small></div>
+        <div class="rule"><span class="k">K8</span><h3>Heavy packs</h3><p>1 kg or 1 litre and over on the bottom shelf</p><small>Team rule</small></div>
+      </div>
+      <div>
+        <div class="label">
+          <div class="what">Move one facing from Mountain tea to Espresso capsules</div>
+          <dl>
+            <dt>Rule</dt><dd>K3 · space against sales</dd>
+            <dt>Gain</dt><dd>+€1.97 a day</dd>
+            <dt>Loss</dt><dd>−€0.43 a day</dd>
+            <dt>Net</dt><dd class="plus">+€1.54 margin a day</dd>
+            <dt>Source</dt><dd>Eisend 2014, space elasticity 0.17</dd>
+            <dt>Sales</dt><dd>28 days, synthetic</dd>
+          </dl>
+        </div>
+        <p class="label-cap">Six rules come from peer-reviewed retail research (1994–2014), two from merchandising practice.
+          Each suggestion shows its rule, its numbers and its source. If a figure is missing, the rule does not run.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · Data -->
+  <section class="slide s-data" data-title="Real and synthetic data">
+    <div class="eyebrow">Data</div>
+    <h2 class="head">Honest about <em>what is real.</em></h2>
+    <div class="data">
+      <div><h3><span class="tag t-real">real</span>Used as is</h3><ul>
+        <li><b>Product identity</b>Name, brand, pack size and barcode from Open Food Facts</li>
+        <li><b>Shelf prices, drinks shelf</b>37 Greek products, prices from sklavenitis.gr on 15 Nov 2026</li>
+        <li><b>Market evidence per category</b>IELKA, Self Service, Naftemporiki and other trade press, searched through treg</li>
+        <li><b>How shoppers react to gaps</b>52 studies in 29 countries (Gruen et al. 2002)</li>
+        <li><b>Rules K1–K6</b>Peer-reviewed retail research, 1994–2014</li></ul></div>
+      <div><h3><span class="tag t-syn">synthetic</span>Made up for the demo</h3><ul>
+        <li><b>Sales, purchase cost and backroom stock</b>Generated. A retailer would plug in its own</li>
+        <li><b>Planograms and rules K7–K8</b>Written by the team</li>
+        <li><b>Shelf images</b>The coffee shelf is generated; the drinks shelf is composed by code from real product photos, not taken in a store</li>
+        <li><b>Central warehouse</b>A simulated ordering portal</li>
+        <li><b>No employer data</b>Nothing from any team member's employer was used</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 10 · Built in 29 hours -->
+  <section class="slide s-built" data-title="Built in 29 hours">
+    <div class="eyebrow">What we built this weekend</div>
+    <h2 class="head">Built in <em>29 hours.</em></h2>
+    <div class="cols">
+      <ul class="built">
+        <li><b>Shelf vision</b>One structured Gemini call per photo, with boxes, and rejection of dark or covered frames</li>
+        <li><b>Live camera loop</b>Phone as a shelf camera, mirrored to the laptop</li>
+        <li><b>Task engine</b>Prioritised tasks with a crop of the spot; they close on rescan</li>
+        <li><b>Bounded ordering</b>Automatic orders within limits, approvals above them</li>
+        <li><b>Rules K1–K8</b>Refill and layout rules in SQL, each with its source</li>
+        <li><b>Three shelf sets</b>Coffee, drinks, and a real shelf with Open Food Facts data; detected from the photo</li>
+        <li><b>Evidence packs</b>Greek trade press per product through treg</li>
+        <li><b>Shelf talkers</b>Printable signs with fal, after a person confirms name and price</li>
+        <li><b>Telegram bot</b>Alerts and approvals on the phone</li>
+        <li><b>Console</b>Every step, tool call and figure, live and replayable</li>
+      </ul>
+      <div class="facts">
+        <div><b>Hardware: a phone.</b><span>The phone camera is the shelf sensor. No fixed cameras, no shelf labels to install.</span></div>
+        <div><b>88 automated tests</b><span>run offline, with no API key.</span></div>
+        <div><b>Declared boilerplate.</b><span>Before the event we prepared a generic agent skeleton with no shelf logic. It is listed in the README and tagged <code style="font-family:var(--mono);color:var(--lime)">boilerplate</code> in the git history.</span></div>
+        <div><div class="stack"><span>Gemini</span><span>treg</span><span>fal</span><span>Open Food Facts</span><span>Telegram</span><span>FastAPI</span><span>DuckDB</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · What's next -->
+  <section class="slide s-next" data-title="What comes next">
+    <div class="eyebrow">What comes next</div>
+    <h2 class="head">One shelf today. <em>Every store tomorrow.</em></h2>
+    <div class="next">
+      <div><div class="when">Today</div><h3>Department manager</h3>
+        <p>One phone, one aisle, and a task list ready before the store opens.</p></div>
+      <div><div class="when">Next</div><h3>Category manager</h3>
+        <p>The same findings across every store, to see which planograms fail and where.</p></div>
+      <div><div class="when">With a retailer</div><h3>Real sales and costs</h3>
+        <p>With a retailer's own sales, costs and stock plugged in, the same rules run on real margins.</p></div>
+    </div>
+  </section>
+
+  <!-- 12 · Team and links -->
+  <section class="slide s-team" data-title="Team and links">
+    <div class="eyebrow">Team and links</div>
+    <h2 class="head">Five people, <em>two days.</em></h2>
+    <div class="cols">
+      <ul class="team" id="team"></ul>
+      <div>
+        <div class="links" id="links"></div>
+        <p class="fine">Built at the Gen AI Summit Hackathon, Athens, 14–15 November 2026, Open Track.
+          Use ← → to move between slides; print this page to get a PDF.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="progress" id="progress"></div>
+</div>
+
+<div class="controls">
+  <button id="prev" aria-label="Previous slide">←</button>
+  <button id="next" aria-label="Next slide">→</button>
+</div>
+<div class="hint">← → to navigate</div>
+
+<script>
+/* =====================================================================
+   EDIT HERE. Links and team live in DECK; empty values are hidden.
+   ===================================================================== */
+const DECK = {
+  // YouTube link of the 1-minute demo (unlisted is fine). Empty = button hidden.
+  video: "",
+  links: [
+    { title: "Code on GitHub", note: "github.com/Koutsourelis/Shelf-It", url: "https://github.com/Koutsourelis/Shelf-It" },
+    { title: "The rules and their papers", note: "Formulas, parameters, full references", url: "https://github.com/Koutsourelis/Shelf-It/blob/main/planning/DECISION_RULES.md" },
+    // { title: "Project page", note: "...", url: "https://..." },
+  ],
+  team: [
+    { name: "Anastasios Ntoukas", role: "Vision" },
+    { name: "Athanasios Karaferhs", role: "Solution analysis" },
+    { name: "Giannis Koutsourelis", role: "Business, retail and data" },
+    { name: "", role: "Integration and screens" },
+    { name: "Ioannis Gkougkousis", role: "UI and demo" },
+  ],
+};
+
+/* ---------- rendering and navigation, no need to touch ---------- */
+(function () {
+  const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  document.getElementById("team").innerHTML = DECK.team.map((p) =>
+    `<li class="${p.name ? "" : "todo"}"><b>${esc(p.name || "Name to be added")}</b><span>${esc(p.role)}</span></li>`).join("");
+  const links = (DECK.video ? [{ title: "Watch the demo", note: "One minute, start to finish", url: DECK.video }] : []).concat(DECK.links);
+  document.getElementById("links").innerHTML = links.map((l) =>
+    `<a href="${esc(l.url)}" target="_blank" rel="noopener"><span><b>${esc(l.title)}</b><small>${esc(l.note)}</small></span><i>→</i></a>`).join("");
+  if (DECK.video) { const w = document.getElementById("watch"); w.href = DECK.video; w.hidden = false; }
+
+  const stage = document.getElementById("stage");
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const counter = document.getElementById("counter");
+  const progress = document.getElementById("progress");
+  const prev = document.getElementById("prev"), next = document.getElementById("next");
+  let i = 0;
+
+  function fit() {
+    const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+    stage.style.transformOrigin = "50% 50%";
+  }
+  function show(n, push) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((el, k) => el.classList.toggle("active", k === i));
+    counter.textContent = `${String(i + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
+    progress.style.width = `${((i + 1) / slides.length) * 100}%`;
+    prev.disabled = i === 0; next.disabled = i === slides.length - 1;
+    document.title = `Shelf-It · ${slides[i].dataset.title}`;
+    if (push !== false) history.replaceState(null, "", `#${i + 1}`);
+  }
+  const fromHash = () => { const n = parseInt(location.hash.slice(1), 10); return isNaN(n) ? 0 : n - 1; };
+
+  window.addEventListener("resize", fit);
+  window.addEventListener("hashchange", () => show(fromHash(), false));
+  prev.addEventListener("click", () => show(i - 1));
+  next.addEventListener("click", () => show(i + 1));
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(i + 1); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+  });
+  let x0 = null;
+  document.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 40) show(i + (dx < 0 ? 1 : -1));
+  });
+
+  fit();
+  show(fromHash(), false);
+})();
+</script>
+</body>
+</html>
