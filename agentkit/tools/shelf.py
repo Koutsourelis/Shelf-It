@@ -385,10 +385,13 @@ async def layout_suggestions(ctx) -> str:
     out.append(f"\nΟι πωλήσεις είναι {DAYS} ημερών. Η θέση (Κ4, Κ5, Κ7, Κ6) έχει προτεραιότητα έναντι των προσόψεων (Κ3). "
                "Αλλαγή πλανογράμματος αποφασίζει ο category manager. Αρχείο: workspace/suggestions.json")
     from .. import market
-    if market.load_model():
+    model = market.load_model()
+    if model:
         out.append(f"Πωλήσεις ανά κωδικό: {market.HBS_SOURCE} (ποσότητα ανά νοικοκυριό) × υποθέσεις του market.json "
                    "(νοικοκυριά, μερίδιο καταστήματος, μερίδιο ραφιού). Ίσο μοίρασμα μέσα στην κατηγορία· το "
                    "πραγματικό μοίρασμα το έχουν μόνο οι πωλήσεις του λιανέμπορου.")
+        if model.get("gross_margin") is not None:
+            out.append(f"Κόστος: {market.cost_source(model)}. Το πραγματικό κόστος αγοράς το έχει μόνο ο λιανέμπορος.")
     return "\n".join(out)
 
 

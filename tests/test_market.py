@@ -41,6 +41,17 @@ class Sales(unittest.TestCase):
         self.assertEqual(plan[0]["daily_units"], 2.5)
         self.assertTrue(plan[0]["sales_source"].startswith("υπόθεση"))
 
+    def test_cost_from_sector_margin(self):
+        self.assertEqual(market.unit_cost(4.50, {"gross_margin": 0.268}), 3.29)
+        self.assertIsNone(market.unit_cost(4.50, {}))
+        self.assertIn("26.8%", market.cost_source({"gross_margin": 0.268}))
+
+    def test_trad_model_declares_margin_with_source(self):
+        from agentkit import config
+        model = market.load_model(config.DATA_DIR / "shelf" / "sets" / "trad")
+        self.assertAlmostEqual(model["gross_margin"], 0.268)
+        self.assertIn("ΙΕΛΚΑ", model["gross_margin_source"])
+
     def test_real_extract_has_the_items_we_map(self):
         hbs = market.load_hbs()
         self.assertGreater(hbs["0115101"]["per_household_month"], 0)      # olive oil

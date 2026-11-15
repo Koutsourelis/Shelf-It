@@ -5,6 +5,8 @@
   "store_share": 0.3,
   "store_share_source": "assumption: share of those households' purchases of the category made in this store",
   "days_per_month": 30.4,
+  "gross_margin": 0.268,
+  "gross_margin_source": "ΙΕΛΚΑ, NielsenIQ, ΕΣΕ: μικτό περιθώριο σούπερ μάρκετ 26,8% το 2025 (ΑΠΕ-ΜΠΕ, 12 Οκτ 2026, https://www.biskotto.gr/ikonomia/soyper-market-i-eikona-tis-kerdoforias-stoys-big-5/). Ίδιο σε όλους τους κωδικούς: περιθώριο ανά κατηγορία δεν δημοσιεύεται",
   "split": "equal grams across the products of a category on the shelf, unless catalog.csv has a sales_weight column",
   "categories": {
     "Ελαιόλαδο": {"coicop": ["0115101"], "shelf_share": 0.25, "grams_per_ml": 0.916,

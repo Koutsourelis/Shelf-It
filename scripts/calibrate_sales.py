@@ -1,4 +1,4 @@
-"""Set daily_units in catalog.csv from ELSTAT household purchases (agentkit/market.py).
+"""Set daily_units (ELSTAT household purchases) and unit_cost (sector gross margin) in catalog.csv.
 
     SHELF_SET=trad python scripts/calibrate_sales.py            # writes catalog.csv
     SHELF_SET=trad python scripts/calibrate_sales.py --dry-run  # only prints
@@ -33,6 +33,10 @@ def main(dry_run: bool) -> int:
               f"{e['expression'] or e['sales_source']}")
         row["daily_units"] = f"{e['daily_units']:g}"
         row["sales_source"] = e["sales_source"]
+        cost = market.unit_cost(float(row["unit_price"]), model)
+        if cost is not None:
+            print(f"     κόστος {row['unit_cost']} → {cost:.2f}  (τιμή {row['unit_price']} × {1 - model['gross_margin']:g})")
+            row["unit_cost"], row["cost_source"] = f"{cost:.2f}", market.cost_source(model)
     if "sales_source" not in fields:
         fields.append("sales_source")
     if dry_run:

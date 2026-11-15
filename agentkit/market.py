@@ -81,3 +81,16 @@ def plan(catalog: list[dict], model: dict, hbs: dict) -> list[dict]:
                         "sales_source": f"{HBS_SOURCE} (κωδ. {'+'.join(cat['coicop'])}) × υποθέσεις του market.json"})
     order = {r["sku"]: i for i, r in enumerate(catalog)}
     return sorted(out, key=lambda e: order[e["sku"]])
+
+
+def unit_cost(price: float, model: dict) -> float | None:
+    """Purchase cost from the sector's public gross margin: cost = price × (1 − gross_margin).
+
+    The margin is applied to the shelf price; VAT is not split out in the demo. Same margin for every product, because
+    no public source gives it per category. None when market.json has no gross_margin."""
+    m = model.get("gross_margin")
+    return round(price * (1 - m), 2) if m is not None else None
+
+
+def cost_source(model: dict) -> str:
+    return f"μικτό περιθώριο κλάδου {model['gross_margin'] * 100:.1f}% (ΙΕΛΚΑ, NielsenIQ, ΕΣΕ 2025)· ίδιο σε όλους"
