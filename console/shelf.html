@@ -2,70 +2,95 @@
 <html lang="el">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Οθόνη Ραφιού · ShelfSense</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f7">
+<title>Ράφι · ShelfSense</title>
 <link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/ui/app.css">
-<!-- Οθόνη ραφιού. Ξεκινά μόνη της: κάμερα → frame κάθε N s → POST /api/shelf/frame → κατάσταση, εργασίες, χρονολόγιο.
-     Τα κουτιά έρχονται σε [ymin, xmin, ymax, xmax] 0–1000· η μετατροπή σε pixel γίνεται ΜΟΝΟ στο toPx().
-     ?dev=1: εμφανίζει τα εργαλεία δοκιμής (mock, από αρχείο, επιλογή κάμερας, λεπτομέρειες frame). -->
+<script src="/ui/shell.js"></script>
+<!-- Οθόνη ραφιού (macOS Split View: Stage + Inspector Sidebar).
+     Τα κουτιά έρχονται σε [ymin, xmin, ymax, xmax] 0–1000· η μετατροπή σε pixel γίνεται ΜΟΝΟ στο toPx(). -->
 <style>
-  main.workstation {
-    max-width: 1440px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 410px;
-    gap: 20px;
-    padding: 18px 22px 36px;
-    align-items: start;
+  @media (min-width: 1024px) {
+    html, body { height: 100%; overflow: hidden; }
+    main.split-view {
+      height: calc(100dvh - 52px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 376px;
+    }
+    .stage-pane {
+      overflow-y: auto;
+      padding: 16px 20px 24px;
+    }
+    aside.inspector {
+      height: 100%;
+      overflow-y: auto;
+      background: var(--bg-primary);
+      border-left: 1px solid var(--separator);
+      display: flex;
+      flex-direction: column;
+    }
   }
-  @media (max-width: 1040px) { main.workstation { grid-template-columns: 1fr; padding: 14px; } }
 
-  /* Status banner directly above camera feed */
+  @media (max-width: 1023px) {
+    main.split-view {
+      display: flex;
+      flex-direction: column;
+    }
+    .stage-pane { padding: 14px 16px 18px; }
+    aside.inspector {
+      background: var(--bg-primary);
+      border-top: 1px solid var(--separator);
+    }
+  }
+
+  /* Flat Status Header above Camera Stage */
   .light {
     display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 18px;
-    border-radius: var(--r);
-    margin-bottom: 12px;
-    background: var(--card);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
+    align-items: baseline;
+    gap: 10px;
+    padding: 4px 2px 12px;
+    flex-wrap: wrap;
   }
   .light .dot {
-    width: 12px;
-    height: 12px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: var(--mut);
+    background: var(--label-tertiary);
     flex: none;
+    transform: translateY(-1px);
   }
-  .light.ok { background: var(--okbg); border-color: var(--okline); }
-  .light.ok .dot { background: var(--ok); }
-  .light.warn { background: var(--warnbg); border-color: var(--warnline); }
-  .light.warn .dot { background: var(--warn); }
-  .light.bad { background: var(--badbg); border-color: var(--badline); }
-  .light.bad .dot { background: var(--bad); animation: pulse 1.8s ease-in-out infinite; }
-  @keyframes pulse { 50% { opacity: 0.35; } }
-  .light b { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; display: block; color: var(--fg); }
-  .light span { font-size: 13.5px; color: var(--fg2); }
+  .light.ok .dot { background: var(--sys-green); }
+  .light.warn .dot { background: var(--sys-orange); }
+  .light.bad .dot { background: var(--sys-red); }
+  .light-main { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+  .light b {
+    font-size: var(--fs-title);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--label-primary);
+  }
+  .light span {
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
+  }
   .light .right {
     margin-left: auto;
-    text-align: right;
-    font-family: var(--mono);
-    font-size: 12.5px;
-    color: var(--mut);
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono);
+    color: var(--label-secondary);
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Camera viewport */
+  /* 16:9 Camera Stage */
   .stage {
     position: relative;
-    background: #111613;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--r);
+    background: #141416;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--r-group);
     overflow: hidden;
     aspect-ratio: 16 / 9;
-    box-shadow: var(--shadow);
+    box-shadow: var(--surface-shadow);
   }
   .stage video, .stage canvas, .stage img {
     position: absolute;
@@ -80,208 +105,229 @@
     inset: 0;
     display: grid;
     place-items: center;
-    color: #cbd5cf;
+    color: rgba(235, 235, 245, 0.72);
     text-align: center;
     padding: 24px;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: var(--fs-body);
+    line-height: 1.5;
   }
   .stage .hint[hidden], .stage img[hidden], .stage video[hidden] { display: none !important; }
-  .stage .hint a { color: #6ee7b7; }
-  .stage .hint code { background: #1e2722; border-color: #2f3d35; color: #e2ebe5; }
+  .stage .hint a { color: #64D2FF; }
+  .stage .hint code { background: rgba(255, 255, 255, 0.12); color: #F5F5F7; }
+
+  /* Subtle top indeterminate progress bar instead of theatrical laser */
   .scan {
     position: absolute;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #34d399, transparent);
     top: 0;
+    height: 2px;
+    overflow: hidden;
     opacity: 0;
+    transition: opacity 150ms var(--apple-ease);
   }
-  .scan.on { opacity: 1; animation: sweep 1.5s linear infinite; }
-  @keyframes sweep { from { top: 0; } to { top: 100%; } }
+  .scan::after {
+    content: "";
+    display: block;
+    width: 38%;
+    height: 100%;
+    background: var(--sys-blue);
+    transform: translateX(-100%);
+  }
+  .scan.on { opacity: 1; }
+  .scan.on::after { animation: barSlide 1.2s var(--apple-ease) infinite; }
+  @keyframes barSlide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(360%); }
+  }
 
-  /* Controls toolbar */
+  /* Action Bar & Optional Dev Row */
   .bar {
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 12px;
     flex-wrap: wrap;
   }
   .bar .count {
-    font-family: var(--mono);
-    color: var(--mut);
-    font-size: 12.5px;
     margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono);
+    color: var(--label-secondary);
     font-variant-numeric: tabular-nums;
   }
+
   .devbar {
     display: none;
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
     margin-top: 10px;
-    padding: 10px 12px;
-    background: var(--card);
-    border: 1px dashed var(--line-strong);
-    border-radius: var(--r-sm);
-  }
-  .devbar .lbl {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--mut);
-    margin-right: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--separator);
   }
   .devonly { display: none !important; }
   body.dev .devonly { display: block !important; }
   body.dev .devbar { display: flex !important; }
   #devinfo {
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--fg2);
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--r-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--label-secondary);
+    background: var(--bg-primary);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--r-control);
     padding: 10px 12px;
     white-space: pre-wrap;
     margin-top: 10px;
-    max-height: 220px;
+    max-height: 180px;
     overflow: auto;
   }
 
-  /* Right-hand operational rail */
-  aside.rail { display: flex; flex-direction: column; gap: 14px; }
-  aside.rail .card { padding: 16px 18px; }
-
-  .task {
-    display: grid;
-    grid-template-columns: 58px minmax(0, 1fr);
-    gap: 12px;
-    padding: 11px;
-    border-radius: 8px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    margin-bottom: 8px;
+  /* Right Inspector Sidebar — Flat Hairline Sections (NO Card-in-Card) */
+  .insp-sec {
+    border-bottom: 1px solid var(--separator);
   }
-  .task:last-child { margin-bottom: 0; }
-  .task.in_progress { border-color: var(--warnline); background: var(--warnbg); }
-  .task .img {
-    width: 58px;
-    height: 58px;
+  .insp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 8px;
+  }
+  .insp-count {
+    font-family: var(--font-mono);
+    font-size: var(--fs-foot);
+    color: var(--label-secondary);
+  }
+
+  .task-row {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--separator);
+    align-items: start;
+  }
+  .task-row:first-child { border-top: 0; }
+  .task-row .thumb {
+    width: 48px;
+    height: 48px;
     border-radius: 6px;
-    background: #141b17 center / cover no-repeat;
-    border: 1px solid var(--line);
+    background: var(--bg-secondary) center / cover no-repeat;
+    border: 1px solid var(--surface-border);
     display: grid;
     place-items: center;
-    color: #9fb0a6;
-    font-family: var(--mono);
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--label-secondary);
   }
-  .task .img.no-img {
-    background: var(--badbg);
-    border-color: var(--badline);
-    color: var(--bad);
+  .task-row .thumb.restock { color: var(--sys-red); background-color: var(--sys-red-tint); border-color: transparent; }
+  .task-row .thumb.relocate, .task-row .thumb.tidy, .task-row .thumb.remove {
+    color: var(--sys-orange); background-color: var(--sys-orange-tint); border-color: transparent;
   }
-  .task .img.no-img.relocate, .task .img.no-img.tidy, .task .img.no-img.remove {
-    background: var(--warnbg);
-    border-color: var(--warnline);
-    color: var(--warn);
-  }
-  .task b { display: block; font-size: 14px; line-height: 1.35; letter-spacing: -0.01em; }
-  .task small {
-    color: var(--mut);
-    font-size: 12px;
+  .task-row b {
     display: block;
-    margin-top: 4px;
-    line-height: 1.4;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    line-height: 1.36;
+    color: var(--label-primary);
   }
-  .task .ord-tag {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-border);
-    padding: 1px 6px;
-    border-radius: 4px;
-    margin-top: 4px;
+  .task-row .meta {
+    margin-top: 3px;
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
+    line-height: 1.38;
   }
-  .task .acts { margin-top: 8px; display: flex; gap: 6px; }
-  .task .acts button { padding: 6px 10px; font-size: 12.5px; }
+  .task-row .acts {
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
 
-  /* Suggested shelf layout rows */
+  .insp-tabs-wrap {
+    padding: 12px 16px 8px;
+  }
+  .insp-panel[hidden] { display: none !important; }
+
+  /* 3-Tier Layout Rows */
+  .lay-summary {
+    margin: 0;
+    padding: 8px 16px 10px;
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
+    line-height: 1.45;
+    border-bottom: 1px solid var(--separator);
+  }
   .lay {
     display: grid;
-    grid-template-columns: 58px minmax(0, 1fr);
-    gap: 3px 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--line);
-    font-size: 13.5px;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 2px 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--separator);
+    font-size: var(--fs-body);
   }
-  .lay:last-child { border-bottom: 0; padding-bottom: 0; }
+  .lay:last-child { border-bottom: 0; }
   .lay b {
-    font-size: 11.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--mut);
-    padding-top: 2px;
+    font-size: var(--fs-callout);
+    font-weight: 500;
+    color: var(--label-secondary);
   }
-  .lay span { line-height: 1.4; font-weight: 500; color: var(--fg); }
-  .lay small { grid-column: 2; font-size: 12px; line-height: 1.35; }
+  .lay span { color: var(--label-primary); line-height: 1.4; }
+  .lay small {
+    grid-column: 2;
+    font-size: var(--fs-foot);
+    color: var(--label-tertiary);
+    line-height: 1.38;
+  }
 
-  /* Timeline log */
-  .tl { list-style: none; margin: 0; padding: 0; max-height: 290px; overflow: auto; }
+  /* Flat Event Log */
+  .tl { list-style: none; margin: 0; padding: 0; }
   .tl li {
     display: grid;
-    grid-template-columns: 44px 10px minmax(0, 1fr);
+    grid-template-columns: 38px 8px minmax(0, 1fr);
     gap: 8px;
     align-items: baseline;
-    padding: 7px 0;
-    border-bottom: 1px solid var(--line);
-    font-size: 13px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--separator);
+    font-size: var(--fs-callout);
     line-height: 1.4;
+    color: var(--label-primary);
   }
   .tl li:last-child { border-bottom: 0; }
-  .tl time { font-family: var(--mono); font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
-  .tl .kind-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--line-strong);
-    display: inline-block;
-    transform: translateY(-1px);
+  .tl time {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--label-tertiary);
+    font-variant-numeric: tabular-nums;
   }
-  .tl .kind-dot.ok { background: var(--ok); }
-  .tl .kind-dot.bad { background: var(--bad); }
-  .tl .kind-dot.warn { background: var(--warn); }
-  .tl .kind-dot.accent { background: var(--accent); }
 </style>
 </head>
-<body>
+<body class="has-tabbar">
 <header class="topbar">
   <a class="brand" href="/"><img src="/ui/logo.svg" alt="">ShelfSense</a>
-  <nav>
+  <nav class="seg-nav" aria-label="Κύρια πλοήγηση">
+    <a href="/">Αρχική</a>
     <a class="on" href="/shelf">Ράφι</a>
     <a href="/tasks">Εργασίες</a>
     <a href="/portal/orders">Αποθήκη</a>
     <a href="/dev">Κονσόλα</a>
   </nav>
   <div class="right">
-    <button type="button" class="subtle" id="devToggle" style="padding:5px 10px;font-size:12.5px">Δοκιμές</button>
-    <span class="pill plain" id="mode">…</span>
+    <button type="button" class="ghost" id="devToggle" style="min-height:24px;padding:0 9px;font-size:12px">Δοκιμές</button>
+    <span class="mono mut" id="mode" style="font-size:11.5px">…</span>
+    <button type="button" class="theme-btn" data-theme-toggle aria-label="Εναλλαγή θέματος">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16Z" fill="currentColor" stroke="none"/></svg>
+      <span class="theme-lbl">Auto</span>
+    </button>
   </div>
 </header>
 
-<main class="workstation">
-  <section>
-    <div class="light" id="light">
-      <div class="dot"></div>
-      <div>
+<main class="split-view">
+  <section class="stage-pane">
+    <div class="light" id="light" role="status" aria-live="polite">
+      <span class="dot"></span>
+      <div class="light-main">
         <b id="lightTitle">Εκκίνηση κάμερας…</b>
         <span id="lightSub"></span>
       </div>
@@ -290,25 +336,21 @@
 
     <div class="stage" id="stage">
       <video id="video" autoplay playsinline muted></video>
-      <img id="still" alt="" hidden>
+      <img id="still" alt="Εικόνα ραφιού" hidden>
       <canvas id="overlay"></canvas>
       <div class="scan" id="scan"></div>
       <div class="hint" id="hint" hidden></div>
     </div>
 
     <div class="bar">
-      <button id="now">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-2.64-6.36" stroke-linecap="round"/><polyline points="21 3 21 9 15 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Έλεγχος τώρα
-      </button>
+      <button id="now">Έλεγχος τώρα</button>
       <button id="pause" class="ghost">Παύση</button>
-      <button id="ref" class="ghost" title="Το τωρινό frame αποθηκεύεται ως εικόνα αναφοράς">Ορισμός ως σωστό ράφι</button>
+      <button id="ref" class="ghost" title="Αποθήκευση τρέχοντος frame ως εικόνας αναφοράς">Ορισμός αναφοράς</button>
       <span class="count" id="count"></span>
     </div>
 
     <div class="devbar">
-      <span class="lbl">Δοκιμή</span>
-      <select id="cam" class="btn ghost" title="Επιλογή κάμερας"></select>
+      <select id="cam" class="btn ghost" aria-label="Επιλογή κάμερας"></select>
       <button class="ghost" id="file">Από αρχείο…</button>
       <button class="ghost" data-mock="sample_before">Mock: Έλλειψη</button>
       <button class="ghost" data-mock="sample_after">Mock: Σωστό</button>
@@ -319,30 +361,51 @@
     <div id="devinfo" class="devonly"></div>
   </section>
 
-  <aside class="rail">
-    <div class="card">
-      <div class="sec-head">
+  <aside class="inspector" aria-label="Πίνακας στοιχείων ραφιού">
+    <div class="insp-sec">
+      <div class="insp-head">
         <h2 class="sec-title">Εργασίες υπαλλήλου</h2>
-        <span class="pill plain" id="taskCount" style="font-size:11.5px;padding:2px 8px">0</span>
+        <span class="insp-count" id="taskCount">0</span>
       </div>
       <div id="tasks"></div>
     </div>
 
-    <div class="card">
-      <div class="sec-head">
-        <h2 class="sec-title">Διάταξη & Προτάσεις</h2>
+    <div class="insp-tabs-wrap">
+      <div class="seg" role="tablist" aria-label="Προβολή λεπτομερειών">
+        <button type="button" class="on" role="tab" aria-selected="true" data-insp="plan">Διάταξη</button>
+        <button type="button" role="tab" aria-selected="false" data-insp="timeline">Ιστορικό</button>
       </div>
-      <div id="plan" class="mut" style="font-size:13.5px">Αναμονή πρώτης λήψης…</div>
     </div>
 
-    <div class="card">
-      <div class="sec-head">
-        <h2 class="sec-title">Χρονολόγιο ενεργειών</h2>
-      </div>
+    <div id="panel-plan" class="insp-panel">
+      <div id="plan"><div class="empty">Αναμονή πρώτης λήψης…</div></div>
+    </div>
+
+    <div id="panel-timeline" class="insp-panel" hidden>
       <ul class="tl" id="timeline"></ul>
     </div>
   </aside>
 </main>
+
+<nav class="ios-tabbar" aria-label="Πλοήγηση κινητού">
+  <a href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" stroke-linejoin="round"/></svg>
+    <span>Αρχική</span>
+  </a>
+  <a href="/tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round"/></svg>
+    <span>Εργασίες</span>
+    <span class="tab-badge" data-tab-tasks-badge hidden>0</span>
+  </a>
+  <a href="/capture">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    <span>Σάρωση</span>
+  </a>
+  <a href="/portal/orders">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8Z" stroke-linejoin="round"/><path d="M3.3 8L12 13l8.7-5M12 13v8"/></svg>
+    <span>Αποθήκη</span>
+  </a>
+</nav>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -351,7 +414,6 @@ let isDev = params.has("dev");
 function applyDev() {
   document.body.classList.toggle("dev", isDev);
   $("devToggle").classList.toggle("on", isDev);
-  $("devToggle").textContent = isDev ? "Κλείσιμο δοκιμών" : "Δοκιμές";
 }
 $("devToggle").onclick = () => {
   isDev = !isDev;
@@ -362,19 +424,42 @@ $("devToggle").onclick = () => {
 };
 applyDev();
 
+// Segmented Control in Inspector (Διάταξη | Ιστορικό)
+document.querySelectorAll("[data-insp]").forEach(btn => {
+  btn.onclick = () => {
+    const target = btn.dataset.insp;
+    document.querySelectorAll("[data-insp]").forEach(b => {
+      const on = b === btn;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-selected", String(on));
+    });
+    $("panel-plan").hidden = target !== "plan";
+    $("panel-timeline").hidden = target !== "timeline";
+  };
+});
+
 const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
 let interval = 30, countdown = 0, paused = false, last = null, sending = false, usingFile = false;
 
-const COLORS = { ok: "#157347", low: "#d97706", missing: "#be2e26", misplaced: "#be2e26", unknown: "#6d28d9", gap: "#be2e26" };
-const KIND_LABEL = { restock: "ΑΝΑΠΛ", relocate: "ΘΕΣΗ", remove: "ΞΕΝΟ", tidy: "ΤΑΞΗ" };
-const KIND_DOT = { restock: "bad", relocate: "warn", remove: "warn", tidy: "warn", task: "bad",
-                   order: "accent", done: "ok", claim: "warn", approval: "warn", setup: "accent",
-                   proposal: "accent", agent: "accent", foreign: "warn" };
+// Apple System Colors for AR Bounding Boxes
+const COLORS = {
+  ok: "#34C759",
+  low: "#FF9500",
+  missing: "#FF3B30",
+  misplaced: "#FF3B30",
+  unknown: "#AF52DE",
+  gap: "#FF3B30"
+};
+const KIND_LABEL = { restock: "Έλλειψη", relocate: "Θέση", remove: "Ξένο", tidy: "Τάξη" };
+const KIND_DOT = {
+  restock: "bad", relocate: "warn", remove: "warn", tidy: "warn", task: "bad",
+  order: "blue", done: "ok", claim: "warn", approval: "warn", setup: "blue",
+  proposal: "indigo", agent: "indigo", foreign: "warn"
+};
 
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const hhmm = ts => new Date(ts * 1000).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-// ---- κάμερα ----------------------------------------------------------------
 async function openCamera(deviceId) {
   if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
   const v = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } };
@@ -390,7 +475,6 @@ function snapshot() {
   return new Promise(res => c.toBlob(res, "image/jpeg", 0.88));
 }
 
-// ---- frame → server ----------------------------------------------------------
 async function send(blob, force = false) {
   if (sending || !blob) return;
   sending = true; $("scan").classList.add("on");
@@ -409,7 +493,6 @@ async function scan(force = false) {
   if (video.videoWidth) await send(await snapshot(), force);
 }
 
-// ---- σχέδιο πάνω στην εικόνα ------------------------------------------------
 function frameRect() {
   const W = overlay.clientWidth, H = overlay.clientHeight;
   const el = usingFile ? $("still") : video;
@@ -427,19 +510,19 @@ function draw() {
   if (!last || !last.shelves) return;
   const f = frameRect(), statusOf = {};
   (last.findings || []).forEach(x => { if (x.sku) statusOf[x.sku] = x.type; });
-  ctx.lineWidth = 2.5;
-  ctx.font = "600 12.5px 'IBM Plex Mono', ui-monospace, monospace";
+  ctx.lineWidth = 2;
+  ctx.font = "600 12px 'SF Mono', ui-monospace, Menlo, monospace";
   const box = (b, color, text) => {
     const [x, y, w, h] = toPx(b, f);
     ctx.strokeStyle = color;
     ctx.strokeRect(x, y, w, h);
     if (!text) return;
-    const tw = ctx.measureText(text).width + 12;
-    const ty = Math.max(y - 21, 0);
+    const tw = ctx.measureText(text).width + 10;
+    const ty = Math.max(y - 20, 0);
     ctx.fillStyle = color;
-    ctx.fillRect(x, ty, tw, 21);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(text, x + 6, ty + 14.5);
+    ctx.fillRect(x, ty, tw, 20);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(text, x + 5, ty + 14);
   };
   (last.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
     if (!it.box_2d) return;
@@ -450,30 +533,30 @@ function draw() {
 }
 
 function arrow(p, f) {
-  const TEAL = "#0f6b4f", sides = [p.a, p.b].filter(s => s && s.box);
+  const INDIGO = "#5856D6", sides = [p.a, p.b].filter(s => s && s.box);
   ctx.save();
-  ctx.strokeStyle = TEAL; ctx.fillStyle = TEAL; ctx.lineWidth = 3; ctx.setLineDash([8, 5]);
+  ctx.strokeStyle = INDIGO; ctx.fillStyle = INDIGO; ctx.lineWidth = 2.5; ctx.setLineDash([7, 5]);
   sides.forEach(s => { const [x, y, w, h] = toPx(s.box, f); ctx.strokeRect(x - 3, y - 3, w + 6, h + 6); });
   ctx.setLineDash([]);
   if (sides.length === 2) {
     const mid = s => { const [x, y, w, h] = toPx(s.box, f); return [x + w / 2, y + h / 2]; };
     const [x0, y0] = mid(p.a), [x1, y1] = mid(p.b);
     const cx = (x0 + x1) / 2 + (y1 - y0) * 0.22, cy = (y0 + y1) / 2 - (x1 - x0) * 0.22;
-    ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(cx, cy, x1, y1); ctx.stroke();
+    ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(cx, cy, x1, y1); ctx.stroke();
     const head = (x, y, fx, fy) => {
-      const a = Math.atan2(y - fy, x - fx), r = 14;
+      const a = Math.atan2(y - fy, x - fx), r = 13;
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - r * Math.cos(a - 0.45), y - r * Math.sin(a - 0.45));
       ctx.lineTo(x - r * Math.cos(a + 0.45), y - r * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
     };
     head(x1, y1, cx, cy);
     if (p.kind === "swap") head(x0, y0, cx, cy);
     const label = p.kind === "swap" ? "Αλλαγή θέσης" : "+1 πρόσοψη";
-    ctx.font = "600 12.5px 'Inter', system-ui, sans-serif";
-    const tw = ctx.measureText(label).width + 14;
+    ctx.font = "500 12px -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
+    const tw = ctx.measureText(label).width + 12;
     const lx = (x0 + 2 * cx + x1) / 4, ly = (y0 + 2 * cy + y1) / 4;
-    ctx.fillRect(lx - tw / 2, ly - 11, tw, 22);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(label, lx - tw / 2 + 7, ly + 4);
+    ctx.fillRect(lx - tw / 2, ly - 10, tw, 20);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(label, lx - tw / 2 + 6, ly + 4);
   }
   ctx.restore();
 }
@@ -481,7 +564,7 @@ function arrow(p, f) {
 const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
 function propCard(p) {
   return `<div class="prop">
-    <div class="prop-head"><span class="tag">${esc(p.rule || "ΠΡΟΤΑΣΗ")}</span><span class="rule-lbl">${esc(RULE[p.rule] || "Διάταξη")}</span></div>
+    <div class="prop-head"><span>${esc(p.rule || "Πρόταση")} · ${esc(RULE[p.rule] || "Διάταξη")}</span></div>
     <b>${esc(p.text)}</b>
     <p class="why">${esc(p.reason)}</p>
     <div class="num">${esc(p.numbers)}</div>
@@ -489,7 +572,6 @@ function propCard(p) {
   </div>`;
 }
 
-// ---- εμφάνιση ------------------------------------------------------------------
 function setLight(cls, title, sub, right = "") {
   $("light").className = "light " + cls;
   $("lightTitle").textContent = title;
@@ -498,7 +580,7 @@ function setLight(cls, title, sub, right = "") {
 }
 function orderNote(orders) {
   const n = (orders || []).length;
-  return n ? ` · ${n === 1 ? "1 αυτόματη παραγγελία" : n + " αυτόματες παραγγελίες"}` : "";
+  return n ? ` · ${n === 1 ? "1 παραγγελία" : n + " παραγγελίες"}` : "";
 }
 function ago(ts) {
   const m = Math.round((Date.now() / 1000 - ts) / 60);
@@ -506,21 +588,20 @@ function ago(ts) {
 }
 function taskCard(t) {
   const img = t.image ? `style="background-image:url('/files/${encodeURI(t.image)}')"` : "";
-  const orderBadge = t.order && t.order.order_no
-    ? `<span class="ord-tag">${esc(t.order.order_no)} · ${t.order.eur.toFixed(2)} €</span>`
-    : t.order && t.order.rejected ? `<small class="warn">Η παραγγελία απορρίφθηκε</small>` : "";
+  const thumbCls = t.image ? "thumb" : `thumb ${esc(t.kind || "")}`;
+  const orderInfo = t.order && t.order.order_no
+    ? ` · <span class="mono">${esc(t.order.order_no)} (${t.order.eur.toFixed(2)} €)</span>`
+    : t.order && t.order.rejected ? ` · <span class="warn">Απορρίφθηκε</span>` : "";
   const appr = t.needs_approval
     ? `<div class="acts"><button class="ok" data-order="${esc(t.id)}" data-v="1">Έγκριση ${t.needs_approval.cases} κιβ. (${t.needs_approval.eur.toFixed(2)} €)</button>
-       <button class="ghost" data-order="${esc(t.id)}" data-v="0">Απόρριψη</button></div><small class="warn">${esc(t.needs_approval.why)}</small>`
+       <button class="ghost" data-order="${esc(t.id)}" data-v="0">Απόρριψη</button></div><div class="meta warn">${esc(t.needs_approval.why)}</div>`
     : "";
-  const worker = t.status === "in_progress" ? `Σε εξέλιξη (${esc(t.claimed_by || "υπάλληλος")}) · ` : "";
-  const imgCls = t.image ? "img" : `img no-img ${esc(t.kind || "")}`;
-  return `<div class="task ${t.status}">
-    <div class="${imgCls}" ${img}>${t.image ? "" : (KIND_LABEL[t.kind] || "SKU")}</div>
+  const worker = t.status === "in_progress" ? `<span class="warn">Σε εξέλιξη (${esc(t.claimed_by || "υπάλληλος")})</span> · ` : "";
+  return `<div class="task-row">
+    <div class="${thumbCls}" ${img}>${t.image ? "" : (KIND_LABEL[t.kind] || "SKU")}</div>
     <div>
       <b>${esc(t.text)}</b>
-      <small>${worker}${ago(t.created)}</small>
-      ${orderBadge}
+      <div class="meta">${worker}<span class="mono">${ago(t.created)}</span>${orderInfo}</div>
       ${appr}
     </div>
   </div>`;
@@ -530,44 +611,43 @@ function render(d) {
   last = d; draw();
   const tasks = d.tasks || [];
   $("taskCount").textContent = String(tasks.length);
-  $("taskCount").className = "pill plain " + (tasks.length ? "bad" : "ok");
+  window.ShelfSenseShell?.setTaskBadge(tasks.length);
 
   if (d.unknown_shelf) setLight("warn", "Ράφι εκτός καταλόγου",
-    "Αξιολόγηση διάταξης και εικόνας χωρίς αυτόματες παραγγελίες.");
-  else if (d.status === "occluded") setLight("warn", "Περιορισμένη ορατότητα ραφιού",
-    "Κάτι κρύβει το πλάνο· αναμονή για καθαρή λήψη.");
-  else if (d.status === "idle") setLight("", "Αναμονή πρώτης λήψης…", "Η κάμερα ξεκινά αυτόματα.");
+    "Αξιολόγηση διάταξης χωρίς αυτόματες παραγγελίες.");
+  else if (d.status === "occluded") setLight("warn", "Περιορισμένη ορατότητα",
+    "Αναμονή για καθαρή εικόνα ραφιού.");
+  else if (d.status === "idle") setLight("", "Αναμονή πρώτης λήψης…", "");
   else if (!tasks.length) setLight("ok", "Το ράφι είναι σωστό",
-    d.done && d.done.length ? `Τελευταία αποκατάσταση: ${esc(d.done[0].text)}` : "Όλοι οι κωδικοί βρίσκονται στη θέση τους.");
+    d.done && d.done.length ? `Τελευταία διόρθωση: ${esc(d.done[0].text)}` : "Όλοι οι κωδικοί στη θέση τους.");
   else setLight("bad", `${tasks.length} ${tasks.length === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`,
-    "Στάλθηκαν στο κινητό του υπαλλήλου" + orderNote(d.orders));
+    "Στάλθηκαν στον υπάλληλο" + orderNote(d.orders));
 
-  if (d.status === "pending") $("lightRight").innerHTML = `Επιβεβαίωση ${esc(d.confirm || "")}`;
+  if (d.status === "pending") $("lightRight").innerHTML = `επιβεβαίωση ${esc(d.confirm || "")}`;
 
   $("tasks").innerHTML = tasks.length
     ? tasks.map(taskCard).join("")
-    : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Καμία εκκρεμής εργασία</div>`;
+    : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>Καμία εκκρεμής εργασία</div>`;
 
   const planHtml = ((d.proposals || []).map(propCard).join(""))
-    + (d.summary ? `<p class="mut" style="margin:0 0 10px;font-size:13px;line-height:1.45">${esc(d.summary)}</p>` : "")
+    + (d.summary ? `<p class="lay-summary">${esc(d.summary)}</p>` : "")
     + (d.suggested_layout || []).map(l => `<div class="lay"><b>${esc({top:"Πάνω",eye:"Μάτια",bottom:"Κάτω"}[l.level] || l.level)}</b>
-        <span>${esc((l.order || []).join(" → "))}</span><small class="mut">${esc(l.why || "")}</small></div>`).join("");
-  $("plan").innerHTML = planHtml || `<span class="mut">Δεν υπάρχουν παρατηρήσεις διάταξης ακόμη.</span>`;
+        <span>${esc((l.order || []).join(" → "))}</span><small>${esc(l.why || "")}</small></div>`).join("");
+  $("plan").innerHTML = planHtml || `<div class="empty">Καμία παρατήρηση διάταξης.</div>`;
 
   $("timeline").innerHTML = (d.history || []).slice().reverse().map(h =>
-    `<li><time>${hhmm(h.ts)}</time><span class="kind-dot ${KIND_DOT[h.kind] || ""}"></span><span>${esc(h.text)}</span></li>`
-  ).join("") || `<li><time>—</time><span class="kind-dot"></span><span class="mut">Έλεγχος ανά ${interval} δευτερόλεπτα.</span></li>`;
+    `<li><time>${hhmm(h.ts)}</time><span class="sdot ${KIND_DOT[h.kind] || ""}"></span><span>${esc(h.text)}</span></li>`
+  ).join("") || `<li><time>—</time><span class="sdot"></span><span class="mut">Έλεγχος ανά ${interval}s.</span></li>`;
 
-  $("devinfo").textContent = `frame ${d.frame || "-"} · ${d.status} · ${d.seconds ?? "-"} s · επιβεβαίωση ${d.confirm || "-"} · ` +
+  $("devinfo").textContent = `frame ${d.frame || "-"} · ${d.status} · ${d.seconds ?? "-"}s · επιβεβαίωση ${d.confirm || "-"} · ` +
     `${d.frames} frames / ${d.model_calls} κλήσεις μοντέλου` + (d.diff !== undefined ? ` · διαφορά ${d.diff}` : "") +
     (d.agent_run ? ` · agent ${d.agent_run}` : "") + "\n" + JSON.stringify(d.findings || [], null, 1).slice(0, 1500);
 }
 
-// ---- βρόχος -----------------------------------------------------------------
 setInterval(() => {
-  if (paused || usingFile) { $("count").textContent = paused ? "σε παύση" : (usingFile ? "προβολή αρχείου" : ""); return; }
+  if (paused || usingFile) { $("count").textContent = paused ? "σε παύση" : (usingFile ? "αρχείο εικόνας" : ""); return; }
   countdown -= 1;
-  $("count").textContent = sending ? "ανάλυση εικόνας…" : `επόμενη σάρωση ${Math.max(countdown, 0)}s`;
+  $("count").textContent = sending ? "ανάλυση…" : `${Math.max(countdown, 0)}s`;
   if (countdown <= 0) { countdown = interval; scan(); }
 }, 1000);
 
@@ -584,8 +664,8 @@ $("ref").onclick = async () => {
   const body = new FormData(); body.append("file", await snapshot(), "ref.jpg");
   const r = await fetch("/api/shelf/reference", { method: "POST", body });
   if (r.ok) {
-    $("ref").textContent = "Αποθηκεύτηκε ως αναφορά";
-    setTimeout(() => $("ref").textContent = "Ορισμός ως σωστό ράφι", 2500);
+    $("ref").textContent = "Αποθηκεύτηκε";
+    setTimeout(() => $("ref").textContent = "Ορισμός αναφοράς", 2200);
     fetch("/api/live/status").then(r => r.json()).then(render);
   }
 };
@@ -619,12 +699,11 @@ video.addEventListener("loadedmetadata", draw);
 (async () => {
   const s = await (await fetch("/api/live/status")).json();
   interval = s.interval; render(s);
-  $("mode").textContent = s.provider === "mock" ? "Μοντέλο: Mock" : s.model;
-  $("mode").className = "pill " + (s.provider === "mock" ? "warn" : "ok");
+  $("mode").textContent = s.provider === "mock" ? "mock" : s.model;
   try { await openCamera(); $("hint").hidden = true; countdown = 2; }
   catch (e) {
     $("hint").hidden = false;
-    $("hint").innerHTML = `<div>Δεν βρέθηκε ενεργή κάμερα (${esc(e.message)}).<br>Άνοιξε τη σελίδα από <code>localhost</code> ή HTTPS, ή ενεργοποίησε τις <a href="?dev=1">Δοκιμές</a> για φόρτωση εικόνας από αρχείο.</div>`;
+    $("hint").innerHTML = `<div>Δεν βρέθηκε ενεργή κάμερα (${esc(e.message)}).<br>Άνοιξε από <code>localhost</code> / HTTPS ή ενεργοποίησε τις <a href="?dev=1">Δοκιμές</a> για φόρτωση αρχείου.</div>`;
   }
 })();
 </script>

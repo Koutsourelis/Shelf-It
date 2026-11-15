@@ -2,149 +2,380 @@
 <html lang="el">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ShelfSense · Κονσόλα Agent</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f7">
+<title>Κονσόλα · ShelfSense</title>
 <link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/ui/app.css">
+<script src="/ui/shell.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
-:root {
-  color-scheme: light;
-  --bg: #f6f4ee; --panel: #ffffff; --panel2: #efece3; --line: #dedad0; --text: #141f1a; --muted: #5c6b63;
-  --accent: #0f6b4f; --accent-soft: #e2f1ea; --ok: #157347; --ok-soft: #e3f3eb; --warn: #b45309; --warn-soft: #fef3e2;
-  --err: #be2e26; --err-soft: #fdeceb; --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
-}
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 'Inter', -apple-system, "Segoe UI", system-ui, sans-serif; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
-header { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
-header h1 { font-size: 16px; margin: 0; letter-spacing: .2px; }
-.badge { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--panel2); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
-.badge.on { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
-.badge.live { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
-.spacer { flex: 1; }
-main { flex: 1; display: grid; grid-template-columns: 310px minmax(0, 1fr) 330px; min-height: 0; }
-section { min-height: 0; overflow-y: auto; padding: 16px; }
-#left, #right { background: var(--panel); }
-#left { border-right: 1px solid var(--line); } #right { border-left: 1px solid var(--line); }
-h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 18px 0 8px; font-weight: 600; }
-h2:first-child { margin-top: 0; }
-select, textarea, button { font: inherit; color: inherit; }
-select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
-textarea { min-height: 84px; resize: vertical; }
-textarea:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-button { cursor: pointer; border: 1px solid var(--line); background: var(--panel2); border-radius: 8px; padding: 7px 12px; }
-button:hover { border-color: var(--accent); }
-button.primary { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; width: 100%; margin-top: 8px; padding: 9px; }
-button.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; font-weight: 600; }
-button.no { background: var(--err-soft); color: var(--err); border-color: transparent; }
-.chip { display: block; width: 100%; text-align: left; font-size: 12.5px; margin-top: 6px; color: var(--muted); background: transparent; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.grid2 button { font-size: 12.5px; }
-.run { display: flex; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
-.run:hover { background: var(--panel2); } .run.sel { background: var(--accent-soft); border-color: var(--accent); }
-.run .g { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
-.dot.running { background: var(--accent); animation: pulse 1s infinite; } .dot.done { background: var(--ok); }
-.dot.error, .dot.max_steps, .dot.cancelled, .dot.refusal, .dot.max_tokens { background: var(--err); }
-@keyframes pulse { 50% { opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { .dot.running { animation: none; } }
-#center { padding: 0; display: flex; flex-direction: column; min-width: 0; }
-#runhead { padding: 16px 22px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
-#goal { font-size: 17px; font-weight: 600; margin: 0 0 6px; overflow-wrap: anywhere; }
-#meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-#plan { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; }
-#plan li { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; color: var(--muted); }
-#plan li.in_progress { color: var(--text); font-weight: 600; } #plan li.done { text-decoration: line-through; }
-#plan .mark { width: 16px; flex: none; text-align: center; color: var(--accent); }
-#plan li.done .mark { color: var(--ok); }
-#timeline { flex: 1; overflow-y: auto; padding: 18px 22px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; }
-.ev { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; max-width: 880px; overflow-wrap: anywhere; }
-.ev.thought { background: transparent; border: 0; padding: 2px 4px; color: var(--muted); font-style: italic; }
-.ev.notify { background: var(--accent-soft); border-color: transparent; }
-.ev.final { border-color: var(--ok); background: var(--ok-soft); white-space: pre-wrap; font-size: 15px; }
-.ev.final.bad { border-color: var(--err); background: var(--err-soft); }
-.ev.approval { border-color: var(--warn); background: var(--warn-soft); }
-.ev.log { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: pre-wrap; }
-.tool summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; list-style: none; }
-.tool summary::-webkit-details-marker { display: none; }
-.tname { font-family: var(--mono); font-weight: 600; color: var(--accent); white-space: nowrap; }
-.targs { color: var(--muted); font-size: 12.5px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tstat { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.tstat.err { color: var(--err); } .tstat.ok { color: var(--ok); }
-pre { font-family: var(--mono); font-size: 12px; background: var(--panel2); padding: 9px; border-radius: 7px; overflow-x: auto; white-space: pre-wrap; margin: 8px 0 0; max-height: 320px; overflow-y: auto; }
-.ev img, #lastshot img { max-width: 100%; border-radius: 7px; border: 1px solid var(--line); display: block; }
-.ev.shot img { max-height: 300px; }
-.lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
-.row { display: flex; gap: 8px; margin-top: 10px; }
-.stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-.stat { background: var(--panel2); border-radius: 8px; padding: 8px 10px; }
-.stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; } .stat span { font-size: 11.5px; color: var(--muted); }
-.art { display: flex; gap: 8px; align-items: center; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; text-decoration: none; color: inherit; overflow-wrap: anywhere; }
-.art:hover { border-color: var(--accent); }
-.art .ext { font-family: var(--mono); font-size: 11px; background: var(--accent-soft); color: var(--accent); border-radius: 5px; padding: 1px 6px; text-transform: uppercase; flex: none; }
-.au { font-size: 12.5px; padding: 7px 9px; border-left: 3px solid var(--accent); background: var(--panel2); border-radius: 0 7px 7px 0; margin-top: 6px; overflow-wrap: anywhere; }
-.au code { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
-.ev.hero { border: 0; background: var(--accent); color: #fff; padding: 20px 24px; }
-.ev.hero .v { font-size: 44px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.ev.hero .l { font-size: 17px; font-weight: 600; margin-top: 4px; }
-.ev.hero .d { font-size: 13px; opacity: .85; margin-top: 6px; }
-#brand { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
-#brand img { height: 24px; width: 24px; border-radius: 6px; display: block; }
-#tagline { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-#presentBtn { font-size: 12px; padding: 3px 10px; }
-/* Λειτουργία παρουσίασης: μεγαλύτερα γράμματα, λιγότερος θόρυβος. Πλήκτρο P ή ?present=1 */
-body.present { zoom: 1.25; height: calc(100vh / 1.25); width: calc(100vw / 1.25); }
-body.present .ev.log, body.present #s-tokens, body.present #b-model, body.present #b-tg, body.present #lists { display: none; }
-body.present #timeline { gap: 12px; }
-@media (min-width: 1051px) { body.present main { grid-template-columns: 250px minmax(0, 1fr) 280px; } }
-.empty { color: var(--muted); padding: 60px 22px; text-align: center; }
-#toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 99px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
-#toast.show { opacity: 1; }
-#pages { display: flex; gap: 2px; margin-left: 10px; }
-#pages a { color: var(--muted); text-decoration: none; font-size: 13px; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
-@media (max-width: 1250px) { #tagline { display: none; } }
-#pages a:hover { color: var(--text); background: var(--panel2, rgba(127,127,127,.15)); }
-#sys { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50; display: grid; place-items: center; padding: 20px; }
-#sys[hidden] { display: none; }
-.sysbox { background: var(--bg); color: var(--text); border-radius: 12px; width: min(900px, 100%); max-height: 88vh; overflow: auto; padding: 18px 22px; }
-.syshead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.sysbox table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 16px; }
-.sysbox td, .sysbox th { text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(127,127,127,.2); vertical-align: top; }
-.sysbox h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 4px; }
-.sysbox .ok { color: #2ea043; font-weight: 600; } .sysbox .no { color: #e5484d; font-weight: 600; } .sysbox .mid { color: #d29922; font-weight: 600; }
-.sysbox code { font-size: 12px; }
-@media (max-width: 1050px) { main { grid-template-columns: 1fr; overflow-y: auto; } section { overflow: visible; } #left, #right { border: 0; } }
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; }
+
+  .console-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--label-secondary);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    color: var(--label-secondary);
+    white-space: nowrap;
+  }
+  .badge.on { background: var(--sys-green-tint); color: var(--sys-green); }
+  .badge.live { background: var(--sys-blue-tint); color: var(--sys-blue); }
+
+  main.console-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) 310px;
+    min-height: 0;
+  }
+  section.pane { min-height: 0; overflow-y: auto; padding: 14px 16px 24px; }
+  #left, #right { background: var(--bg-primary); }
+  #left { border-right: 1px solid var(--separator); }
+  #right { border-left: 1px solid var(--separator); }
+
+  #left h2, #right h2 {
+    font-size: var(--fs-section);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--label-secondary);
+    margin: 16px 0 6px;
+  }
+  #left h2:first-child, #right h2:first-child { margin-top: 0; }
+
+  select, textarea {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--control-border);
+    border-radius: var(--r-control);
+    padding: 6px 9px;
+    color: var(--label-primary);
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+  }
+  textarea { min-height: 78px; resize: vertical; line-height: 1.4; }
+
+  button.primary {
+    width: 100%;
+    margin-top: 8px;
+    min-height: 30px;
+  }
+  button.no { background: var(--sys-red-tint); color: var(--sys-red); }
+  .chip {
+    display: block;
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    white-space: normal;
+    line-height: 1.35;
+    padding: 6px 8px;
+    min-height: 0;
+    font-size: 12px;
+    margin-top: 5px;
+    color: var(--label-secondary);
+    background: transparent;
+    border-color: var(--separator);
+  }
+  @media (hover: hover) {
+    .chip:hover { background: var(--bg-hover); color: var(--label-primary); }
+  }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .grid2 button { font-size: 12px; padding: 0 8px; }
+
+  .run {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: var(--r-control);
+    cursor: pointer;
+    transition: background 120ms var(--apple-ease);
+  }
+  @media (hover: hover) {
+    .run:hover { background: var(--bg-hover); }
+  }
+  .run.sel {
+    background: var(--sys-blue-tint);
+    color: var(--sys-blue);
+  }
+  .run .g {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12.5px;
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--label-tertiary);
+    flex: none;
+  }
+  .dot.running { background: var(--sys-blue); animation: pulse 1.2s var(--apple-ease) infinite; }
+  .dot.done { background: var(--sys-green); }
+  .dot.error, .dot.max_steps, .dot.cancelled, .dot.refusal, .dot.max_tokens { background: var(--sys-red); }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+
+  /* Center Run Stream */
+  #center { padding: 0; display: flex; flex-direction: column; min-width: 0; background: var(--bg-canvas); }
+  #runhead {
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--separator);
+    background: var(--bg-primary);
+  }
+  #goal { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; overflow-wrap: anywhere; }
+  #meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  #plan { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+  #plan li { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; color: var(--label-secondary); }
+  #plan li.in_progress { color: var(--label-primary); font-weight: 500; }
+  #plan li.done { text-decoration: line-through; color: var(--label-tertiary); }
+  #plan .mark { width: 14px; flex: none; text-align: center; color: var(--sys-blue); font-family: var(--font-mono); }
+  #plan li.done .mark { color: var(--sys-green); }
+
+  #timeline {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px 36px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-content: start;
+  }
+  .ev {
+    background: var(--bg-primary);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--r-group);
+    padding: 10px 13px;
+    max-width: 860px;
+    overflow-wrap: anywhere;
+  }
+  .ev.thought {
+    background: transparent;
+    border: 0;
+    padding: 2px 4px;
+    color: var(--label-secondary);
+    font-size: 12.5px;
+  }
+  .ev.notify { background: var(--sys-blue-tint); border-color: transparent; }
+  .ev.final { background: var(--sys-green-tint); border-color: transparent; white-space: pre-wrap; font-size: 13.5px; }
+  .ev.final.bad { background: var(--sys-red-tint); border-color: transparent; }
+  .ev.approval { background: var(--sys-orange-tint); border-color: transparent; }
+  .ev.log { font-family: var(--font-mono); font-size: 11.5px; color: var(--label-secondary); white-space: pre-wrap; }
+
+  .tool summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; list-style: none; }
+  .tool summary::-webkit-details-marker { display: none; }
+  .tname { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--sys-blue); white-space: nowrap; }
+  .targs { color: var(--label-secondary); font-size: 12px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tstat { font-family: var(--font-mono); font-size: 11.5px; color: var(--label-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tstat.err { color: var(--sys-red); }
+  .tstat.ok { color: var(--sys-green); }
+
+  pre {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--bg-secondary);
+    padding: 8px 10px;
+    border-radius: var(--r-control);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    margin: 8px 0 0;
+    max-height: 300px;
+    overflow-y: auto;
+    color: var(--label-primary);
+  }
+  .ev img, #lastshot img { max-width: 100%; border-radius: 6px; border: 1px solid var(--surface-border); display: block; }
+  .ev.shot img { max-height: 280px; }
+  .lbl { font-size: 11px; font-weight: 500; color: var(--label-secondary); margin-bottom: 4px; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* Right Inspector Flat Metrics & Audit */
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border: 1px solid var(--separator);
+    border-radius: var(--r-control);
+    overflow: hidden;
+  }
+  .stat {
+    padding: 8px 10px;
+    border-right: 1px solid var(--separator);
+  }
+  .stat:last-child { border-right: 0; }
+  .stat b {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat span { font-size: 11px; color: var(--label-secondary); }
+
+  .art {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--separator);
+    text-decoration: none;
+    color: var(--label-primary);
+    font-size: 12.5px;
+    overflow-wrap: anywhere;
+  }
+  .art:last-child { border-bottom: 0; }
+  .art .ext {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    background: var(--bg-secondary);
+    color: var(--label-secondary);
+    border-radius: 4px;
+    padding: 1px 5px;
+    flex: none;
+  }
+
+  .au {
+    font-size: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--separator);
+    overflow-wrap: anywhere;
+  }
+  .au:last-child { border-bottom: 0; }
+  .au code { font-family: var(--font-mono); font-size: 11px; color: var(--label-secondary); }
+
+  .ev.hero {
+    border: 1px solid var(--surface-border);
+    background: var(--bg-primary);
+    padding: 16px 20px;
+  }
+  .ev.hero .v { font-family: var(--font-mono); font-size: 32px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--label-primary); }
+  .ev.hero .l { font-size: 14px; font-weight: 600; margin-top: 4px; color: var(--label-primary); }
+  .ev.hero .d { font-size: 12.5px; color: var(--label-secondary); margin-top: 4px; }
+
+  /* Presentation Mode (?present=1 or key P) */
+  body.present { zoom: 1.22; height: calc(100vh / 1.22); width: calc(100vw / 1.22); }
+  body.present .ev.log, body.present #s-tokens, body.present #b-model, body.present #b-tg, body.present #lists { display: none; }
+  @media (min-width: 1051px) { body.present main.console-grid { grid-template-columns: 240px minmax(0, 1fr) 270px; } }
+
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--label-primary);
+    color: var(--bg-primary);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    opacity: 0;
+    transition: opacity 180ms var(--apple-ease);
+    pointer-events: none;
+    max-width: 90vw;
+    z-index: 60;
+  }
+  #toast.show { opacity: 1; }
+
+  /* macOS Sheet Modal for System Diagnostics */
+  #sys {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    animation: fadeSheet 200ms ease-out;
+  }
+  @keyframes fadeSheet { from { opacity: 0; } to { opacity: 1; } }
+  #sys[hidden] { display: none; }
+  .sysbox {
+    background: var(--bg-primary);
+    color: var(--label-primary);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--r-sheet);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+    width: min(860px, 100%);
+    max-height: 86vh;
+    overflow: auto;
+    padding: 18px 22px;
+  }
+  .syshead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .sysbox table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 4px 0 14px; }
+  .sysbox td, .sysbox th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--separator); vertical-align: top; }
+  .sysbox th { color: var(--label-secondary); font-weight: 500; width: 34%; }
+  .sysbox h3 { font-size: var(--fs-section); font-weight: 500; color: var(--label-secondary); margin: 14px 0 4px; }
+  .sysbox .ok { color: var(--sys-green); font-weight: 600; }
+  .sysbox .no { color: var(--sys-red); font-weight: 600; }
+  .sysbox .mid { color: var(--sys-orange); font-weight: 600; }
+
+  @media (max-width: 1050px) {
+    main.console-grid { grid-template-columns: 1fr; overflow-y: auto; }
+    section.pane { overflow: visible; }
+    #left, #right { border: 0; border-bottom: 1px solid var(--separator); }
+  }
 </style>
 </head>
-<body>
-<header>
-  <div id="brand"><img id="logo" alt="" hidden><h1 id="pname">Agent Console</h1></div>
-  <span id="tagline"></span>
-  <span class="badge" id="b-model">…</span>
-  <span class="badge" id="b-watch">Προληπτικοί έλεγχοι</span>
-  <span class="badge" id="b-tg">Telegram</span>
-  <nav id="pages"><a href="/">← Αρχική</a><a href="/shelf?dev=1">Ράφι</a><a href="/tasks">Εργασίες</a><a href="/portal/orders">Αποθήκη</a></nav>
-  <span class="spacer"></span>
-  <button id="sysBtn" title="Ρυθμίσεις, τι λείπει, έλεγχος εγκατάστασης">Σύστημα</button>
-  <button id="presentBtn" title="Λειτουργία παρουσίασης (πλήκτρο P)">Παρουσίαση</button>
-  <span class="badge" id="b-conn">σύνδεση…</span>
+<body class="has-tabbar">
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px;min-width:0">
+    <a class="brand" href="/"><img id="logo" src="/ui/logo.svg" alt=""><span id="pname">ShelfSense</span></a>
+    <span id="tagline" hidden></span>
+  </div>
+  <nav class="seg-nav" aria-label="Κύρια πλοήγηση">
+    <a href="/">Αρχική</a>
+    <a href="/shelf">Ράφι</a>
+    <a href="/tasks">Εργασίες</a>
+    <a href="/portal/orders">Αποθήκη</a>
+    <a class="on" href="/dev">Κονσόλα</a>
+  </nav>
+  <div class="right">
+    <span class="badge mono" id="b-model">…</span>
+    <span class="badge" id="b-watch" hidden>Έλεγχοι</span>
+    <span class="badge" id="b-tg" hidden>Telegram</span>
+    <button type="button" class="ghost" id="sysBtn" style="min-height:24px;padding:0 9px;font-size:12px" title="Κατάσταση συστήματος & ρυθμίσεις">Σύστημα</button>
+    <button type="button" class="ghost" id="presentBtn" style="min-height:24px;padding:0 9px;font-size:12px" title="Λειτουργία παρουσίασης (πλήκτρο P)">Παρουσίαση</button>
+    <span class="badge" id="b-conn">σύνδεση…</span>
+    <button type="button" class="theme-btn" data-theme-toggle aria-label="Εναλλαγή θέματος">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16Z" fill="currentColor" stroke="none"/></svg>
+      <span class="theme-lbl">Auto</span>
+    </button>
+  </div>
 </header>
-<main>
-  <section id="left">
+
+<main class="console-grid">
+  <section id="left" class="pane">
     <h2>Ρόλος</h2>
     <select id="scenario" aria-label="Ρόλος του agent"></select>
-    <div id="sdesc" style="color:var(--muted);font-size:12.5px;margin-top:6px"></div>
+    <div id="sdesc" class="mut" style="font-size:12px;margin-top:5px;line-height:1.4"></div>
+
     <h2>Στόχος</h2>
-    <textarea id="goalInput" placeholder="Γράψε τι θέλεις να γίνει…" aria-label="Στόχος"></textarea>
+    <textarea id="goalInput" placeholder="Γράψε τι θέλεις να ελέγξει ο agent…" aria-label="Στόχος"></textarea>
     <button class="primary" id="go">Ανάθεση στον agent</button>
     <div id="examples"></div>
+
     <h2>Χειριστήρια demo</h2>
     <div class="grid2">
-      <button onclick="window.open('/capture')" title="Ανοίγει τη σελίδα λήψης φωτογραφίας (η ίδια ανοίγει και από το κινητό)">Φωτογραφία ραφιού</button>
-      <button onclick="window.open('/portal/orders')" title="Οι παραγγελίες που έφτασαν στην κεντρική αποθήκη">Παραγγελίες</button>
-      <button data-demo="check_now" title="Ψάχνει τώρα για νέα φωτογραφία στο workspace/photos">Έλεγχος τώρα</button>
-      <button data-demo="reset" title="Ξαναχτίζει τα δεδομένα και σβήνει ελέγχους και παραγγελίες">Επαναφορά</button>
+      <button class="ghost" onclick="window.open('/capture')" title="Ανοίγει τη σελίδα λήψης φωτογραφίας">Σάρωση</button>
+      <button class="ghost" onclick="window.open('/portal/orders')" title="Παραγγελίες στην κεντρική αποθήκη">Παραγγελίες</button>
+      <button class="ghost" data-demo="check_now" title="Άμεσος έλεγχος νέας φωτογραφίας στο workspace/photos">Έλεγχος τώρα</button>
+      <button class="ghost" data-demo="reset" title="Επαναφορά βάσης, εργασιών και παραγγελιών">Επαναφορά</button>
     </div>
+
     <div id="lists">
       <h2>Εκτελέσεις</h2>
       <div id="runs"></div>
@@ -159,55 +390,86 @@ body.present #timeline { gap: 12px; }
       <div id="meta"></div>
       <ul id="plan"></ul>
     </div>
-    <div id="timeline"><div class="empty">Δώσε έναν στόχο αριστερά ή πάτα ένα χειριστήριο demo.<br>Ό,τι κάνει ο agent θα εμφανίζεται εδώ ζωντανά.</div></div>
+    <div id="timeline">
+      <div class="empty" style="justify-content:center;padding:48px 20px">Δώσε έναν στόχο αριστερά ή επίλεξε μία υπάρχουσα εκτέλεση.</div>
+    </div>
   </section>
 
-  <section id="right">
+  <section id="right" class="pane">
     <h2>Μετρήσεις</h2>
     <div class="stats">
       <div class="stat"><b id="s-steps">0</b><span>βήματα</span></div>
       <div class="stat"><b id="s-tools">0</b><span>εργαλεία</span></div>
       <div class="stat"><b id="s-time">0s</b><span>χρόνος</span></div>
     </div>
-    <div style="color:var(--muted);font-size:12px;margin-top:6px" id="s-tokens"></div>
+    <div class="mono mut" style="font-size:11px;margin-top:6px" id="s-tokens"></div>
+
     <h2>Παραδοτέα</h2>
-    <div id="arts"><div style="color:var(--muted);font-size:13px">Κανένα ακόμη.</div></div>
+    <div id="arts"><div class="mut" style="font-size:12px">Κανένα ακόμη.</div></div>
+
     <h2>Ίχνος ελέγχου</h2>
-    <div id="trail"><div style="color:var(--muted);font-size:13px">Κανένας αριθμός ακόμη.</div></div>
-    <h2>Τι βλέπει ο agent</h2>
-    <div id="lastshot"><div style="color:var(--muted);font-size:13px">Δεν έχει ανοίξει browser.</div></div>
+    <div id="trail"><div class="mut" style="font-size:12px">Κανένας υπολογισμός ακόμη.</div></div>
+
+    <h2> Browser στιγμιότυπο</h2>
+    <div id="lastshot"><div class="mut" style="font-size:12px">Δεν έχει ανοίξει browser.</div></div>
   </section>
 </main>
+
 <div id="sys" hidden>
-  <div class="sysbox">
-    <div class="syshead"><b>Κατάσταση συστήματος</b><button id="sysClose">Κλείσιμο</button></div>
-    <div id="sysBody">Φορτώνω…</div>
+  <div class="sysbox" role="dialog" aria-modal="true" aria-labelledby="sysTitle">
+    <div class="syshead"><b id="sysTitle">Κατάσταση συστήματος</b><button class="ghost" id="sysClose">Κλείσιμο</button></div>
+    <div id="sysBody">Φόρτωση…</div>
   </div>
 </div>
 <div id="toast" role="status"></div>
 
+<nav class="ios-tabbar" aria-label="Πλοήγηση κινητού">
+  <a href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" stroke-linejoin="round"/></svg>
+    <span>Αρχική</span>
+  </a>
+  <a href="/tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round"/></svg>
+    <span>Εργασίες</span>
+    <span class="tab-badge" data-tab-tasks-badge hidden>0</span>
+  </a>
+  <a href="/capture">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    <span>Σάρωση</span>
+  </a>
+  <a href="/portal/orders">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8Z" stroke-linejoin="round"/><path d="M3.3 8L12 13l8.7-5M12 13v8"/></svg>
+    <span>Αποθήκη</span>
+  </a>
+</nav>
+
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const runs = new Map();      // run_id -> {id, goal, scenario, source, status, events[], started, ended}
+const runs = new Map();
 let selected = null, cfg = null, timer = null;
 const STATUS = { running: "σε εξέλιξη", done: "ολοκληρώθηκε", error: "σφάλμα", max_steps: "όριο βημάτων", cancelled: "ακυρώθηκε", refusal: "άρνηση", max_tokens: "όριο κειμένου" };
-const SOURCE = { console: "κονσόλα", telegram: "Telegram", watcher: "ξεκίνησε μόνος του" };
+const SOURCE = { console: "κονσόλα", telegram: "Telegram", watcher: "αυτόματος έλεγχος", camera: "κάμερα" };
 
-function toast(text) { const t = $("toast"); t.textContent = text; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3500); }
+function toast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 3500);
+}
 async function api(path, body) {
   const r = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error((await r.text()) || r.status);
   return r.json();
 }
 
-// ---- αρχικοποίηση -----------------------------------------------------
 async function init() {
   cfg = await api("/api/config");
-  $("pname").textContent = document.title = cfg.name || "Agent Console";
-  $("tagline").textContent = cfg.tagline || "";
+  $("pname").textContent = cfg.name || "ShelfSense";
+  document.title = "Κονσόλα · " + (cfg.name || "ShelfSense");
   if (cfg.logo) { $("logo").src = cfg.logo; $("logo").hidden = false; }
-  $("b-model").textContent = cfg.provider === "mock" ? "ψεύτικο μοντέλο (χωρίς κλειδί)" : cfg.model;
+  $("b-model").textContent = cfg.provider === "mock" ? "mock" : cfg.model;
   $("b-watch").classList.toggle("on", cfg.watchers);
   $("b-tg").classList.toggle("on", cfg.telegram);
   $("scenario").innerHTML = cfg.scenarios.map(s => `<option value="${esc(s.name)}">${esc(s.title)}</option>`).join("");
@@ -215,11 +477,13 @@ async function init() {
   renderScenario();
   refreshSaved();
   connect();
+  fetch("/api/live/status").then(r => r.json()).then(st => window.ShelfSenseShell?.setTaskBadge(st.open)).catch(() => {});
 }
+
 function renderScenario() {
   const s = cfg.scenarios.find(x => x.name === $("scenario").value);
   $("sdesc").textContent = s.description;
-  $("examples").innerHTML = s.examples.map(e => `<button class="chip">${esc(e)}</button>`).join("");
+  $("examples").innerHTML = s.examples.map(e => `<button class="chip ghost">${esc(e)}</button>`).join("");
   $("examples").querySelectorAll("button").forEach(b => b.onclick = () => { $("goalInput").value = b.textContent; $("goalInput").focus(); });
 }
 $("scenario").onchange = renderScenario;
@@ -233,10 +497,11 @@ $("goalInput").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ct
 document.querySelectorAll("[data-demo]").forEach(b => b.onclick = async () => {
   try { toast((await api("/api/demo/" + b.dataset.demo, {})).text); } catch (e) { toast("Αποτυχία: " + e.message); }
 });
-// ---- λειτουργία παρουσίασης --------------------------------------------
+
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 function setPresent(on) {
   document.body.classList.toggle("present", on);
+  $("presentBtn").classList.toggle("on", on);
   $("presentBtn").textContent = on ? "Κανονική προβολή" : "Παρουσίαση";
   store("present", on ? "1" : "0");
 }
@@ -246,19 +511,20 @@ function setPresent(on) {
 }
 $("presentBtn").onclick = () => setPresent(!document.body.classList.contains("present"));
 document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("sys").hidden) { $("sys").hidden = true; return; }
   if (e.key.toLowerCase() !== "p" || e.ctrlKey || e.metaKey || e.altKey) return;
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement?.tagName || "")) return;
   $("presentBtn").click();
 });
+
 async function refreshSaved() {
   const data = await api("/api/runs");
   $("saved").innerHTML = data.saved.filter(id => !id.includes("-replay-")).slice(0, 12).map(id =>
-    `<div class="run"><span class="g">${esc(id)}</span><button data-replay="${esc(id)}">▶</button></div>`).join("") ||
-    `<div style="color:var(--muted);font-size:13px">Καμία ακόμη.</div>`;
+    `<div class="run"><span class="g mono" style="font-size:11.5px">${esc(id)}</span><button class="ghost" style="min-height:22px;padding:0 7px;font-size:11px" data-replay="${esc(id)}" aria-label="Αναπαραγωγή ${esc(id)}">▶</button></div>`).join("") ||
+    `<div class="mut" style="font-size:12px">Καμία ακόμη.</div>`;
   $("saved").querySelectorAll("[data-replay]").forEach(b => b.onclick = () => api(`/api/runs/${b.dataset.replay}/replay`, {}).catch(e => toast(e.message)));
 }
 
-// ---- ζωντανή ροή ------------------------------------------------------
 function connect() {
   const es = new EventSource("/api/events");
   es.onopen = () => { $("b-conn").textContent = "ζωντανά"; $("b-conn").classList.add("on"); };
@@ -272,7 +538,7 @@ function handle(ev) {
   run.events.push(ev);
   if (ev.type === "run_start") {
     Object.assign(run, { goal: ev.goal, scenario: ev.scenario_title, source: ev.source, model: ev.model, started: ev.ts, replay: !!ev.replay });
-    if (!selected || ev.source === "watcher" || ev.replay || Date.now() / 1000 - ev.ts < 5) selected = run.id;
+    if (!selected || ev.source === "watcher" || ev.source === "camera" || ev.replay || Date.now() / 1000 - ev.ts < 5) selected = run.id;
   }
   if (ev.type === "run_end") { run.status = ev.status; run.ended = ev.ts; refreshSaved(); }
   renderRuns();
@@ -285,7 +551,7 @@ function renderRuns() {
   const list = [...runs.values()].reverse();
   $("runs").innerHTML = list.map(r =>
     `<div class="run ${r.id === selected ? "sel" : ""}" data-id="${esc(r.id)}"><span class="dot ${esc(r.status)}"></span><span class="g">${esc(r.goal || r.id)}</span></div>`
-  ).join("") || `<div style="color:var(--muted);font-size:13px">Καμία ακόμη.</div>`;
+  ).join("") || `<div class="mut" style="font-size:12px">Καμία ακόμη.</div>`;
   $("runs").querySelectorAll(".run").forEach(el => el.onclick = () => { selected = el.dataset.id; renderRuns(); renderRun(); });
 }
 
@@ -316,7 +582,7 @@ function renderRun() {
       case "notify": html.push(`<div class="ev notify"><div class="lbl">Μήνυμα προς τον χρήστη</div>${esc(ev.text)}</div>`); break;
       case "audit":
         trail.push(ev.kind === "compute"
-          ? `<div class="au"><b>${esc(ev.label)}</b> = ${esc(ev.result)}<br><code>${esc(ev.expression)}</code> · ${esc(JSON.stringify(ev.variables))}</div>`
+          ? `<div class="au"><b>${esc(ev.label)}</b> = <span class="mono">${esc(ev.result)}</span><br><code>${esc(ev.expression)}</code> · ${esc(JSON.stringify(ev.variables))}</div>`
           : `<div class="au"><b>Διαβάστηκε από</b> ${esc(ev.source)}<br><code>${esc(JSON.stringify(ev.values))}</code></div>`);
         break;
       case "headline":
@@ -356,24 +622,24 @@ function renderRun() {
   $("meta").innerHTML =
     `<span class="badge ${run.status === "running" ? "live" : run.status === "done" ? "on" : ""}">${esc(STATUS[run.status] || run.status)}</span>` +
     `<span class="badge">${esc(run.scenario || "")}</span>` +
-    `<span class="badge ${run.source === "watcher" ? "live" : ""}">${esc(SOURCE[run.source] || run.source || "")}</span>` +
+    `<span class="badge ${run.source === "watcher" || run.source === "camera" ? "live" : ""}">${esc(SOURCE[run.source] || run.source || "")}</span>` +
     (run.replay ? `<span class="badge">replay</span>` : "") +
-    (run.status === "running" && !run.replay ? `<button id="cancel" style="padding:1px 9px;font-size:12px">Διακοπή</button>` : "");
+    (run.status === "running" && !run.replay ? `<button class="ghost" id="cancel" style="min-height:22px;padding:0 8px;font-size:11.5px">Διακοπή</button>` : "");
   const c = $("cancel"); if (c) c.onclick = () => api(`/api/runs/${run.id}/cancel`, {});
   $("plan").innerHTML = (plan || []).map(s => `<li class="${esc(s.status)}"><span class="mark">${s.status === "done" ? "✓" : s.status === "in_progress" ? "▸" : "○"}</span>${esc(s.title)}</li>`).join("");
-  tl.innerHTML = html.join("") || `<div class="empty">Ξεκινάει…</div>`;
+  tl.innerHTML = html.join("") || `<div class="empty" style="justify-content:center;padding:36px">Ξεκινάει…</div>`;
   tl.querySelectorAll("[data-appr]").forEach(b => b.onclick = () => api("/api/approvals/" + b.dataset.appr, { approved: b.dataset.v === "1" }).catch(e => toast(e.message)));
   if (stick) tl.scrollTop = tl.scrollHeight;
 
   $("s-steps").textContent = usage ? usage.steps : 0;
   $("s-tools").textContent = tools;
-  $("s-tokens").textContent = usage && (usage.input_tokens || usage.output_tokens) ? `${usage.input_tokens.toLocaleString("el")} tokens εισόδου · ${usage.output_tokens.toLocaleString("el")} εξόδου` : "";
+  $("s-tokens").textContent = usage && (usage.input_tokens || usage.output_tokens) ? `${usage.input_tokens.toLocaleString("el")} in · ${usage.output_tokens.toLocaleString("el")} out` : "";
   $("arts").innerHTML = arts.filter(f => !f.startsWith("screens/")).map(f => {
     const ext = f.split(".").pop();
     return `<a class="art" href="/files/${encodeURI(f)}" target="_blank" rel="noopener"><span class="ext">${esc(ext)}</span>${esc(f)}</a>`;
-  }).join("") || `<div style="color:var(--muted);font-size:13px">Κανένα ακόμη.</div>`;
-  $("trail").innerHTML = trail.join("") || `<div style="color:var(--muted);font-size:13px">Κανένας αριθμός ακόμη.</div>`;
-  $("lastshot").innerHTML = lastShot ? `<img src="/files/${esc(lastShot.file)}" alt="Τελευταίο στιγμιότυπο browser">` : `<div style="color:var(--muted);font-size:13px">Δεν έχει ανοίξει browser.</div>`;
+  }).join("") || `<div class="mut" style="font-size:12px">Κανένα ακόμη.</div>`;
+  $("trail").innerHTML = trail.join("") || `<div class="mut" style="font-size:12px">Κανένας υπολογισμός ακόμη.</div>`;
+  $("lastshot").innerHTML = lastShot ? `<img src="/files/${esc(lastShot.file)}" alt="Τελευταίο στιγμιότυπο browser">` : `<div class="mut" style="font-size:12px">Δεν έχει ανοίξει browser.</div>`;
   tick();
 }
 function tick() {
@@ -384,21 +650,23 @@ function tick() {
   show();
   if (run.status === "running" && !run.replay) timer = setInterval(show, 1000);
 }
-// ---- κατάσταση συστήματος (για την ομάδα) --------------------------------
+
 function kv(obj) {
-  return "<table>" + Object.entries(obj).map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(Array.isArray(v) ? v.join(", ") : v ?? "—")}</td></tr>`).join("") + "</table>";
+  return "<table>" + Object.entries(obj).map(([k, v]) => `<tr><th>${esc(k)}</th><td class="mono">${esc(Array.isArray(v) ? v.join(", ") : v ?? "—")}</td></tr>`).join("") + "</table>";
 }
 async function showSystem() {
   $("sys").hidden = false;
   const d = await api("/api/system");
-  const checks = d.checks.map(c => `<tr><td class="${c.level}">${c.ok ? "✓" : c.level === "no" ? "✗" : "!"}</td><td>${esc(c.text)}${c.fix ? `<br><span style="color:var(--muted)">${esc(c.fix)}</span>` : ""}</td></tr>`).join("");
-  $("sysBody").innerHTML = `<h3>Τι χρειάζεται</h3><table>${checks}</table>
-    <h3>Όραση</h3>${kv(d.vision)}<h3>Live κάμερα</h3>${kv(d.live)}<h3>Αυτονομία</h3>${kv(d.autonomy)}
+  const checks = d.checks.map(c => `<tr><td class="${c.level}" style="width:28px">${c.ok ? "✓" : c.level === "no" ? "✗" : "!"}</td><td>${esc(c.text)}${c.fix ? `<br><span class="mut">${esc(c.fix)}</span>` : ""}</td></tr>`).join("");
+  $("sysBody").innerHTML = `<h3>Έλεγχος ετοιμότητας</h3><table>${checks}</table>
+    <h3>Όραση</h3>${kv(d.vision)}<h3>Ζωντανή κάμερα</h3>${kv(d.live)}<h3>Αυτονομία</h3>${kv(d.autonomy)}
     <h3>Κινητό και κανάλια</h3>${kv(d.phone)}<h3>Agent</h3>${kv(d.agent)}<h3>Δεδομένα</h3>${kv(d.data)}
-    <h3>Ενέργειες</h3><div class="row" style="gap:8px;display:flex;flex-wrap:wrap">
-      <button data-demo="reset_tasks">Μηδενισμός εργασιών</button><button data-demo="reset">Επαναφορά όλων</button>
-      <button onclick="window.open('/shelf?dev=1')">Ράφι με εργαλεία δοκιμής</button></div>
-    <p style="color:var(--muted);font-size:12px">Οι ρυθμίσεις αλλάζουν στο <code>.env</code> (δες <code>.env.example</code>) και θέλουν restart του server.</p>`;
+    <h3>Ενέργειες</h3><div class="row" style="flex-wrap:wrap">
+      <button class="ghost" data-demo="reset_tasks">Μηδενισμός εργασιών</button>
+      <button class="ghost" data-demo="reset">Επαναφορά όλων</button>
+      <button class="ghost" onclick="window.open('/shelf?dev=1')">Οθόνη ραφιού με δοκιμές</button>
+    </div>
+    <p class="mut" style="font-size:11.5px;margin-top:10px">Οι ρυθμίσεις ορίζονται στο <code>.env</code> (βλ. <code>.env.example</code>) και απαιτούν επανεκκίνηση του server.</p>`;
 }
 $("sysBtn").onclick = showSystem;
 $("sysBody").addEventListener("click", async e => {

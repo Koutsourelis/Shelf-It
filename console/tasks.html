@@ -3,178 +3,198 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
-<title>Εργασίες Ραφιού · ShelfSense</title>
+<meta name="theme-color" content="#f2f2f7">
+<title>Εργασίες · ShelfSense</title>
 <link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/ui/app.css">
-<!-- Κινητό υπαλλήλου. Ενημερώνεται μόνο του (ροή γεγονότων). Νέα εργασία = δόνηση + ήχος (όπου επιτρέπεται).
-     Η εργασία κλείνει όταν η κάμερα δει το ράφι σωστό· η ανάληψη δείχνει ότι ο υπάλληλος ξεκίνησε. -->
+<script src="/ui/shell.js"></script>
+<!-- iOS Inset Grouped Field Queue για κινητό υπαλλήλου -->
 <style>
-  body { padding-bottom: env(safe-area-inset-bottom); }
-  .mbar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: var(--card);
-    border-bottom: 1px solid var(--line);
-    padding: 11px 16px;
+  .mobile-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 16px 16px 36px;
+  }
+  .title-bar {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
   }
-  .mbar a.brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    color: var(--fg);
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: -0.02em;
-  }
-  .mbar a.brand img { width: 22px; height: 22px; border-radius: 5px; }
-  .mbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-  #sound {
-    padding: 7px 10px;
-    min-height: 36px;
+
+  .sound-btn {
+    min-height: 32px;
+    padding: 0 10px;
     font-size: 12.5px;
-    border-radius: 7px;
+    border-radius: 999px;
   }
-  #sound.active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    border-color: var(--accent-border);
+  @media (max-width: 767px) {
+    .sound-btn { min-height: 44px; padding: 0 12px; }
   }
 
-  .wrap { max-width: 540px; padding: 16px 15px 44px; }
-
-  #scan {
+  .scan-cta {
     width: 100%;
-    min-height: 46px;
-    font-size: 14.5px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow);
+    margin-bottom: 18px;
   }
-  #scan svg { color: var(--accent); }
 
-  .t {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    overflow: hidden;
-    margin-bottom: 12px;
-    box-shadow: var(--shadow);
+  /* Flat Inset Grouped Task List (No Card-inside-Card) */
+  .task-item {
+    border-bottom: 1px solid var(--separator);
   }
-  .t.new { animation: pop 0.45s ease-out; border-color: var(--bad); }
-  @keyframes pop { from { transform: translateY(4px); opacity: 0.4; } }
-  .t.in_progress { border-color: var(--warnline); }
+  .task-item:last-child { border-bottom: 0; }
+  .task-item.fresh {
+    animation: highlightRow 600ms var(--apple-ease);
+  }
+  @keyframes highlightRow {
+    from { background: var(--sys-blue-tint); }
+    to { background: transparent; }
+  }
 
-  .t img {
+  .task-item img {
     width: 100%;
-    max-height: 220px;
+    max-height: 210px;
     object-fit: contain;
     display: block;
-    background: #141b17;
-    border-bottom: 1px solid var(--line);
+    background: #141416;
+    border-bottom: 1px solid var(--separator);
   }
-  .t .body { padding: 14px 16px 16px; }
-  .t-top { display: flex; align-items: flex-start; gap: 10px; }
-  .t .n {
-    flex: none;
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 3px 7px;
-    border-radius: 5px;
-    background: var(--badbg);
-    color: var(--bad);
-    border: 1px solid var(--badline);
-    margin-top: 1px;
+  .task-body {
+    padding: 14px 16px;
   }
-  .t.in_progress .n {
-    background: var(--warnbg);
-    color: var(--warn);
-    border-color: var(--warnline);
-  }
-  .t b { font-size: 16.5px; line-height: 1.38; letter-spacing: -0.01em; color: var(--fg); }
-  .t .meta {
+  .task-head {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+    align-items: baseline;
     gap: 8px;
-    color: var(--mut);
-    font-size: 13px;
-    margin-top: 8px;
   }
-  .t .ord-pill {
-    font-family: var(--mono);
-    font-size: 11.5px;
+  .task-idx {
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono);
+    color: var(--sys-red);
     font-weight: 600;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-border);
-    padding: 1px 7px;
-    border-radius: 4px;
+    flex: none;
   }
-  .t .acts { display: flex; gap: 10px; margin-top: 14px; }
-  .t .acts button { flex: 1; min-height: 46px; font-size: 15px; }
-  .t .claimed-box {
+  .task-item.in_progress .task-idx { color: var(--sys-orange); }
+  .task-head b {
+    font-size: var(--fs-title);
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.012em;
+    color: var(--label-primary);
+  }
+  .task-meta {
+    margin-top: 5px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono);
+    color: var(--label-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .task-actions {
     margin-top: 12px;
-    padding: 9px 12px;
-    border-radius: 7px;
-    background: var(--warnbg);
-    border: 1px solid var(--warnline);
-    color: var(--warn);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.4;
+    display: flex;
+    gap: 8px;
+  }
+  .task-actions button {
+    flex: 1;
+  }
+  .task-progress-note {
+    margin-top: 8px;
+    font-size: var(--fs-callout);
+    color: var(--sys-orange);
   }
 
-  .sec-block { margin-top: 26px; }
-  .done-list { list-style: none; padding: 0; margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
+  .done-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
   .done-list li {
     display: flex;
     align-items: baseline;
-    gap: 9px;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--line);
-    color: var(--fg2);
-    font-size: 13.5px;
+    gap: 10px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--separator);
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
   }
   .done-list li:last-child { border-bottom: 0; }
-  .done-list .chk { color: var(--ok); font-family: var(--mono); font-weight: 700; flex: none; }
+  .done-list svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 2;
+    color: var(--sys-green);
+    flex: none;
+    transform: translateY(2px);
+  }
 </style>
 </head>
-<body>
-<header class="mbar">
-  <a class="brand" href="/"><img src="/ui/logo.svg" alt="">Εργασίες</a>
+<body class="has-tabbar">
+<header class="topbar">
+  <a class="brand" href="/"><img src="/ui/logo.svg" alt="">ShelfSense</a>
+  <nav class="seg-nav" aria-label="Κύρια πλοήγηση">
+    <a href="/">Αρχική</a>
+    <a href="/shelf">Ράφι</a>
+    <a class="on" href="/tasks">Εργασίες</a>
+    <a href="/portal/orders">Αποθήκη</a>
+    <a href="/dev">Κονσόλα</a>
+  </nav>
   <div class="right">
-    <span class="pill" id="state">…</span>
-    <button type="button" id="sound" class="ghost" title="Ηχητική ειδοποίηση σε νέα εργασία">
+    <button type="button" id="sound" class="ghost sound-btn" aria-label="Ηχητική ειδοποίηση">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span id="soundLbl">Ήχος</span>
+    </button>
+    <button type="button" class="theme-btn" data-theme-toggle aria-label="Εναλλαγή θέματος">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16Z" fill="currentColor" stroke="none"/></svg>
+      <span class="theme-lbl">Auto</span>
     </button>
   </div>
 </header>
 
-<main class="wrap">
-  <a id="scan" class="btn ghost" href="/capture">
+<main class="mobile-wrap">
+  <div class="title-bar">
+    <h1 class="page-title">Εργασίες</h1>
+    <span class="status-inline" id="stateWrap" role="status" aria-live="polite">
+      <span class="sdot" id="stateDot"></span>
+      <span id="state">…</span>
+    </span>
+  </div>
+
+  <a id="scan" class="btn tinted scan-cta" href="/capture">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
     Σάρωση ραφιού με κάμερα
   </a>
 
-  <div id="list"></div>
+  <div class="sec-head"><h2 class="sec-title">Εκκρεμείς ενέργειες</h2></div>
+  <div class="group-surface" id="list"></div>
 
-  <section class="sec-block">
-    <div class="sec-head"><h2 class="sec-title">Προτάσεις διάταξης</h2></div>
-    <div id="proposals"></div>
-  </section>
+  <div class="sec-head"><h2 class="sec-title">Προτάσεις διάταξης</h2></div>
+  <div class="group-surface" id="proposals"></div>
 
-  <section class="sec-block">
-    <div class="sec-head"><h2 class="sec-title">Ολοκληρώθηκαν πρόσφατα</h2></div>
+  <div class="sec-head"><h2 class="sec-title">Ολοκληρώθηκαν πρόσφατα</h2></div>
+  <div class="group-surface">
     <ul class="done-list" id="done"></ul>
-  </section>
+  </div>
 </main>
+
+<nav class="ios-tabbar" aria-label="Πλοήγηση κινητού">
+  <a href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" stroke-linejoin="round"/></svg>
+    <span>Αρχική</span>
+  </a>
+  <a class="on" href="/tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round"/></svg>
+    <span>Εργασίες</span>
+    <span class="tab-badge" data-tab-tasks-badge hidden>0</span>
+  </a>
+  <a href="/capture">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    <span>Σάρωση</span>
+  </a>
+  <a href="/portal/orders">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8Z" stroke-linejoin="round"/><path d="M3.3 8L12 13l8.7-5M12 13v8"/></svg>
+    <span>Αποθήκη</span>
+  </a>
+</nav>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -194,7 +214,7 @@ function beep() {
 const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
 function propCard(p) {
   return `<div class="prop">
-    <div class="prop-head"><span class="tag">${esc(p.rule || "ΠΡΟΤΑΣΗ")}</span><span class="rule-lbl">${esc(RULE[p.rule] || "Διάταξη")}</span></div>
+    <div class="prop-head"><span>${esc(p.rule || "Πρόταση")} · ${esc(RULE[p.rule] || "Διάταξη")}</span></div>
     <b>${esc(p.text)}</b>
     <p class="why">${esc(p.reason)}</p>
     <div class="num">${esc(p.numbers)}</div>
@@ -203,17 +223,17 @@ function propCard(p) {
 }
 
 function card(t, i, fresh) {
-  const order = t.order && t.order.order_no ? `<span class="ord-pill">Παραγγέλθηκε · ${esc(t.order.order_no)}</span>` : "";
+  const order = t.order && t.order.order_no ? ` · Παραγγέλθηκε ${esc(t.order.order_no)}` : "";
   const m = Math.round((Date.now() / 1000 - t.created) / 60), since = m < 1 ? "μόλις τώρα" : `πριν από ${m}′`;
   const idx = String(i + 1).padStart(2, "0");
   const act = t.status === "open"
-    ? `<div class="acts"><button class="ok" data-claim="${esc(t.id)}">Ανάληψη εργασίας</button></div>`
-    : `<div class="claimed-box">Σε εξέλιξη από ${esc(t.claimed_by)} · κλείνει αυτόματα μόλις η κάμερα δει το ράφι σωστό</div>`;
-  return `<div class="t ${t.status} ${fresh ? "new" : ""}">
+    ? `<div class="task-actions"><button data-claim="${esc(t.id)}">Ανάληψη</button></div>`
+    : `<div class="task-progress-note">Σε εξέλιξη από ${esc(t.claimed_by)} · κλείνει αυτόματα από την κάμερα</div>`;
+  return `<div class="task-item ${t.status} ${fresh ? "fresh" : ""}">
     ${t.image ? `<img src="/files/${encodeURI(t.image)}" alt="Σημείο στο ράφι">` : ""}
-    <div class="body">
-      <div class="t-top"><span class="n">${idx}</span><b>${esc(t.text)}</b></div>
-      <div class="meta"><span>${since}</span>${order}</div>
+    <div class="task-body">
+      <div class="task-head"><span class="task-idx">${idx}</span><b>${esc(t.text)}</b></div>
+      <div class="task-meta">${since}${order}</div>
       ${act}
     </div>
   </div>`;
@@ -225,17 +245,23 @@ async function refresh() {
   const fresh = known ? d.tasks.filter(t => !known.has(t.id)).map(t => t.id) : [];
   if (fresh.length) beep();
   known = ids;
-  $("state").textContent = d.tasks.length ? `${d.tasks.length} ${d.tasks.length === 1 ? "ενεργή" : "ενεργές"}` : "Εντάξει";
-  $("state").className = "pill " + (d.tasks.length ? "bad" : "ok");
+  window.ShelfSenseShell?.setTaskBadge(d.tasks.length);
+
+  $("state").textContent = d.tasks.length ? `${d.tasks.length} ${d.tasks.length === 1 ? "εκκρεμής" : "εκκρεμείς"}` : "Όλα εντάξει";
+  $("stateDot").className = "sdot " + (d.tasks.length ? "bad" : "ok");
+
   $("list").innerHTML = d.tasks.length
     ? d.tasks.map((t, i) => card(t, i, fresh.includes(t.id))).join("")
-    : `<div class="card empty" style="background:var(--card)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Το ράφι είναι σωστό. Θα ενημερωθείς αυτόματα αν προκύψει έλλειψη.</div>`;
+    : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>Το ράφι είναι σωστό. Θα ειδοποιηθείς αν προκύψει έλλειψη.</div>`;
+
   const ps = d.proposals || [];
   $("proposals").innerHTML = ps.length
     ? ps.map(propCard).join("")
-    : `<div class="empty">${d.agent_status === "running" ? "Ανάλυση πωλήσεων και διάταξης σε εξέλιξη…" : "Καμία πρόταση αλλαγής θέσης αυτή τη στιγμή."}</div>`;
-  $("done").innerHTML = (d.done || []).map(t => `<li><span class="chk">✓</span><span>${esc(t.text)}</span></li>`).join("")
-    || `<li><span class="mut">Καμία ολοκληρωμένη εργασία ακόμη.</span></li>`;
+    : `<div class="empty">${d.agent_status === "running" ? "Ανάλυση πωλήσεων και διάταξης σε εξέλιξη…" : "Καμία πρόταση αλλαγής θέσης."}</div>`;
+
+  $("done").innerHTML = (d.done || []).map(t =>
+    `<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${esc(t.text)}</span></li>`
+  ).join("") || `<li><span class="tert">Καμία ολοκληρωμένη εργασία ακόμη.</span></li>`;
 }
 
 document.addEventListener("click", async e => {
@@ -251,7 +277,7 @@ document.addEventListener("click", async e => {
 
 $("sound").onclick = () => {
   soundOn = !soundOn;
-  $("sound").classList.toggle("active", soundOn);
+  $("sound").classList.toggle("on", soundOn);
   $("soundLbl").textContent = soundOn ? "Ενεργός" : "Ήχος";
   if (soundOn) { audio = audio || new AudioContext(); audio.resume(); }
 };

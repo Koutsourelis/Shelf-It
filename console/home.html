@@ -2,343 +2,325 @@
 <html lang="el">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ShelfSense · Σταθμοί Λειτουργίας</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f5f7">
+<title>ShelfSense</title>
 <link rel="icon" href="/ui/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/ui/app.css">
+<script src="/ui/shell.js"></script>
 <style>
-  .hub-head {
+  .intro {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 20px;
-    padding-bottom: 22px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 24px;
+    gap: 16px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
   }
-  .hub-head h1 {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    margin: 0 0 5px;
+  .intro p {
+    margin: 4px 0 0;
+    color: var(--label-secondary);
+    font-size: var(--fs-body);
+    max-width: 62ch;
   }
-  .hub-head p {
-    margin: 0;
-    color: var(--mut);
-    font-size: 15px;
-    max-width: 620px;
+  .telemetry {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
   }
-  .telemetry { display: flex; gap: 8px; flex-wrap: wrap; }
+  .telemetry .sep { color: var(--label-quaternary); }
 
-  .hub-grid {
+  .hub-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) 360px;
-    gap: 22px;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
     align-items: start;
   }
-  @media (max-width: 900px) { .hub-grid { grid-template-columns: 1fr; } }
-
-  /* Primary live station callout */
-  .primary-station {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 20px 22px;
-    background: var(--card);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    margin-bottom: 14px;
-    text-decoration: none;
-    color: inherit;
-    transition: border-color 0.14s ease;
-  }
-  .primary-station:hover { border-color: var(--accent); }
-  .st-role {
-    display: inline-block;
-    font-size: 11.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent);
-    margin-bottom: 4px;
-  }
-  .primary-station h2 {
-    margin: 0 0 4px;
-    font-size: 19px;
-    letter-spacing: -0.015em;
-  }
-  .primary-station p {
-    margin: 0;
-    font-size: 14px;
-    color: var(--mut);
-    line-height: 1.45;
-  }
-  .primary-station .cta-box {
-    flex: none;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-  @media (max-width: 620px) {
-    .primary-station { flex-direction: column; align-items: flex-start; }
-    .primary-station .cta-box { align-items: flex-start; }
+  @media (max-width: 860px) {
+    .hub-layout { grid-template-columns: 1fr; }
   }
 
-  /* Directory list of operational views */
-  .station-list {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-  .st-row {
-    display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) auto;
-    gap: 14px;
-    align-items: center;
-    padding: 15px 18px;
-    border-bottom: 1px solid var(--line);
-    text-decoration: none;
-    color: inherit;
-    transition: background 0.12s ease;
-  }
-  .st-row:last-child { border-bottom: 0; }
-  .st-row:hover { background: var(--bg); }
-  .st-ico {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: var(--bg);
-    border: 1px solid var(--line);
+  /* Inset Grouped Station Rows */
+  .st-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--bg-secondary);
     display: grid;
     place-items: center;
-    color: var(--fg2);
+    color: var(--label-secondary);
+    flex: none;
   }
-  .st-ico svg { width: 18px; height: 18px; stroke-width: 1.9; }
-  .st-row b { display: block; font-size: 15px; letter-spacing: -0.01em; }
-  .st-row span.desc { display: block; font-size: 13.5px; color: var(--mut); margin-top: 1px; }
-  .st-meta { text-align: right; display: flex; align-items: center; gap: 10px; }
-  .st-path {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--mut);
-    background: var(--bg);
-    border: 1px solid var(--line);
-    padding: 3px 7px;
-    border-radius: 5px;
+  .st-icon.primary {
+    background: var(--sys-blue-tint);
+    color: var(--sys-blue);
   }
-
-  /* Phone QR pairing panel */
-  .qr-card h2 {
-    font-size: 15px;
-    margin: 0 0 4px;
+  .st-icon svg {
+    width: 17px;
+    height: 17px;
+    stroke-width: 1.6;
+  }
+  .st-body { flex: 1; min-width: 0; }
+  .st-body b {
+    display: block;
+    font-size: var(--fs-title);
+    font-weight: 600;
+    color: var(--label-primary);
     letter-spacing: -0.01em;
   }
-  .qr-card p.sub {
-    margin: 0 0 14px;
-    font-size: 13.5px;
-    color: var(--mut);
+  .st-body span {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
+    line-height: 1.4;
   }
-  .seg {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    padding: 3px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    margin-bottom: 14px;
+  .st-end {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
   }
-  .seg button {
-    background: transparent;
-    border: 0;
-    color: var(--mut);
-    padding: 7px 10px;
-    border-radius: 6px;
-    font-size: 12.5px;
+  .st-route {
+    font-family: var(--font-mono);
+    font-size: var(--fs-foot);
+    color: var(--label-tertiary);
   }
-  .seg button:hover { background: var(--card2); color: var(--fg); }
-  .seg button.on {
-    background: var(--card);
-    color: var(--fg);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  .chev {
+    width: 14px;
+    height: 14px;
+    color: var(--label-tertiary);
+    stroke-width: 2;
   }
-  .qr-frame {
-    background: #ffffff;
-    border: 1px solid var(--line);
+  @media (max-width: 560px) {
+    .st-route { display: none; }
+  }
+
+  /* Pairing Panel */
+  .qr-title {
+    margin: 0 0 4px;
+    font-size: var(--fs-title);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .qr-sub {
+    margin: 0 0 12px;
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
+    line-height: 1.4;
+  }
+  .qr-well {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 10px;
-    padding: 14px;
-    width: 196px;
-    height: 196px;
-    margin: 0 auto 14px;
+    padding: 12px;
+    width: 184px;
+    height: 184px;
+    margin: 14px auto;
+    color-scheme: light;
   }
-  .qr-frame img {
+  .qr-well img {
     width: 100%;
     height: 100%;
     display: block;
-    background: #ffffff;
-    color-scheme: light;
+    background: #FFFFFF;
   }
-  .url-bar {
+  .url-row {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 7px;
-    padding: 5px 6px 5px 10px;
+    background: var(--bg-secondary);
+    border-radius: var(--r-control);
+    padding: 4px 4px 4px 10px;
   }
-  .url-bar code {
+  .url-row code {
     flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     background: transparent;
-    border: 0;
     padding: 0;
-    font-size: 12.5px;
   }
-  .url-bar button { padding: 6px 10px; font-size: 12px; border-radius: 5px; }
-  .net-note {
+  .net-warn {
     margin-top: 10px;
-    padding: 9px 11px;
-    border-radius: 7px;
-    background: var(--warnbg);
-    border: 1px solid var(--warnline);
-    color: var(--warn);
-    font-size: 12.5px;
+    padding: 8px 10px;
+    border-radius: var(--r-control);
+    background: var(--sys-orange-tint);
+    color: var(--sys-orange);
+    font-size: var(--fs-callout);
     line-height: 1.4;
   }
 
-  .foot-links {
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top: 1px solid var(--line);
+  .aux-links {
+    margin-top: 12px;
+    padding: 0 4px;
     display: flex;
-    gap: 16px;
+    gap: 14px;
     flex-wrap: wrap;
-    font-size: 13px;
-    color: var(--mut);
+    font-size: var(--fs-callout);
+    color: var(--label-secondary);
   }
-  .foot-links a { color: var(--fg2); font-weight: 500; }
 </style>
 </head>
-<body>
+<body class="has-tabbar">
 <header class="topbar">
   <a class="brand" href="/"><img src="/ui/logo.svg" alt="">ShelfSense</a>
-  <nav>
+  <nav class="seg-nav" aria-label="Κύρια πλοήγηση">
+    <a class="on" href="/">Αρχική</a>
     <a href="/shelf">Ράφι</a>
     <a href="/tasks">Εργασίες</a>
     <a href="/portal/orders">Αποθήκη</a>
     <a href="/dev">Κονσόλα</a>
   </nav>
-  <div class="right" id="topRight"></div>
+  <div class="right">
+    <button type="button" class="theme-btn" data-theme-toggle aria-label="Εναλλαγή θέματος">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16Z" fill="currentColor" stroke="none"/></svg>
+      <span class="theme-lbl">Auto</span>
+    </button>
+  </div>
 </header>
 
 <main class="wrap">
-  <div class="hub-head">
+  <div class="intro">
     <div>
-      <h1>Σταθμοί λειτουργίας καταστήματος</h1>
-      <p>Αυτόματη επίβλεψη ραφιού, οδηγίες αναπλήρωσης στο κινητό και παραγγελία στην κεντρική αποθήκη.</p>
+      <h1 class="page-title">Σταθμοί λειτουργίας</h1>
+      <p>Έλεγχος ραφιού από κάμερα, ουρά εργασιών στο κινητό και αυτόματες παραγγελίες στην αποθήκη.</p>
     </div>
-    <div class="telemetry" id="status"></div>
+    <div class="telemetry" id="status" role="status" aria-live="polite"></div>
   </div>
 
-  <div class="hub-grid">
+  <div class="hub-layout">
     <section>
-      <a class="primary-station" href="/shelf">
-        <div>
-          <span class="st-role">Κύριος σταθμός · Υπεύθυνος τμήματος</span>
-          <h2>Ζωντανή οθόνη ραφιού</h2>
-          <p>Συνεχής έλεγχος κάμερας, επισήμανση ελλείψεων πάνω στην εικόνα, προτάσεις διάταξης και ιστορικό ενεργειών.</p>
+      <div class="sec-head"><h2 class="sec-title">Εφαρμογές καταστήματος</h2></div>
+      <div class="group-surface">
+        <div class="group-row">
+          <div class="st-icon primary" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="st-body">
+            <b>Οθόνη ραφιού</b>
+            <span>Ζωντανή ροή κάμερας, επισήμανση ελλείψεων, προτάσεις διάταξης και ιστορικό.</span>
+          </div>
+          <div class="st-end">
+            <span class="st-route">/shelf</span>
+            <a class="btn" href="/shelf">Άνοιγμα</a>
+          </div>
         </div>
-        <div class="cta-box">
-          <span class="btn">Άνοιγμα οθόνης
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-          <span class="st-path">/shelf</span>
-        </div>
-      </a>
 
-      <div class="station-list">
-        <a class="st-row" href="/tasks">
-          <div class="st-ico">
+        <a class="group-row" href="/tasks">
+          <div class="st-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 17h4" stroke-linecap="round"/></svg>
           </div>
-          <div>
-            <b>Κινητό υπαλλήλου · Ουρά εργασιών</b>
-            <span class="desc">Λίστα αναπλήρωσης με φωτογραφία σημείου. Κλείνει αυτόματα όταν διορθωθεί το ράφι.</span>
+          <div class="st-body">
+            <b>Εργασίες υπαλλήλου</b>
+            <span>Λίστα αναπλήρωσης με εικόνα σημείου. Κλείνει αυτόματα μόλις αποκατασταθεί το ράφι.</span>
           </div>
-          <div class="st-meta"><span class="st-path">/tasks</span></div>
+          <div class="st-end">
+            <span class="st-route">/tasks</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </a>
 
-        <a class="st-row" href="/capture">
-          <div class="st-ico">
+        <a class="group-row" href="/capture">
+          <div class="st-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
           </div>
-          <div>
-            <b>Μεμονωμένη λήψη από κινητό</b>
-            <span class="desc">Άμεση αποστολή μίας φωτογραφίας ραφιού χωρίς συνεχή ροή βίντεο.</span>
+          <div class="st-body">
+            <b>Σάρωση από κινητό</b>
+            <span>Μεμονωμένη λήψη φωτογραφίας ραφιού χωρίς συνεχή ροή βίντεο.</span>
           </div>
-          <div class="st-meta"><span class="st-path">/capture</span></div>
+          <div class="st-end">
+            <span class="st-route">/capture</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </a>
 
-        <a class="st-row" href="/portal/orders">
-          <div class="st-ico">
+        <a class="group-row" href="/portal/orders">
+          <div class="st-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8Z" stroke-linejoin="round"/><path d="M3.3 8L12 13l8.7-5M12 13v8"/></svg>
           </div>
-          <div>
-            <b>Κεντρική αποθήκη · Παραγγελίες</b>
-            <span class="desc">Παραστατικά κιβωτίων που καταχώρησε αυτόματα το σύστημα για κωδικούς εκτός αποθέματος.</span>
+          <div class="st-body">
+            <b>Κεντρική αποθήκη</b>
+            <span>Παραστατικά κιβωτίων που καταχώρησε αυτόματα ο agent.</span>
           </div>
-          <div class="st-meta"><span class="st-path">/portal/orders</span></div>
+          <div class="st-end">
+            <span class="st-route">/portal/orders</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </a>
 
-        <a class="st-row" href="/dev">
-          <div class="st-ico">
+        <a class="group-row" href="/dev">
+          <div class="st-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 17 10 11 4 5" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="19" x2="20" y2="19" stroke-linecap="round"/></svg>
           </div>
-          <div>
-            <b>Κονσόλα ελέγχου & ίχνος agent</b>
-            <span class="desc">Αναλυτική εκτέλεση εργαλείων, SQL υπολογισμοί, audit trail και έλεγχος παραμέτρων.</span>
+          <div class="st-body">
+            <b>Κονσόλα agent</b>
+            <span>Βήματα εκτέλεσης, κλήσεις εργαλείων, SQL υπολογισμοί και ίχνος ελέγχου.</span>
           </div>
-          <div class="st-meta"><span class="st-path">/dev</span></div>
+          <div class="st-end">
+            <span class="st-route">/dev</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </a>
       </div>
 
-      <div class="foot-links">
-        <span>Εργαλεία δοκιμής:</span>
-        <a href="/shelf?dev=1">Οθόνη ραφιού με mock / upload (?dev=1)</a>
+      <div class="aux-links">
+        <a href="/shelf?dev=1">Οθόνη ραφιού με εργαλεία δοκιμής</a>
         <a href="/portal/catalog">Κατάλογος αποθήκης</a>
       </div>
     </section>
 
-    <aside class="card qr-card">
-      <h2>Σύνδεση κινητού</h2>
-      <p class="sub">Σάρωσε το QR από την κάμερα του κινητού στο ίδιο δίκτυο ή μέσω tunnel.</p>
-      <div class="seg" role="tablist">
-        <button type="button" class="on" data-qr="/tasks">Εργασίες (/tasks)</button>
-        <button type="button" data-qr="/capture">Κάμερα (/capture)</button>
-      </div>
-      <div class="qr-frame">
-        <img id="qrImg" src="/qr.svg?path=/tasks" alt="QR σύνδεσης κινητού">
-      </div>
-      <div class="url-bar">
-        <code id="phoneUrl">…</code>
-        <button type="button" class="ghost" id="copyBtn">Αντιγραφή</button>
-      </div>
-      <div id="phoneWarn" class="net-note" hidden>
-        Ο server ακούει μόνο τοπικά. Βάλε <code>HOST=0.0.0.0</code> (ή <code>PUBLIC_URL</code>) στο <code>.env</code> για πρόσβαση από κινητό.
+    <aside>
+      <div class="sec-head"><h2 class="sec-title">Σύνδεση κινητού</h2></div>
+      <div class="group-surface group-pad">
+        <h3 class="qr-title">Άνοιγμα στο κινητό</h3>
+        <p class="qr-sub">Σάρωσε τον κωδικό QR από το ίδιο δίκτυο ή μέσω tunnel.</p>
+
+        <div class="seg" role="tablist" aria-label="Επιλογή σελίδας κινητού">
+          <button type="button" class="on" role="tab" aria-selected="true" data-qr="/tasks">Εργασίες</button>
+          <button type="button" role="tab" aria-selected="false" data-qr="/capture">Σάρωση</button>
+        </div>
+
+        <div class="qr-well">
+          <img id="qrImg" src="/qr.svg?path=/tasks" alt="Κωδικός QR για σύνδεση κινητού">
+        </div>
+
+        <div class="url-row">
+          <code id="phoneUrl">…</code>
+          <button type="button" class="ghost" id="copyBtn">Αντιγραφή</button>
+        </div>
+
+        <div id="phoneWarn" class="net-warn" hidden>
+          Ο server ακούει τοπικά. Όρισε <code>HOST=0.0.0.0</code> ή <code>PUBLIC_URL</code> στο <code>.env</code> για πρόσβαση από κινητό.
+        </div>
       </div>
     </aside>
   </div>
 </main>
+
+<nav class="ios-tabbar" aria-label="Πλοήγηση κινητού">
+  <a class="on" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" stroke-linejoin="round"/></svg>
+    <span>Αρχική</span>
+  </a>
+  <a href="/tasks">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round"/></svg>
+    <span>Εργασίες</span>
+    <span class="tab-badge" data-tab-tasks-badge hidden>0</span>
+  </a>
+  <a href="/capture">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    <span>Σάρωση</span>
+  </a>
+  <a href="/portal/orders">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8Z" stroke-linejoin="round"/><path d="M3.3 8L12 13l8.7-5M12 13v8"/></svg>
+    <span>Αποθήκη</span>
+  </a>
+</nav>
 
 <script>
 (async () => {
@@ -346,6 +328,8 @@
     fetch("/api/links").then(r => r.json()),
     fetch("/api/live/status").then(r => r.json())
   ]);
+  window.ShelfSenseShell?.setTaskBadge(st.open);
+
   let activePath = "/tasks";
   const urlFor = p => (p === "/capture" ? links.capture : links.tasks);
 
@@ -355,24 +339,34 @@
     document.getElementById("qrImg").src = "/qr.svg?path=" + encodeURIComponent(path);
     document.getElementById("phoneUrl").textContent = info.url;
     document.getElementById("phoneWarn").hidden = info.reachable;
-    document.querySelectorAll("[data-qr]").forEach(b => b.classList.toggle("on", b.dataset.qr === path));
+    document.querySelectorAll("[data-qr]").forEach(b => {
+      const on = b.dataset.qr === path;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-selected", String(on));
+    });
   }
   document.querySelectorAll("[data-qr]").forEach(b => b.onclick = () => updateQr(b.dataset.qr));
+
   document.getElementById("copyBtn").onclick = async () => {
     try {
       await navigator.clipboard.writeText(urlFor(activePath).url);
       const btn = document.getElementById("copyBtn");
       btn.textContent = "Αντιγράφηκε";
-      setTimeout(() => btn.textContent = "Αντιγραφή", 1600);
+      setTimeout(() => btn.textContent = "Αντιγραφή", 1500);
     } catch {}
   };
   updateQr("/tasks");
 
-  const pill = (t, cls = "") => `<span class="pill ${cls}">${t}</span>`;
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const dotCls = st.shelf_ok ? "ok" : "bad";
+  const shelfText = st.shelf_ok ? "Ράφι σωστό" : `${st.open} ${st.open === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`;
+  const modelText = st.provider === "mock" ? "mock" : esc(st.model);
+  const orderText = st.auto_order ? `έως ${st.max_cases} κιβ. / ${st.max_eur} €` : "με έγκριση";
+
   document.getElementById("status").innerHTML =
-    (st.shelf_ok ? pill("Ράφι εντάξει", "ok") : pill(`${st.open} ${st.open === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`, "bad")) +
-    pill(st.provider === "mock" ? "Μοντέλο: Mock" : `Όραση: ${st.model}`, st.provider === "mock" ? "warn" : "plain") +
-    pill(st.auto_order ? `Αυτόματη παραγγελία έως ${st.max_cases} κιβ. / ${st.max_eur} €` : "Παραγγελίες με έγκριση", "plain");
+    `<span class="status-inline"><span class="sdot ${dotCls}"></span><strong style="color:var(--label-primary);font-weight:500">${shelfText}</strong></span>` +
+    `<span class="sep">·</span><span>Μοντέλο <span class="mono">${modelText}</span></span>` +
+    `<span class="sep">·</span><span>Αυτονομία <span class="mono">${orderText}</span></span>`;
 })();
 </script>
 </body>
