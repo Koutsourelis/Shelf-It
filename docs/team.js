@@ -37,7 +37,7 @@ window.TEAM = [
   },
   {
     name: "Giannis Koutsourelis",
-    role: "Real data and evidence",
+    role: "Business, retail and data",
     built: "Brought the business side: the idea, insight from working in retail, and keeping the team organised. Made the agent's numbers defensible with market evidence through treg, sourced decision rules and public data.",
     background: "BSc in Economics. Business intelligence and CRM analyst in retail, working on customer and commercial analytics.",
     skills: ["BI", "CRM analytics", "Python", "Retail"],
@@ -57,7 +57,7 @@ window.TEAM = [
   },
   {
     name: "Ioannis Gkougkousis",
-    role: "Action, feedback and demo",
+    role: "UI and Demo",
     built: "Developed manager feedback and fal-powered shelf cards. Improved UI states and helped shape the demo pitch.",
     background: "Freelance AI automation developer and MBA student.",
     skills: ["AI automation", "APIs", "Workflow design", "UX"],
