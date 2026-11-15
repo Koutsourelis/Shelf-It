@@ -39,6 +39,7 @@ GEMINI_MEDIA_RESOLUTION = _env("GEMINI_MEDIA_RESOLUTION")          # empty (mode
 GEMINI_MAX_OUTPUT_TOKENS = int(_env("GEMINI_MAX_OUTPUT_TOKENS", "0"))   # 0 = model default
 # low | medium | high · low = γρήγορο (για ζωντανή κάμερα), high = πιο προσεκτικό αλλά αργό
 GEMINI_THINKING_LEVEL = _env("GEMINI_THINKING_LEVEL", "low").lower()
+GEMINI_IMAGE_MODEL = _env("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image")
 VISION_MAX_IMAGE_SIDE = int(_env("VISION_MAX_IMAGE_SIDE", "1600"))  # longest side in pixels sent to Gemini
 
 

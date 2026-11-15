@@ -113,6 +113,72 @@
   .stage .hint a { color: #64D2FF; }
   .stage .hint code { background: rgba(255, 255, 255, 0.12); color: #F5F5F7; }
 
+  /* Floating Apple HIG View Switcher & Status Pill on Stage */
+  .stage-bar {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 6;
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: rgba(28, 28, 30, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  .stage-bar[hidden] { display: none !important; }
+  .stage-bar button {
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: rgba(235, 235, 245, 0.82);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .stage-bar button:hover { color: #FFFFFF; background: rgba(255, 255, 255, 0.08); }
+  .stage-bar button.on {
+    background: var(--sys-blue);
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+  .stage-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #FFFFFF;
+    background: rgba(28, 28, 30, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    pointer-events: none;
+  }
+  .stage-badge[hidden] { display: none !important; }
+  .stage-badge::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #34C759;
+  }
+  .stage-badge.loading::before {
+    background: #0A84FF;
+    animation: pulseDot 1.1s ease-in-out infinite;
+  }
+  @keyframes pulseDot { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
   /* Subtle top indeterminate progress bar instead of theatrical laser */
   .scan {
     position: absolute;
@@ -382,12 +448,19 @@
       <video id="video" autoplay playsinline muted></video>
       <img id="still" alt="Εικόνα ραφιού" hidden>
       <canvas id="overlay"></canvas>
+      <div class="stage-badge" id="stageBadge" hidden></div>
+      <div class="stage-bar" id="stageBar" role="tablist" aria-label="Προβολή εικόνας ραφιού" hidden>
+        <button type="button" data-sview="corrected" class="on">Διορθωμένο ράφι</button>
+        <button type="button" data-sview="ar">Αρχική λήψη (AR)</button>
+        <button type="button" data-sview="live" id="sviewLiveBtn" hidden>Ζωντανή κάμερα</button>
+      </div>
       <div class="scan" id="scan"></div>
       <div class="hint" id="hint" hidden></div>
     </div>
 
     <div class="bar">
       <button id="now" type="button">Έλεγχος τώρα</button>
+      <button id="pickPhotoBtn" type="button" class="ghost">Από αρχείο…</button>
       <button id="pause" class="ghost">Παύση</button>
       <button id="mirrorBtn" class="ghost">Κάμερα κινητού</button>
       <button id="ref" class="ghost" title="Αποθήκευση τρέχοντος frame ως εικόνας αναφοράς">Ορισμός αναφοράς</button>
@@ -494,6 +567,7 @@ const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d")
 let interval = 30, countdown = 0, paused = false, last = null, sending = false, usingFile = false;
 let mirrorMode = new URLSearchParams(location.search).has("mirror"), manualLocal = false;
 let lastPreviewTs = 0, prevBlobUrl = null, previewPolling = false, lastShownFrame = "";
+let stageView = "auto", userPickedViewForFrame = "", lastCorrectedShown = "", activeStillUrl = "";
 
 // Apple System Colors for AR Bounding Boxes
 const COLORS = {
@@ -562,6 +636,9 @@ async function send(blob, force = false) {
   try {
     const { data } = await S.api("/api/shelf/frame" + (force ? "?force=1" : ""), { method: "POST", body });
     render(data);
+    if (data && data.correcting && !data.corrected_frame) {
+      setTimeout(() => { if (last && !last.corrected_frame) refreshStatus().catch(() => {}); }, 11500);
+    }
   } catch (e) {
     devLog("frame", e);
     setLight("error", "Ο έλεγχος απέτυχε", S.errorCopy(e, "Πάτησε «Έλεγχος τώρα» για νέα προσπάθεια."));
@@ -589,6 +666,7 @@ function draw() {
   overlay.width = overlay.clientWidth; overlay.height = overlay.clientHeight;
   ctx.clearRect(0, 0, overlay.width, overlay.height);
   if (!last || !last.shelves) return;
+  if (stageView === "corrected" && last.corrected_frame) return;
   const f = frameRect(), statusOf = {};
   (last.findings || []).forEach(x => { if (x.sku) statusOf[x.sku] = x.type; });
   ctx.lineWidth = 2;
@@ -910,8 +988,99 @@ function assessment(d, status) {
   return ["unknown", "Άγνωστη κατάσταση ραφιού", "Περίμενε την επόμενη λήψη."];
 }
 
+function setStillSrc(url) {
+  if (!url) return;
+  if (activeStillUrl !== url) {
+    activeStillUrl = url;
+    $("still").src = url;
+  }
+  $("still").hidden = false;
+  $("hint").hidden = true;
+}
+
+function syncStageImage(d) {
+  const bar = $("stageBar"), badge = $("stageBadge");
+  const hasLive = Boolean((video.srcObject && video.videoWidth > 0) || lastPreviewTs > 0);
+  $("sviewLiveBtn").hidden = !hasLive;
+
+  if (!d || !d.frame) {
+    bar.hidden = true;
+    badge.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+
+  // Μόλις ετοιμαστεί η διορθωμένη φωτογραφία του μοντέλου για το τρέχον frame, εμφάνισέ την αυτόματα!
+  if (d.corrected_frame && d.corrected_frame !== lastCorrectedShown) {
+    lastCorrectedShown = d.corrected_frame;
+    if (userPickedViewForFrame !== d.frame) stageView = "corrected";
+  } else if (stageView === "auto" || (stageView === "corrected" && !d.corrected_frame)) {
+    stageView = (!hasLive || usingFile) ? "ar" : "live";
+  }
+
+  document.querySelectorAll("[data-sview]").forEach(b => {
+    b.classList.toggle("on", b.dataset.sview === stageView);
+  });
+
+  if (stageView === "corrected" && d.corrected_frame) {
+    setStillSrc("/files/live/" + encodeURIComponent(d.corrected_frame));
+    badge.hidden = false;
+    badge.className = "stage-badge";
+    badge.textContent = "Διορθωμένο ράφι μετά την επεξεργασία";
+  } else if (stageView === "ar") {
+    setStillSrc("/files/live/" + encodeURIComponent(d.frame));
+    if (d.correcting) {
+      badge.hidden = false;
+      badge.className = "stage-badge loading";
+      badge.textContent = "Δημιουργία διορθωμένης εικόνας ραφιού…";
+    } else {
+      badge.hidden = true;
+    }
+  } else {
+    // stageView === "live"
+    if (video.srcObject && video.videoWidth > 0 && !mirrorMode) {
+      $("still").hidden = true;
+      activeStillUrl = "";
+    }
+    if (d.correcting) {
+      badge.hidden = false;
+      badge.className = "stage-badge loading";
+      badge.textContent = "Δημιουργία διορθωμένης εικόνας ραφιού…";
+    } else {
+      badge.hidden = true;
+    }
+  }
+  draw();
+}
+
+document.querySelectorAll("[data-sview]").forEach(btn => {
+  btn.onclick = async () => {
+    const mode = btn.dataset.sview;
+    if (mode === "corrected" && last && last.frame && !last.corrected_frame && !last.correcting) {
+      stageView = "ar";
+      $("stageBadge").hidden = false;
+      $("stageBadge").className = "stage-badge loading";
+      $("stageBadge").textContent = "Δημιουργία διορθωμένης εικόνας ραφιού…";
+      try {
+        await S.api("/api/shelf/reconstruct?force=true", { method: "POST" });
+        userPickedViewForFrame = "";
+        await refreshStatus();
+      } catch (e) {
+        setBarState("error", "Αποτυχία δημιουργίας διορθωμένης εικόνας", S.errorCopy(e));
+        $("stageBadge").hidden = true;
+      }
+      return;
+    }
+    stageView = mode;
+    if (last && last.frame) userPickedViewForFrame = last.frame;
+    if (mode === "live") usingFile = false;
+    syncStageImage(last);
+  };
+});
+
 function render(d) {
-  last = d; draw();
+  last = d;
+  syncStageImage(d);
   const tasks = d.tasks || [];
   $("taskCount").textContent = String(tasks.length);
   window.ShelfSenseShell?.setTaskBadge(tasks.length);
@@ -970,19 +1139,18 @@ function setMirror(on, isManual = false) {
   $("pause").hidden = false;
   if (on) {
     if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    if (!$("still").getAttribute("src") && last && last.frame) {
-      $("still").src = "/files/live/" + encodeURIComponent(last.frame);
-      $("still").hidden = false;
-      $("hint").hidden = true;
-      lastShownFrame = last.frame;
+    if (last && (last.corrected_frame || last.frame)) {
+      syncStageImage(last);
     } else if (!$("still").getAttribute("src")) {
       $("hint").hidden = false;
-      $("hint").innerHTML = `<div>Αναμονή ζωντανής εικόνας από το κινητό (<code>/cam</code> ή <code>/capture</code>)…</div>`;
+      $("hint").innerHTML = `<div>Αναμονή ζωντανής εικόνας από το κινητό (<code>/cam</code> ή <code>/capture</code>) ή επίλεξε <button type="button" class="tinted" style="margin-top:8px" onclick="document.getElementById('fileInput').click()">Φωτογραφία από αρχείο…</button></div>`;
     }
   } else {
+    stageView = "live";
+    activeStillUrl = "";
     $("still").hidden = true;
     usingFile = false;
-    openCamera().then(() => { $("hint").hidden = true; countdown = 2; }).catch(() => {});
+    openCamera().then(() => { $("hint").hidden = true; countdown = 2; syncStageImage(last); }).catch(() => {});
   }
   draw();
 }
@@ -1002,13 +1170,18 @@ setInterval(async () => {
       if (ts > lastPreviewTs && blob.size > 0) {
         lastPreviewTs = ts;
         if (!mirrorMode) setMirror(true, false);
-        const nextUrl = URL.createObjectURL(blob);
-        const oldUrl = prevBlobUrl;
-        prevBlobUrl = nextUrl;
-        $("still").src = nextUrl;
-        $("still").hidden = false;
-        $("hint").hidden = true;
-        if (oldUrl) setTimeout(() => URL.revokeObjectURL(oldUrl), 300);
+        $("sviewLiveBtn").hidden = false;
+        // Ενημέρωσε την εικόνα του stage μόνο αν βλέπουμε τη ζωντανή κάμερα (όχι πάνω από το Διορθωμένο ράφι!)
+        if (stageView === "live" || (!last?.frame && !last?.corrected_frame)) {
+          const nextUrl = URL.createObjectURL(blob);
+          const oldUrl = prevBlobUrl;
+          prevBlobUrl = nextUrl;
+          activeStillUrl = nextUrl;
+          $("still").src = nextUrl;
+          $("still").hidden = false;
+          $("hint").hidden = true;
+          if (oldUrl) setTimeout(() => URL.revokeObjectURL(oldUrl), 300);
+        }
       }
     }
   } catch {}
@@ -1027,17 +1200,10 @@ const sseStart = Date.now() / 1000 - 2;
 new EventSource("/api/events").onmessage = m => {
   const ev = JSON.parse(m.data);
   if (ev.run_id !== "system" || ev.ts < sseStart) return;
-  if (["shelf_log", "live_frame", "live_report", "recommendation_feedback"].includes(ev.type)) {
+  if (["shelf_log", "live_frame", "live_report", "live_correcting", "live_corrected", "recommendation_feedback"].includes(ev.type)) {
+    if (ev.type === "live_corrected") userPickedViewForFrame = "";
     S.api("/api/live/status").then(({ data: s }) => {
-      if (!sending) {
-        if ((mirrorMode || paused || !video.videoWidth) && !usingFile && s.frame && s.frame !== lastShownFrame && !lastPreviewTs) {
-          lastShownFrame = s.frame;
-          $("still").src = "/files/live/" + encodeURIComponent(s.frame);
-          $("still").hidden = false;
-          $("hint").hidden = true;
-        }
-        render(s);
-      }
+      if (!sending) render(s);
     }).catch(() => {});
   }
 };
@@ -1116,9 +1282,15 @@ $("cam").onchange = e => openCamera(e.target.value).then(() => setBarState("")).
   setBarState("error", "Η κάμερα δεν άνοιξε", cameraCopy(err));
 });
 $("file").onclick = () => $("fileInput").click();
+$("pickPhotoBtn").onclick = () => $("fileInput").click();
 $("fileInput").onchange = e => {
   const f = e.target.files[0]; if (!f) return;
-  usingFile = true; $("still").src = URL.createObjectURL(f); $("still").hidden = false; $("hint").hidden = true;
+  usingFile = true;
+  userPickedViewForFrame = "";
+  stageView = "ar";
+  const localUrl = URL.createObjectURL(f);
+  activeStillUrl = localUrl;
+  $("still").src = localUrl; $("still").hidden = false; $("hint").hidden = true;
   setBarState(""); send(f, true);
   e.target.value = "";
 };
@@ -1326,9 +1498,14 @@ function isVideoDark() {
   } catch (e) {
     devLog("camera", e);
     setMirror(true, false);
-    $("hint").hidden = false;
-    $("hint").innerHTML = `<div><strong>${esc(cameraCopy(e))}</strong><br>Άνοιξε από <code>localhost</code> / HTTPS, χρησιμοποίησε το <code>/cam</code> στο κινητό, ή ενεργοποίησε τις <a href="?dev=1">Δοκιμές</a> για φόρτωση αρχείου.</div>`;
-    if (!last || last.status === "idle") setLight("warning", "Η κάμερα δεν είναι διαθέσιμη", cameraCopy(e));
+    if (last && (last.corrected_frame || last.frame)) {
+      // Υπάρχει ήδη επεξεργασμένη φωτογραφία (π.χ. από Κονσόλα / αρχείο / κινητό): εμφάνισέ την αμέσως αντί για σφάλμα κάμερας!
+      syncStageImage(last);
+    } else {
+      $("hint").hidden = false;
+      $("hint").innerHTML = `<div><strong>${esc(cameraCopy(e))}</strong><br>Άνοιξε το <code>/cam</code> στο κινητό ή επίλεξε κατευθείαν εικόνα:<br><button type="button" class="tinted" style="margin-top:10px" onclick="document.getElementById('fileInput').click()">Επιλογή φωτογραφίας ραφιού…</button></div>`;
+      setLight("idle", "Έτοιμο για έλεγχο ραφιού", "Επίλεξε φωτογραφία «Από αρχείο…» ή άνοιξε το /cam στο κινητό.");
+    }
   }
 })();
 </script>

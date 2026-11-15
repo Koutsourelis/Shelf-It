@@ -52,6 +52,8 @@ class LiveState:
         self.remote_snap: str | None = None          # απομακρυσμένη εντολή λήψης από το laptop ("live" | "console")
         self.remote_paused: bool = False             # απομακρυσμένη παύση του /cam από το laptop
         self.last_console_run: str | None = None
+        self.corrected_frame: str | None = None      # όνομα αρχείου διορθωμένης εικόνας ραφιού στο workspace/live/
+        self.correcting_for: str | None = None       # frame για το οποίο παράγεται αυτή τη στιγμή διορθωμένη εικόνα
         tasks.reset()
 
 
@@ -482,12 +484,48 @@ async def process_frame(data: bytes, force: bool = False, single: bool = False) 
             "suggested_layout": verdict["suggested_layout"], "shelf_ok": verdict["shelf_ok"],
             "moves": moves[:MAX_MOVES], "moves_more": max(len(moves) - MAX_MOVES, 0),
             "confirm": f"{sum(1 for s in STATE.recent if s == sig)}/{STATE.recent.maxlen}",
+            "corrected_frame": None,
         }
+        if single or force or acted:
+            if config.vision_provider() == "mock":
+                await ensure_corrected(frame, verdict, found, moves)
+            else:
+                asyncio.create_task(ensure_corrected(frame, verdict, found, moves))
         events.emit("system", "live_frame", frame=frame.name, status=STATE.last["status"],
                     findings=len(found), seconds=seconds)
         return status()
     finally:
         STATE.busy = False
+
+
+async def ensure_corrected(
+    frame: Path,
+    verdict: dict,
+    found: list[dict],
+    moves: list[dict],
+    *,
+    force_regenerate: bool = False,
+) -> Path | None:
+    """Παράγει τη διορθωμένη εικόνα του ραφιού και ενημερώνει live το /shelf μέσω SSE."""
+    from .vision import reconstruct
+    STATE.correcting_for = frame.name
+    events.emit("system", "live_correcting", frame=frame.name)
+    try:
+        out = await reconstruct.generate_corrected_shelf(
+            frame, verdict, found, moves, force_regenerate=force_regenerate
+        )
+        if out and out.is_file():
+            STATE.corrected_frame = out.name
+            if STATE.last and STATE.last.get("frame") == frame.name:
+                STATE.last["corrected_frame"] = out.name
+            events.emit("system", "live_corrected", frame=frame.name, corrected_frame=out.name)
+            return out
+    except Exception as e:
+        events.emit("system", "log", text=f"Διορθωμένη εικόνα ραφιού: {type(e).__name__}: {e}")
+    finally:
+        if STATE.correcting_for == frame.name:
+            STATE.correcting_for = None
+    return None
 
 
 def _with_identity(summary: dict) -> dict:
@@ -509,8 +547,10 @@ def status() -> dict:
             "auto_order": config.AUTO_ORDER, "max_cases": config.AUTO_ORDER_MAX_CASES,
             "max_eur": config.AUTO_ORDER_MAX_EUR, "frames": STATE.frames, "model_calls": STATE.model_calls,
             "agent_run": STATE.agent_run, "agent_status": agent_status(),
+            "correcting": bool(STATE.correcting_for),
             **(STATE.last or {"status": "idle", "findings": [], "shelves": [], "summary": "",
                               "suggested_layout": [], "moves": [], "moves_more": 0, "shelf_ok": True,
+                              "corrected_frame": None,
                               "shelf_set": config.SHELF_SET or "shelf",
                               "shelf_title": shelfsets.title(config.SHELF_SET)}), **_with_identity(tasks.summary())}
 

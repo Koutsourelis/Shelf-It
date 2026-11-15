@@ -121,6 +121,17 @@ class TestLiveMobileMirror(unittest.TestCase):
                 self.assertIn("before_after.png", ctx.artifacts)
                 self.assertTrue((config.WORKSPACE / "before_after.png").is_file())
                 self.assertIn("Προηγούμενος έλεγχος (IMG_1002.jpg)", out2)
+
+                # Console read_shelf also syncs /shelf live status AND corrected shelf image!
+                st = live.status()
+                self.assertEqual(st["frame"], "IMG_9001.jpg")
+                self.assertEqual(st["corrected_frame"], "corrected_IMG_9001.png")
+                self.assertTrue((config.WORKSPACE / "live" / "corrected_IMG_9001.png").is_file())
+
+                client = TestClient(app)
+                rec = client.post("/api/shelf/reconstruct?force=true")
+                self.assertEqual(rec.status_code, 200)
+                self.assertEqual(rec.json()["corrected_frame"], "corrected_IMG_9001.png")
         finally:
             config.WORKSPACE = orig_ws
             config.DB_PATH = orig_db

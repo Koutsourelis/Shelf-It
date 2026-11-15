@@ -109,16 +109,43 @@ async def read_shelf(ctx, photo: str) -> str:
     if not items:
         return "Δεν αναγνωρίστηκε κανένα προϊόν στη φωτογραφία. Ζήτα νέα λήψη, πιο κοντινή και με καλύτερο φως."
 
-    # Συγχρονίζει αυτόματα και τις διαδραστικές εργασίες (/tasks) + ειδοποίηση Telegram με κουμπιά όταν τρέχει από την Κονσόλα (/dev)
+    # Συγχρονίζει αυτόματα το /shelf (εικόνα + διορθωμένο ράφι AI), το /tasks και το Telegram όταν τρέχει από την Κονσόλα (/dev)
     try:
-        from .. import events as _ev, live, tasks, telegram
+        import shutil
+        from .. import events as _ev, identity, live, shelfsets, tasks, telegram
+        live_dir = config.WORKSPACE / "live"
+        live_dir.mkdir(parents=True, exist_ok=True)
+        live_copy = live_dir / name
+        if path.resolve() != live_copy.resolve():
+            await asyncio.to_thread(shutil.copyfile, path, live_copy)
         planned = {} if verdict.get("unknown_shelf") else await asyncio.to_thread(live._planned)
         live.regroup(verdict, planned)
+        if not verdict.get("unknown_shelf"):
+            verdict["suggested_layout"] = await asyncio.to_thread(stats_layout) or verdict["suggested_layout"]
+        await asyncio.to_thread(identity.annotate, verdict["shelves"])
         found = live.to_findings(verdict, planned)  # type: ignore[arg-type]
-        changes = await asyncio.to_thread(tasks.sync, found, path, False)
+        moves = live.layout_moves(verdict)
+        changes = await asyncio.to_thread(tasks.sync, found, live_copy, False)
+        live.STATE.verdict = verdict
+        live.STATE.last = {
+            "status": "acted",
+            "frame": name, "seconds": 0.0, "findings": found,
+            "shelves": verdict["shelves"], "summary": verdict["summary"],
+            "unknown_shelf": bool(verdict.get("unknown_shelf")),
+            "shelf_set": config.SHELF_SET or "shelf",
+            "shelf_title": "εκτός καταλόγου" if verdict.get("unknown_shelf") else shelfsets.title(config.SHELF_SET),
+            "suggested_layout": verdict["suggested_layout"], "shelf_ok": verdict["shelf_ok"],
+            "moves": moves[:live.MAX_MOVES], "moves_more": max(len(moves) - live.MAX_MOVES, 0),
+            "confirm": "1/1", "corrected_frame": None,
+        }
+        _ev.emit("system", "live_frame", frame=name, status="acted", findings=len(found), seconds=0.0)
+        if config.vision_provider() != "mock":
+            asyncio.create_task(live.ensure_corrected(live_copy, verdict, found, moves))
+        else:
+            await live.ensure_corrected(live_copy, verdict, found, moves)
         if changes.get("new") or changes.get("resolved"):
-            await telegram.notify_shelf_change(changes, path)
-            _ev.emit("system", "live_report", frame=path.name, open=len(tasks.open_tasks()),
+            await telegram.notify_shelf_change(changes, live_copy)
+            _ev.emit("system", "live_report", frame=name, open=len(tasks.open_tasks()),
                      new=len(changes["new"]), resolved=len(changes["resolved"]))
     except Exception:
         pass

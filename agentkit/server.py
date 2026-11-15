@@ -373,6 +373,27 @@ async def shelf_remote_trigger(mode: str = "live"):
     return {"ok": True, "triggered": True}
 
 
+@app.post("/api/shelf/reconstruct")
+async def shelf_reconstruct(force: bool = True):
+    """Δημιουργεί (ή αναδημιουργεί) τη διορθωμένη AI εικόνα ραφιού για το τελευταίο frame του /shelf."""
+    last = live.STATE.last
+    if not last or not last.get("frame"):
+        raise HTTPException(409, "Δεν υπάρχει ακόμη αναλυμένη φωτογραφία ραφιού.")
+    frame_path = config.WORKSPACE / "live" / last["frame"]
+    if not frame_path.is_file():
+        raise HTTPException(404, "Δεν βρέθηκε το αρχείο της τελευταίας λήψης.")
+    out = await live.ensure_corrected(
+        frame_path,
+        live.STATE.verdict or last,
+        last.get("findings") or [],
+        last.get("moves") or [],
+        force_regenerate=force,
+    )
+    if not out:
+        raise HTTPException(502, "Η δημιουργία της διορθωμένης εικόνας απέτυχε.")
+    return {"ok": True, "corrected_frame": out.name}
+
+
 @app.get("/api/shelf/preview.jpg")
 async def get_shelf_preview(since: float = 0.0):
     """Επιστρέφει το τελευταίο live frame κινητού αν είναι φρέσκο (<20s) και νεότερο από το since."""
