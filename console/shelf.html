@@ -562,13 +562,52 @@ function arrow(p, f) {
 }
 
 const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού" };
+const evidCache = {};
+const openTalkerForms = new Set();
+
 function propCard(p) {
+  const rid = p.recommendation_id || "";
+  const sku = p.featured_sku || (p.b && p.b.sku) || "";
+  const dec = p.decision;
+  const decBadge = dec === "accepted" || dec === "corrected"
+    ? `<span class="ok-txt" style="margin-left:auto">✓ Εγκρίθηκε</span>`
+    : dec === "rejected"
+    ? `<span class="tert" style="margin-left:auto">Απορρίφθηκε</span>`
+    : "";
+
+  let actions = "";
+  if (rid) {
+    actions = `<div class="prop-acts">
+      ${dec !== "accepted" && dec !== "corrected" ? `<button type="button" data-rec="${esc(rid)}" data-dec="accepted">Αποδοχή</button>` : ""}
+      <button type="button" class="ghost" data-talker-toggle="${esc(rid)}">Ταμπελάκι</button>
+      ${sku ? `<button type="button" class="ghost" data-evid="${esc(sku)}" data-prop="${esc(p.id)}">Τεκμήρια</button>` : ""}
+      ${dec !== "rejected" ? `<button type="button" class="ghost" data-rec="${esc(rid)}" data-dec="rejected">Απόρριψη</button>` : ""}
+    </div>`;
+  }
+
+  const formOpen = rid && openTalkerForms.has(rid);
+  const defName = p.featured_name || (p.b && p.b.name) || "";
+  const defPrice = p.unit_price ? Number(p.unit_price).toFixed(2) : "2.50";
+  const formHtml = rid ? `<form class="prop-form" data-talker-form="${esc(rid)}" data-sku="${esc(sku)}" ${formOpen ? "" : "hidden"}>
+      <input type="text" name="pname" value="${esc(defName)}" aria-label="Όνομα προϊόντος" required>
+      <input type="number" name="pprice" step="0.01" min="0.05" value="${esc(defPrice)}" aria-label="Τιμή EUR" class="mono" required>
+      <button type="submit">Δημιουργία</button>
+    </form>` : "";
+
+  const talkerHtml = p.talker_file
+    ? `<div class="prop-talker"><img src="/files/${encodeURI(p.talker_file)}" alt="Ταμπελάκι">
+       <a href="/files/${encodeURI(p.talker_file)}" target="_blank" rel="noopener">Άνοιγμα ταμπέλας PNG (${p.talker_source === "fal" ? "fal" : "έτοιμο"})</a></div>`
+    : "";
+
+  const evidHtml = evidCache[p.id] ? `<div class="prop-evid">${evidCache[p.id]}</div>` : "";
+
   return `<div class="prop">
-    <div class="prop-head"><span>${esc(p.rule || "Πρόταση")} · ${esc(RULE[p.rule] || "Διάταξη")}</span></div>
+    <div class="prop-head"><span>${esc(p.rule || "Πρόταση")} · ${esc(RULE[p.rule] || "Διάταξη")}</span>${decBadge}</div>
     <b>${esc(p.text)}</b>
     <p class="why">${esc(p.reason)}</p>
     <div class="num">${esc(p.numbers)}</div>
     <small>${esc(p.note)} Πηγή: ${esc(p.source)}.</small>
+    ${talkerHtml}${actions}${formHtml}${evidHtml}
   </div>`;
 }
 
@@ -684,14 +723,88 @@ document.querySelectorAll("[data-mock]").forEach(b => b.onclick = async () => {
   usingFile = false; $("still").hidden = true; scan(true);
 });
 document.addEventListener("click", async e => {
-  const b = e.target.closest("[data-order]"); if (!b) return;
-  b.disabled = true;
-  await fetch(`/api/tasks/${encodeURIComponent(b.dataset.order)}/order`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ approved: b.dataset.v === "1" })
-  });
-  render(await (await fetch("/api/live/status")).json());
+  const b = e.target.closest("[data-order]");
+  if (b) {
+    b.disabled = true;
+    await fetch(`/api/tasks/${encodeURIComponent(b.dataset.order)}/order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approved: b.dataset.v === "1" })
+    });
+    render(await (await fetch("/api/live/status")).json());
+    return;
+  }
+
+  const fb = e.target.closest("[data-rec]");
+  if (fb) {
+    fb.disabled = true;
+    const rid = fb.dataset.rec, dec = fb.dataset.dec;
+    await fetch(`/api/recommendations/${encodeURIComponent(rid)}/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ submission_id: `ui-${dec}-${Date.now()}`, decision: dec, decided_by: "manager" })
+    });
+    render(await (await fetch("/api/live/status")).json());
+    return;
+  }
+
+  const tg = e.target.closest("[data-talker-toggle]");
+  if (tg) {
+    const rid = tg.dataset.talkerToggle;
+    if (openTalkerForms.has(rid)) openTalkerForms.delete(rid); else openTalkerForms.add(rid);
+    if (last) render(last);
+    return;
+  }
+
+  const evBtn = e.target.closest("[data-evid]");
+  if (evBtn) {
+    const pid = evBtn.dataset.prop, sku = evBtn.dataset.evid;
+    if (evidCache[pid]) { delete evidCache[pid]; if (last) render(last); return; }
+    evBtn.disabled = true; evBtn.textContent = "…";
+    try {
+      const pack = await (await fetch(`/api/evidence/${encodeURIComponent(sku)}`)).json();
+      const srcs = (pack.sources || []).slice(0, 3);
+      evidCache[pid] = srcs.length
+        ? srcs.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.domain || s.url)}</a>`).join("")
+        : `<span>Περιθώριο ${esc(pack.margin_pct ?? "—")}% · Δεν βρέθηκαν εξωτερικές πηγές.</span>`;
+    } catch { evidCache[pid] = "<span>Αδυναμία φόρτωσης τεκμηρίων.</span>"; }
+    if (last) render(last);
+  }
+});
+
+document.addEventListener("submit", async e => {
+  const form = e.target.closest("[data-talker-form]");
+  if (!form) return;
+  e.preventDefault();
+  const rid = form.dataset.talkerForm, sku = form.dataset.sku;
+  const pname = form.elements.pname.value.trim();
+  const pprice = parseFloat(form.elements.pprice.value);
+  const btn = form.querySelector("button[type=submit]");
+  btn.disabled = true; btn.textContent = "Δημιουργία…";
+  try {
+    await fetch(`/api/recommendations/${encodeURIComponent(rid)}/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        submission_id: `ui-corr-${Date.now()}`,
+        decision: "corrected",
+        decided_by: "manager",
+        correction: {
+          product: { sku: sku || null, name: pname },
+          price: { amount: pprice, currency: "EUR", source: "owner_confirmation" }
+        }
+      })
+    });
+    const r = await fetch(`/api/recommendations/${encodeURIComponent(rid)}/talker`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme: "fresh" })
+    });
+    if (r.ok) openTalkerForms.delete(rid);
+    render(await (await fetch("/api/live/status")).json());
+  } finally {
+    btn.disabled = false; btn.textContent = "Δημιουργία";
+  }
 });
 window.addEventListener("resize", draw);
 video.addEventListener("loadedmetadata", draw);

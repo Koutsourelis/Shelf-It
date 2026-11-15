@@ -117,7 +117,8 @@ SHELF = Scenario(
 Αν το read_shelf δεν αναγνωρίσει προϊόντα ή βρει πολλά άγνωστα, ζήτα νέα φωτογραφία αντί να συνεχίσεις.
 """,
     tools=COMMON_TOOLS + ["read_shelf", "check_planogram", "replenishment_plan", "layout_suggestions", "propose_move",
-                          "order_from_warehouse", "product_evidence", "describe_data", "sql_query", "make_chart"],
+                          "make_shelf_talker", "order_from_warehouse", "product_evidence", "describe_data",
+                          "sql_query", "make_chart"],
     examples=[
         f"Έλεγξε το ράφι στη φωτογραφία {SAMPLE} και κάνε ό,τι χρειάζεται.",
         "Το ράφι διορθώθηκε. Ξαναέλεγξέ το με τη φωτογραφία " + SAMPLE.replace("sample_before", "sample_after") + ".",

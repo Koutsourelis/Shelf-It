@@ -39,14 +39,15 @@ The model only reads the photo. Every number comes from code and is written to a
 
 Everything after the `boilerplate` tag:
 
-- Shelf tools: `read_shelf`, `check_planogram`, `replenishment_plan`, `layout_suggestions`, `order_from_warehouse`
-  (`agentkit/tools/shelf.py`)
-- Image input for the model providers (`agentkit/llm/structured.py`)
-- Phone capture page and photo upload that starts the agent (`console/capture.html`, `/api/shelf/photo`)
-- Trigger on a new photo in `workspace/photos` (`agentkit/watchers.py`)
-- The shelf scenario: role, method, tool list (`agentkit/scenarios.py`)
-- Shelf data model: catalogue, planogram, backroom stock, sales (`agentkit/demo_data.py`, `data/shelf/`)
-- Central-warehouse ordering portal (`agentkit/portal.py`)
+- Shelf & merchandising tools: `read_shelf`, `check_planogram`, `replenishment_plan`, `layout_suggestions`,
+  `propose_move`, `make_shelf_talker`, `product_evidence`, `order_from_warehouse` (`agentkit/tools/shelf.py`,
+  `agentkit/tools/talker.py`, `agentkit/tools/evidence.py`)
+- Single-call Gemini shelf assessment & spatial coordinates (`agentkit/vision/assessment.py`, `agentkit/vision/gemini.py`)
+- Live camera loop, worker task state machine & bounded auto-ordering (`agentkit/live.py`, `agentkit/tasks.py`)
+- Sourced category-management rules K1–K6 (`agentkit/rules.py`, `data/shelf/rules.json`, `data/shelf/sources.csv`)
+- Append-only recommendation & owner-feedback store + printable shelf talkers (`agentkit/recommendations.py`,
+  `agentkit/feedback_api.py`, `agentkit/shelf_talker.py`)
+- Apple HIG desktop & mobile UI with Light/Dark themes (`console/`, `DESIGN.md`) and HTTPS tunnel launcher (`scripts/run_tunnel.py`)
 
 ## What existed before (declared boilerplate)
 
@@ -100,4 +101,7 @@ photo (phone, /capture)
 
 ## Third-party tools and credits
 
-- _TODO: models, sponsor tools, libraries worth naming_
+- **Google AI (`gemini-3.8-flash`)** — Multimodal shelf perception, `0–1000` spatial bounding boxes, and agent tool reasoning.
+- **`treg` & DuckDuckGo Search** — Category demand trends and Greek grocery trade press evidence (`agentkit/tools/evidence.py`).
+- **`fal` (`fal-ai/flux/schnell`) & Pillow** — Decorative shelf-talker artwork composed locally with owner-confirmed product names and prices (`agentkit/shelf_talker.py`).
+- **FastAPI, DuckDB, SQLite & Playwright** — Backend runtime, deterministic SQL calculations, recommendation store, and browser verification.

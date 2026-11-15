@@ -377,22 +377,24 @@ def _layout_stats() -> dict[str, dict]:
     """Ανά κωδικό του πλανογράμματος: θέση, χώρος, πωλήσεις και περιθώριο. Όλοι οι αριθμοί από SQL."""
     _, rows = run_sql("""
         with s as (select sku, sum(revenue) rev, sum(revenue - cost) margin, sum(qty) qty from sales group by 1)
-        select pl.sku, p.name, p.brand, p.category, pl.shelf, pl.level, pl.position, pl.facings,
+        select pl.sku, p.name, p.brand, p.category, pl.shelf, pl.level, pl.position, pl.facings, p.unit_price,
                coalesce(s.rev, 0), coalesce(s.margin, 0), coalesce(s.qty, 0)
         from planogram pl join products p using (sku) left join s using (sku) order by pl.shelf, pl.position""")
     total_facings = sum(r[7] for r in rows) or 1
-    total_rev = sum(r[8] for r in rows) or 1
+    total_rev = sum(r[9] for r in rows) or 1
     per_shelf: dict[int, list[int]] = defaultdict(list)
     for r in rows:
         per_shelf[r[4]].append(r[6])
     stats = {}
-    for sku, name, brand, category, shelf, level, position, facings, rev, margin, qty in rows:
+    for sku, name, brand, category, shelf, level, position, facings, unit_price, rev, margin, qty in rows:
         slots = sorted(per_shelf[shelf])
         center = len(slots) % 2 == 1 and len(slots) > 1 and position == slots[len(slots) // 2]
         space, sales = 100 * facings / total_facings, 100 * rev / total_rev
         stats[sku] = {"sku": sku, "name": name, "brand": brand, "category": category, "shelf": shelf, "level": level,
-                      "position": position, "center": center, "facings": facings, "space": round(space, 1),
-                      "sales": round(sales, 1), "index": round(sales / (space or 1), 2), "units": round(qty / DAYS, 1),
+                      "position": position, "center": center, "facings": facings,
+                      "unit_price": round(float(unit_price or 0), 2),
+                      "space": round(space, 1), "sales": round(sales, 1),
+                      "index": round(sales / (space or 1), 2), "units": round(qty / DAYS, 1),
                       "margin": round(margin / DAYS, 2), "per_facing": round(margin / DAYS / max(facings, 1), 2)}
     return stats
 
@@ -453,6 +455,7 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
         numbers = (f"{inn['name']}: {inn['per_facing']} € περιθώριο ανά πρόσοψη την ημέρα (ράφι {inn['shelf']}, "
                    f"{LEVEL_EL.get(inn['level'], inn['level'])}) · {out['name']}: {out['per_facing']} € {spot}")
         note = "Δείχνει τη σημερινή απόδοση του χώρου· δεν προβλέπει αύξηση πωλήσεων."
+        featured, other = inn, out
     elif kind == "facing":
         rule = "K3"
         if a["facings"] <= 1:
@@ -470,15 +473,51 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
         text = f"Μία πρόσοψη από {a['name']} σε {b['name']}"
         numbers = f"κέρδος {gain:.2f} € − απώλεια {loss:.2f} € = +{net:.2f} € περιθώριο την ημέρα"
         note = "Εκτίμηση με τη μέση ελαστικότητα χώρου της βιβλιογραφίας, όχι μέτρηση σε αυτό το ράφι."
+        featured, other = b, a
     else:
         return "Δεν καταχωρήθηκε: το kind είναι swap ή facing."
 
     source = f"{SOURCES[rule]}· πωλήσεις {DAYS} ημερών"
+    rec_id = _register_proposal_recommendation(getattr(ctx, "run_id", "") or "live", kind, rule, reason, featured, other)
     await asyncio.to_thread(tasks.add_proposal, {
         "kind": kind, "rule": rule, "text": text, "numbers": numbers, "reason": reason, "source": source, "note": note,
-        "a": _side(a, boxes), "b": _side(b, boxes)})
-    return (f"Καταχωρήθηκε και φαίνεται στην οθόνη του υπεύθυνου: {text}.\nΑριθμός: {numbers}.\nΠηγή: {source}.\n{note} "
+        "recommendation_id": rec_id, "featured_sku": featured["sku"], "featured_name": featured["name"],
+        "unit_price": featured["unit_price"], "a": _side(a, boxes), "b": _side(b, boxes)})
+    return (f"Καταχωρήθηκε και φαίνεται στην οθόνη του υπεύθυνου ({rec_id}): {text}.\nΑριθμός: {numbers}.\nΠηγή: {source}.\n{note} "
             "Την αλλαγή στο πλανόγραμμα την εγκρίνει ο category manager.")
+
+
+def _register_proposal_recommendation(run_id: str, kind: str, rule: str, reason: str,
+                                      featured: dict, other: dict) -> str:
+    """Καταγράφει την πρόταση στο state/recommendations.sqlite3 ώστε να δέχεται feedback & ταμπελάκι (fal/Pillow)."""
+    import hashlib
+    import re
+    from .. import recommendations as rec_store
+    safe_run = re.sub(r"[^A-Za-z0-9._:-]", "-", run_id)[:48] or "live"
+    base_id = f"REC-{safe_run}-{kind}-{featured['sku']}-{other['sku']}"
+    price_obj = ({"amount": float(featured["unit_price"]), "currency": "EUR", "source": "catalog.csv"}
+                 if featured.get("unit_price") and featured["unit_price"] > 0 else None)
+    payload = {
+        "recommendation_id": base_id,
+        "run_id": run_id,
+        "kind": f"{kind}_{rule}",
+        "reason": reason,
+        "product": {"sku": featured["sku"], "name": featured["name"]},
+        "placement": {
+            "from": {"shelf": int(featured["shelf"]), "position": int(featured["position"]), "level": featured["level"]},
+            "to": {"shelf": int(other["shelf"]), "position": int(other["position"]), "level": other["level"]},
+        },
+        "price": price_obj,
+    }
+    try:
+        rec_store.register_recommendation(payload)
+        return base_id
+    except rec_store.RecommendationConflict:
+        suffix = hashlib.sha256(reason.encode("utf-8")).hexdigest()[:6]
+        alt_id = f"{base_id}-{suffix}"
+        payload["recommendation_id"] = alt_id
+        rec_store.register_recommendation(payload)
+        return alt_id
 
 
 def _order_needs_approval(args: dict) -> bool:

@@ -45,7 +45,7 @@ async def main() -> None:
             viewport={"width": 1280, "height": 720}, color_scheme="dark",
             record_video_dir=str(out_dir), record_video_size={"width": 1280, "height": 720})
         page = await context.new_page()
-        await page.goto(f"{config.BASE_URL}/?present={0 if args.plain else 1}")
+        await page.goto(f"{config.BASE_URL}/dev?present={0 if args.plain else 1}")
         await page.wait_for_selector("#scenario option", state="attached")
         await asyncio.sleep(1)
 

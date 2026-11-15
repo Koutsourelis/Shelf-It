@@ -63,6 +63,20 @@ def add_proposal(proposal: dict) -> dict:
     return p
 
 
+def update_proposal_feedback(recommendation_id: str, **fields) -> dict | None:
+    """Ενημερώνει την κατάσταση μιας πρότασης στη μνήμη (π.χ. decision, talker_file) και ειδοποιεί την οθόνη."""
+    for p in PROPOSALS:
+        if p.get("recommendation_id") == recommendation_id:
+            p.update(fields)
+            if "decision" in fields:
+                labels = {"accepted": "Εγκρίθηκε", "rejected": "Απορρίφθηκε", "corrected": "Επιβεβαιώθηκε"}
+                log("proposal", f"{labels.get(fields['decision'], fields['decision'])}: {p['text']}", proposal=p["id"])
+            elif "talker_file" in fields:
+                log("proposal", f"Εκτυπώσιμο ταμπελάκι έτοιμο για {p.get('featured_name') or p['id']}", proposal=p["id"])
+            return p
+    return None
+
+
 # --- Υπολογισμοί σε κώδικα (ποτέ από το μοντέλο) ---------------------------------
 
 def _stock() -> dict[str, dict]:

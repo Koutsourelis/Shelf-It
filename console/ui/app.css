@@ -748,6 +748,58 @@ a.group-row:active { background: var(--bg-active); }
   color: var(--label-tertiary);
   line-height: 1.38;
 }
+.prop-acts {
+  margin-top: 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.prop-acts button {
+  min-height: 24px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+@media (max-width: 767px) {
+  .prop-acts button { min-height: 40px; padding: 0 12px; font-size: 14px; }
+}
+.prop-form {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--separator);
+  display: grid;
+  grid-template-columns: 1fr 78px auto;
+  gap: 6px;
+  align-items: center;
+}
+.prop-form input {
+  min-height: 26px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+.prop-evid {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--separator);
+  font-size: var(--fs-foot);
+  color: var(--label-secondary);
+  line-height: 1.42;
+}
+.prop-evid a { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prop-talker {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-callout);
+}
+.prop-talker img {
+  width: 38px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--surface-border);
+}
 
 /* ==========================================================================
    Flat Data Tables (HIG Soft Header, Sentence-Case Caption Columns)
