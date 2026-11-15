@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShelfSense deck · θέματα και δομή</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  /* ---------- page chrome (not part of any theme) ---------- */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e9e9ec; color: #1b1b1f; font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1.pg { font-size: 26px; margin: 0 0 4px; }
+  .lead { color: #555; margin: 0 0 28px; max-width: 760px; }
+  .theme { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 28px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .theme header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 14px; }
+  .theme header b { font-size: 20px; }
+  .theme header .tag { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #eef; color: #335; }
+  .theme header .tag.rec { background: #dff5e9; color: #146c43; }
+  .theme header p { flex-basis: 100%; margin: 0; color: #555; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
+  .swatches { display: flex; gap: 6px; margin-top: 12px; }
+  .swatches i { width: 26px; height: 26px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+
+  /* ---------- slide frame: everything inside scales with cqw ---------- */
+  .slide { container-type: inline-size; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; position: relative; }
+  .s { position: absolute; inset: 0; padding: 6cqw 6.5cqw; display: flex; flex-direction: column; }
+  .s h2, .s h3, .s p { margin: 0; }
+  .eyebrow { font-size: 1.6cqw; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 2cqw; }
+  .foot { position: absolute; left: 6.5cqw; right: 6.5cqw; bottom: 3.6cqw; display: flex; justify-content: space-between; font-size: 1.4cqw; opacity: .6; }
+
+  /* ===================== THEME A · Night Aisle ===================== */
+  .tA { background: radial-gradient(70cqw 40cqw at 90% 0%, #1b5543 0%, transparent 60%), #0c2b22; color: #fff; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .tA .disp { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; letter-spacing: -.03em; line-height: 1.02; }
+  .tA .eyebrow { font-family: ui-monospace, Consolas, monospace; color: #a7f3d0; }
+  .tA.title .s { flex-direction: row; gap: 4cqw; align-items: center; }
+  .tA.title .l { flex: 1.05; }
+  .tA.title h2 { font-size: 7.2cqw; }
+  .tA.title h2 em { font-style: normal; color: #a7f3d0; }
+  .tA.title p { font-size: 1.9cqw; color: rgba(255,255,255,.75); margin-top: 2.2cqw; }
+  .tA.title .r { flex: 1; position: relative; transform: rotate(1.2deg); }
+  .tA.title img { width: 100%; border-radius: 1.6cqw; box-shadow: 0 3cqw 6cqw -2cqw rgba(0,0,0,.7); }
+  .tA .gapbox { position: absolute; border: .25cqw dashed #f5a524; background: rgba(245,165,36,.18); border-radius: .5cqw; }
+  .tA .gapbox span { position: absolute; top: 0; left: 0; transform: translateY(-100%); background: #f5a524; color: #0c2b22; font: 700 1cqw ui-monospace, monospace; padding: .3cqw .5cqw; border-radius: .4cqw .4cqw .4cqw 0; white-space: nowrap; }
+  .tA.stats { background: #f6f3ec; color: #142019; }
+  .tA.stats .eyebrow { color: #1f7a5c; }
+  .tA.stats h2 { font-size: 4.6cqw; }
+  .tA .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; margin-top: 4cqw; }
+  .tA .card { background: #fff; border: .1cqw solid #dcd6c9; border-radius: 2cqw; padding: 2.6cqw; }
+  .tA .card .n { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 6.4cqw; line-height: 1; letter-spacing: -.04em; color: #1f7a5c; }
+  .tA .card:nth-child(2) .n { color: #e0533f; }
+  .tA .card:nth-child(3) .n { color: #b7791f; }
+  .tA .card p { font-size: 1.65cqw; margin-top: 1.2cqw; }
+  .tA .cite { font-size: 1.3cqw; color: #4f5d55; margin-top: 2.4cqw; }
+  .tA.how h2 { font-size: 4.6cqw; }
+  .tA .trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2cqw; margin-top: 4.5cqw; }
+  .tA .trio div { border-radius: 1.8cqw; padding: 2.6cqw; background: rgba(255,255,255,.06); border: .1cqw solid rgba(255,255,255,.14); }
+  .tA .trio .who { display: inline-block; font: 700 1.2cqw ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; padding: .5cqw .8cqw; border-radius: .6cqw; margin-bottom: 1.6cqw; }
+  .tA .trio b { display: block; font: 800 2.8cqw/1.1 "Bricolage Grotesque", sans-serif; }
+  .tA .trio p { font-size: 1.6cqw; color: rgba(255,255,255,.72); margin-top: 1cqw; }
+
+  /* ===================== THEME B · Shelf Label ===================== */
+  .tB { background: #f3efe4; color: #111; font-family: "Space Grotesk", sans-serif; }
+  .tB .mono { font-family: "IBM Plex Mono", monospace; }
+  .tB .eyebrow { font-family: "IBM Plex Mono", monospace; font-weight: 700; }
+  .tB.title .s { justify-content: center; }
+  .tB .tagline { display: inline-block; background: #ffd400; padding: .4cqw 1.2cqw; font: 700 1.6cqw "IBM Plex Mono", monospace; margin-bottom: 2.4cqw; }
+  .tB.title h2 { font-size: 10cqw; font-weight: 700; letter-spacing: -.045em; line-height: .9; }
+  .tB.title p { font-size: 2.3cqw; margin-top: 2.6cqw; max-width: 60%; }
+  .tB .label { position: absolute; right: 6cqw; bottom: 7cqw; width: 26cqw; background: #fff; border-top: 1.4cqw solid #ffd400; padding: 1.8cqw 2cqw; transform: rotate(-2deg); box-shadow: 0 1.6cqw 3cqw -1.4cqw rgba(0,0,0,.45); font: 500 1.25cqw/1.5 "IBM Plex Mono", monospace; }
+  .tB .label b { display: block; font: 700 1.9cqw/1.15 "Space Grotesk", sans-serif; margin-bottom: 1cqw; }
+  .tB .label .bar { height: 2.4cqw; margin-top: 1.2cqw; background: repeating-linear-gradient(90deg, #111 0 .2cqw, transparent .2cqw .4cqw, #111 .4cqw .5cqw, transparent .5cqw .8cqw); }
+  .tB.stats h2, .tB.how h2 { font-size: 4.8cqw; letter-spacing: -.03em; line-height: 1; }
+  .tB .rows { margin-top: 3.4cqw; border-top: .3cqw solid #111; }
+  .tB .rows div { display: grid; grid-template-columns: 22cqw 1fr; align-items: baseline; padding: 1.5cqw 0; border-bottom: .12cqw dashed #111; }
+  .tB .rows .n { font-weight: 700; font-size: 5.4cqw; letter-spacing: -.04em; line-height: 1; }
+  .tB .rows .n.red { color: #d92d20; }
+  .tB .rows p { font-size: 1.9cqw; }
+  .tB .cite { font: 500 1.2cqw "IBM Plex Mono", monospace; margin-top: 1.6cqw; }
+  .tB .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 4cqw; border: .3cqw solid #111; }
+  .tB .cols div { padding: 2.4cqw; border-right: .3cqw solid #111; background: #fff; }
+  .tB .cols div:last-child { border-right: 0; }
+  .tB .cols div:nth-child(2) { background: #ffd400; }
+  .tB .cols span { font: 700 1.3cqw "IBM Plex Mono", monospace; }
+  .tB .cols b { display: block; font-size: 3cqw; letter-spacing: -.02em; margin: 1.4cqw 0 1cqw; }
+  .tB .cols p { font-size: 1.6cqw; }
+
+  /* ===================== THEME C · Console (app UI) ===================== */
+  .tC { background: #f5f5f7; color: #1d1d1f; font-family: Inter, -apple-system, "Segoe UI", sans-serif; }
+  .tC .eyebrow { color: #007aff; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 1.8cqw; }
+  .tC.title .s { align-items: center; justify-content: center; text-align: center; }
+  .tC .logo { width: 7cqw; height: 7cqw; border-radius: 1.8cqw; background: linear-gradient(160deg, #34c759, #0a8f3c); display: grid; place-items: center; margin-bottom: 2.6cqw; box-shadow: 0 1cqw 2cqw -1cqw rgba(0,0,0,.4); }
+  .tC .logo svg { width: 4cqw; height: 4cqw; }
+  .tC.title h2 { font-size: 7.4cqw; font-weight: 700; letter-spacing: -.035em; }
+  .tC.title p { font-size: 2.2cqw; color: rgba(60,60,67,.7); margin-top: 1.6cqw; }
+  .tC .pills { display: flex; gap: 1cqw; margin-top: 3cqw; }
+  .tC .pills span { background: #fff; border-radius: 99cqw; padding: .8cqw 1.6cqw; font-size: 1.4cqw; box-shadow: 0 0 0 .1cqw rgba(60,60,67,.13); }
+  .tC.stats h2, .tC.how h2 { font-size: 4.4cqw; font-weight: 700; letter-spacing: -.03em; }
+  .tC .group { margin-top: 2.4cqw; background: #fff; border-radius: 1.6cqw; overflow: hidden; }
+  .tC .group div { display: grid; grid-template-columns: 16cqw 1fr; align-items: center; padding: 1.1cqw 2.4cqw; border-bottom: .1cqw solid rgba(60,60,67,.13); }
+  .tC .group div:last-child { border: 0; }
+  .tC .group .n { font-size: 3.6cqw; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .tC .group .n.r { color: #ff3b30; } .tC .group .n.o { color: #ff9500; } .tC .group .n.g { color: #34c759; }
+  .tC .group p { font-size: 1.8cqw; }
+  .tC .cite { font-size: 1.25cqw; color: rgba(60,60,67,.5); margin-top: 1.6cqw; }
+  .tC .flow { display: flex; align-items: stretch; gap: 1cqw; margin-top: 4cqw; }
+  .tC .flow div { flex: 1; background: #fff; border-radius: 1.4cqw; padding: 2cqw 1.6cqw; }
+  .tC .flow i { font-style: normal; font: 600 1.1cqw ui-monospace, Consolas, monospace; padding: .3cqw .7cqw; border-radius: .5cqw; }
+  .tC .flow .p { background: #fff3e0; color: #b25e00; } .tC .flow .m { background: #ecebff; color: #5856d6; } .tC .flow .c { background: #e3f0ff; color: #007aff; }
+  .tC .flow b { display: block; font-size: 2.3cqw; margin: 1.4cqw 0 .6cqw; }
+  .tC .flow p { font-size: 1.35cqw; color: rgba(60,60,67,.7); }
+  .tC .arrow { flex: 0 0 auto !important; background: none !important; padding: 0 !important; align-self: center; color: rgba(60,60,67,.35); font-size: 2.4cqw; }
+
+  /* ===================== THEME D · Keynote ===================== */
+  .tD { background: #0a0a0a; color: #f2f2f2; font-family: Inter, sans-serif; }
+  .tD .serif { font-family: "Instrument Serif", serif; font-weight: 400; }
+  .tD .eyebrow { color: #8a8a8a; letter-spacing: .2em; }
+  .tD.title .s { justify-content: flex-end; }
+  .tD.title img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .38; filter: grayscale(.4); }
+  .tD.title .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,.2), #0a0a0a 85%); }
+  .tD.title .s > * { position: relative; }
+  .tD.title h2 { font-size: 9cqw; line-height: .95; letter-spacing: -.02em; }
+  .tD.title h2 em { color: #c6f432; }
+  .tD.title p { font-size: 2cqw; color: #b5b5b5; margin-top: 2cqw; }
+  .tD.stats .s { justify-content: center; }
+  .tD .big { font-size: 22cqw; line-height: .85; letter-spacing: -.04em; color: #c6f432; }
+  .tD.stats p.say { font-size: 3.2cqw; max-width: 70%; margin-top: 2cqw; line-height: 1.2; }
+  .tD.stats .small { display: flex; gap: 4cqw; margin-top: 3cqw; font-size: 1.6cqw; color: #9a9a9a; }
+  .tD.stats .small b { color: #f2f2f2; font-size: 2.2cqw; display: block; }
+  .tD.how .s { justify-content: center; }
+  .tD .lines div { font-size: 6.2cqw; line-height: 1.12; letter-spacing: -.02em; }
+  .tD .lines div span { color: #6a6a6a; }
+  .tD .lines div:nth-child(2) em { color: #c6f432; font-style: italic; }
+
+  /* ---------- structure section ---------- */
+  .struct { background: #fff; border-radius: 16px; padding: 22px; margin-bottom: 28px; }
+  .struct h2 { margin: 0 0 6px; font-size: 22px; }
+  .struct > p { margin: 0 0 16px; color: #555; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .opts { grid-template-columns: 1fr; } }
+  .opt { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+  .opt h3 { margin: 0 0 4px; font-size: 17px; }
+  .opt .sub { color: #555; margin: 0 0 12px; font-size: 14px; }
+  .opt ol { margin: 0; padding-left: 0; list-style: none; counter-reset: n; }
+  .opt li { counter-increment: n; display: grid; grid-template-columns: 30px 1fr 52px; gap: 8px; padding: 7px 0; border-top: 1px solid #eee; font-size: 14px; }
+  .opt li::before { content: counter(n); font-weight: 700; color: #888; }
+  .opt li small { display: block; color: #666; }
+  .opt li .t { text-align: right; color: #888; font-variant-numeric: tabular-nums; }
+  .opt li.demo { background: #fff8e0; }
+  .opt li.app { color: #777; }
+  .opt .note { font-size: 13px; color: #555; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="pg">ShelfSense deck: τέσσερα θέματα, δύο δομές</h1>
+  <p class="lead">Τα ίδια τρία slides (τίτλος, πρόβλημα, πώς δουλεύει) σε τέσσερα θέματα. Τα κείμενα και οι αριθμοί είναι
+    οι ελεγμένοι της σελίδας project (κλάδος <code>p3/landing-v2</code>). Διάλεξε θέμα και δομή· τα υπόλοιπα slides
+    χτίζονται πάνω στην επιλογή.</p>
+
+  <!-- ===================== A ===================== -->
+  <section class="theme">
+    <header><b>A · Night Aisle</b><span class="tag rec">προτείνω</span><span class="tag">ίδιο με τη σελίδα project</span>
+      <p>Σκούρο πράσινο, mint και πορτοκαλί για τα κενά, γραμματοσειρά Bricolage Grotesque. Ίδια ταυτότητα με τη σελίδα
+        και το QR, άρα οι κριτές βλέπουν ένα προϊόν, όχι τρία.</p></header>
+    <div class="row">
+      <div class="slide tA title"><div class="s">
+        <div class="l">
+          <div class="eyebrow">Open Track · Gen AI Summit 2026</div>
+          <h2 class="disp">Find shelf gaps from <em>one phone photo.</em></h2>
+          <p>ShelfSense tells the shelf worker what to bring from the backroom, and orders what the store has run out of.</p>
+        </div>
+        <div class="r">
+          <img src="assets/shelf-drinks.jpg" alt="">
+          <div class="gapbox" style="left:25.0%;top:33.8%;width:17.0%;height:11.2%"><span>MISSING · MYTHOS 500ML</span></div>
+          <div class="gapbox" style="left:24.5%;top:48.9%;width:16.2%;height:8.4%"><span>MISSING · MYTHOS 330ML</span></div>
+          <div class="gapbox" style="left:31.8%;top:73.8%;width:13.2%;height:22.0%"><span>MISSING · ΛΟΥΞ COLA 1,5L</span></div>
+        </div>
+      </div></div>
+      <div class="slide tA stats"><div class="s">
+        <div class="eyebrow">The problem</div>
+        <h2 class="disp">Gaps are found late,<br>and each one loses sales.</h2>
+        <div class="grid3">
+          <div class="card"><div class="n">8.3%</div><p>of products are missing from the shelf at any moment.</p></div>
+          <div class="card"><div class="n">40%</div><p>of those sales are lost to the store.</p></div>
+          <div class="card"><div class="n">1 in 4</div><p>gaps are products already in the backroom.</p></div>
+        </div>
+        <div class="cite">Gruen, Corsten &amp; Bharadwaj (2002), 52 studies in 29 countries.</div>
+      </div></div>
+      <div class="slide tA how"><div class="s">
+        <div class="eyebrow">How it works</div>
+        <h2 class="disp">The model reads.<br>Code computes. People approve.</h2>
+        <div class="trio">
+          <div><span class="who" style="background:#e6ecff;color:#3346a8">model</span><b>Read</b><p>Gemini turns the photo into a table: shelf, product, facings, box.</p></div>
+          <div><span class="who" style="background:#dcf3e8;color:#1f7a5c">code</span><b>Decide</b><p>Every unit, case and euro computed in SQL and logged.</p></div>
+          <div><span class="who" style="background:#fff0d6;color:#9a5b00">person</span><b>Approve</b><p>Orders over €50 wait for a yes on Telegram.</p></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="swatches"><i style="background:#0c2b22"></i><i style="background:#a7f3d0"></i><i style="background:#f5a524"></i><i style="background:#e0533f"></i><i style="background:#f6f3ec"></i></div>
+  </section>
+
+  <!-- ===================== B ===================== -->
+  <section class="theme">
+    <header><b>B · Shelf Label</b><span class="tag">πιο «retail»</span>
+      <p>Χαρτί, μαύρο μελάνι, κίτρινο ετικέτας τιμής, monospace σαν απόδειξη. Ξεχωρίζει από τα υπόλοιπα decks της αίθουσας,
+        αλλά απομακρύνεται από τη σελίδα project.</p></header>
+    <div class="row">
+      <div class="slide tB title"><div class="s">
+        <span class="tagline">OPEN TRACK · GEN AI SUMMIT 2026</span>
+        <h2>Shelf<br>Sense.</h2>
+        <p>Find shelf gaps from one phone photo.</p>
+        <div class="label"><b>Mythos lager can 330ml</b>On shelf&nbsp; 0 of 5 facings<br>Bring&nbsp;&nbsp;&nbsp;&nbsp; 20 units · backroom<br>Why&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; missing product<div class="bar"></div></div>
+      </div></div>
+      <div class="slide tB stats"><div class="s">
+        <div class="eyebrow">01 · The problem</div>
+        <h2>Empty shelves cost more than anyone sees.</h2>
+        <div class="rows">
+          <div><span class="n">8.3%</span><p>of products missing from the shelf at any moment</p></div>
+          <div><span class="n red">40%</span><p>of those sales lost to the store</p></div>
+          <div><span class="n">1 in 4</span><p>gaps already sitting in the backroom</p></div>
+        </div>
+        <div class="cite">SOURCE · GRUEN, CORSTEN &amp; BHARADWAJ 2002 · 52 STUDIES · 29 COUNTRIES</div>
+      </div></div>
+      <div class="slide tB how"><div class="s">
+        <div class="eyebrow">02 · How it works</div>
+        <h2>Model reads. Code computes.<br>People approve.</h2>
+        <div class="cols">
+          <div><span>MODEL</span><b>Read</b><p>Gemini turns the photo into a table of products and gaps.</p></div>
+          <div><span>CODE</span><b>Decide</b><p>Every unit, case and euro computed in SQL and logged.</p></div>
+          <div><span>PERSON</span><b>Approve</b><p>Orders over €50 wait for a yes on Telegram.</p></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="swatches"><i style="background:#f3efe4"></i><i style="background:#111"></i><i style="background:#ffd400"></i><i style="background:#d92d20"></i><i style="background:#fff"></i></div>
+  </section>
+
+  <!-- ===================== C ===================== -->
+  <section class="theme">
+    <header><b>C · Console</b><span class="tag">ίδιο με την εφαρμογή</span>
+      <p>Ανοιχτό γκρι, μπλε του συστήματος, χρώματα κατάστασης της εφαρμογής (κόκκινο λείπει, πορτοκαλί λίγο, πράσινο οκ).
+        Η μετάβαση slide → ζωντανό demo είναι αθόρυβη, αλλά το deck μοιάζει πιο «εργαλείο» παρά pitch.</p></header>
+    <div class="row">
+      <div class="slide tC title"><div class="s">
+        <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M9 3v6M15 9v6M7 15v6"/></svg></div>
+        <h2>ShelfSense</h2>
+        <p>Find shelf gaps from one phone photo.</p>
+        <div class="pills"><span>Gemini vision</span><span>DuckDB rules</span><span>Telegram approvals</span></div>
+      </div></div>
+      <div class="slide tC stats"><div class="s">
+        <div class="eyebrow">The problem</div>
+        <h2>Gaps are found late, and each one loses sales.</h2>
+        <div class="group">
+          <div><span class="n r">8.3%</span><p>of products are missing from the shelf at any moment</p></div>
+          <div><span class="n o">40%</span><p>of those sales are lost to the store</p></div>
+          <div><span class="n g">1 in 4</span><p>gaps are products already in the backroom</p></div>
+        </div>
+        <div class="cite">Gruen, Corsten &amp; Bharadwaj (2002), 52 studies in 29 countries.</div>
+      </div></div>
+      <div class="slide tC how"><div class="s">
+        <div class="eyebrow">How it works</div>
+        <h2>From photo to refilled shelf.</h2>
+        <div class="flow">
+          <div><i class="p">person</i><b>Snap</b><p>Photo or live camera every 5 s</p></div><div class="arrow">›</div>
+          <div><i class="m">model</i><b>Read</b><p>Products, facings, boxes</p></div><div class="arrow">›</div>
+          <div><i class="c">code</i><b>Act</b><p>Task, Telegram alert, order</p></div><div class="arrow">›</div>
+          <div><i class="p">person</i><b>Refill</b><p>Brings the listed units</p></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="swatches"><i style="background:#f5f5f7"></i><i style="background:#007aff"></i><i style="background:#ff3b30"></i><i style="background:#ff9500"></i><i style="background:#34c759"></i></div>
+  </section>
+
+  <!-- ===================== D ===================== -->
+  <section class="theme">
+    <header><b>D · Keynote</b><span class="tag">σκηνή, μεγάλη οθόνη</span>
+      <p>Μαύρο, τεράστιοι αριθμοί, serif για έμφαση, ένα lime. Ένα μήνυμα ανά slide· πολύ δυνατό σε αμφιθέατρο, λιγότερο
+        χρήσιμο για κριτή που το διαβάζει μόνος του στο link.</p></header>
+    <div class="row">
+      <div class="slide tD title">
+        <img src="assets/shelf-drinks.jpg" alt=""><div class="shade"></div>
+        <div class="s">
+          <div class="eyebrow">ShelfSense</div>
+          <h2 class="serif">The shelf checks <em>itself.</em></h2>
+          <p>Find shelf gaps from one phone photo.</p>
+        </div>
+      </div>
+      <div class="slide tD stats"><div class="s">
+        <div class="big serif">40%</div>
+        <p class="say">of sales from an empty shelf are lost to the store.</p>
+        <div class="small"><div><b>8.3%</b>missing at any moment</div><div><b>1 in 4</b>already in the backroom</div><div><b>52</b>studies, 29 countries</div></div>
+      </div></div>
+      <div class="slide tD how"><div class="s">
+        <div class="lines">
+          <div class="serif">The model <span>reads.</span></div>
+          <div class="serif">Code <em>computes.</em></div>
+          <div class="serif">People <span>approve.</span></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="swatches"><i style="background:#0a0a0a"></i><i style="background:#f2f2f2"></i><i style="background:#c6f432"></i><i style="background:#6a6a6a"></i></div>
+  </section>
+
+  <!-- ===================== STRUCTURE ===================== -->
+  <section class="struct">
+    <h2>Δομή</h2>
+    <p>Το pitch είναι 3 λεπτά + 2 ερωτήσεις, με τη μορφή της Quintessential: ο άνθρωπος (0:00), ζωντανό demo (0:20),
+      τι ακολουθεί (2:30). Οι διαφάνειες δεν απαιτούνται στην υποβολή, οπότε το ίδιο link μπορεί να μπει και εκεί.</p>
+    <div class="opts">
+      <div class="opt">
+        <h3>1 · Pitch γύρω από το demo <span class="tag rec" style="font-size:12px;padding:2px 7px;border-radius:6px;background:#dff5e9;color:#146c43">προτείνω</span></h3>
+        <p class="sub">6 slides στη σκηνή, το demo στη μέση. Μετά το «Thank you» ένα παράρτημα για τις ερωτήσεις και για όποιον ανοίξει το link μόνος του.</p>
+        <ol>
+          <li><span>ShelfSense: one phone photo<small>όνομα, μία πρόταση, φωτογραφία ραφιού με τα κενά</small></span><span class="t">0:10</span></li>
+          <li><span>The person and the pain<small>το πρωί του department manager· 8.3% · 40% · 1 in 4</small></span><span class="t">0:20</span></li>
+          <li class="demo"><span>Live demo: three moments<small>φωτογραφία → εργασία με crop → παραγγελία με έγκριση· μετά αλλαγή στην εφαρμογή</small></span><span class="t">2:00</span></li>
+          <li><span>Model reads, code computes, people approve<small>γιατί να το εμπιστευτείς: ένα K3 card με πηγή</small></span><span class="t">0:10</span></li>
+          <li><span>What's next<small>department manager → category manager → πραγματικά δεδομένα retailer</small></span><span class="t">0:15</span></li>
+          <li><span>Team + QR<small>5 ονόματα και ρόλοι, QR προς σελίδα και repo· μένει στην οθόνη στις ερωτήσεις</small></span><span class="t">0:05</span></li>
+          <li class="app"><span>Παράρτημα: αρχιτεκτονική<small>capture → read → decide → act, εργαλεία</small></span><span class="t">Q&amp;A</span></li>
+          <li class="app"><span>Παράρτημα: κανόνες K1–K8 και πηγές</span><span class="t">Q&amp;A</span></li>
+          <li class="app"><span>Παράρτημα: τι είναι πραγματικό, τι συνθετικό</span><span class="t">Q&amp;A</span></li>
+          <li class="app"><span>Παράρτημα: τι χτίστηκε στο διήμερο, τεστ, εργαλεία χορηγών<small>boilerplate δηλωμένο· Gemini, treg, fal, Open Food Facts</small></span><span class="t">Q&amp;A</span></li>
+        </ol>
+        <p class="note">Αν το demo δεν τρέξει ζωντανά, το slide 3 παίζει το βίντεο της υποβολής μέσα στο deck.</p>
+      </div>
+      <div class="opt">
+        <h3>2 · Αυτόνομο deck</h3>
+        <p class="sub">Διαβάζεται χωρίς ομιλητή: 11 slides σε σειρά, το demo ως βίντεο. Καλύτερο για το link της υποβολής, βαρύ για 3 λεπτά στη σκηνή.</p>
+        <ol>
+          <li><span>Title</span><span class="t"></span></li>
+          <li><span>The person: a department manager's morning</span><span class="t"></span></li>
+          <li><span>The cost: 8.3% · 40% · 1 in 4</span><span class="t"></span></li>
+          <li><span>The solution in one line</span><span class="t"></span></li>
+          <li class="demo"><span>Demo video (1 min)</span><span class="t"></span></li>
+          <li><span>How it works: five steps</span><span class="t"></span></li>
+          <li><span>Architecture</span><span class="t"></span></li>
+          <li><span>Eight rules, every number with a source</span><span class="t"></span></li>
+          <li><span>Real vs synthetic data</span><span class="t"></span></li>
+          <li><span>Built in 29 hours</span><span class="t"></span></li>
+          <li><span>What's next + team + links</span><span class="t"></span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
