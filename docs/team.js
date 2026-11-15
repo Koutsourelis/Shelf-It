@@ -58,7 +58,7 @@ window.TEAM = [
   {
     name: "Ioannis Gkougkousis",
     role: "UI and Demo",
-    built: "Developed manager feedback and fal-powered shelf cards. Improved UI states and helped shape the demo pitch.",
+    built: "Developed fal-powered shelf cards. Improved UI states and helped shape the demo pitch.",
     background: "Freelance AI automation developer and MBA student.",
     skills: ["AI automation", "APIs", "Workflow design", "UX"],
     linkedin: "",
