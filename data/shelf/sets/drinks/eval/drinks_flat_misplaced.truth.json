@@ -1,0 +1,186 @@
+{
+  "photo": "data/shelf/sets/drinks/photos/drinks_flat_misplaced.jpg",
+  "items": [
+    {
+      "sku": "D01",
+      "shelf": 1,
+      "facings": 4
+    },
+    {
+      "sku": "D02",
+      "shelf": 1,
+      "facings": 4
+    },
+    {
+      "sku": "D03",
+      "shelf": 1,
+      "facings": 2
+    },
+    {
+      "sku": "D04",
+      "shelf": 1,
+      "facings": 2
+    },
+    {
+      "sku": "D05",
+      "shelf": 1,
+      "facings": 3
+    },
+    {
+      "sku": "D06",
+      "shelf": 1,
+      "facings": 2
+    },
+    {
+      "sku": "D07",
+      "shelf": 1,
+      "facings": 3
+    },
+    {
+      "sku": "D08",
+      "shelf": 1,
+      "facings": 3
+    },
+    {
+      "sku": "D11",
+      "shelf": 2,
+      "facings": 5
+    },
+    {
+      "sku": "D12",
+      "shelf": 2,
+      "facings": 5
+    },
+    {
+      "sku": "D13",
+      "shelf": 2,
+      "facings": 3
+    },
+    {
+      "sku": "D14",
+      "shelf": 2,
+      "facings": 3
+    },
+    {
+      "sku": "D15",
+      "shelf": 2,
+      "facings": 3
+    },
+    {
+      "sku": "D16",
+      "shelf": 2,
+      "facings": 1
+    },
+    {
+      "sku": "D17",
+      "shelf": 2,
+      "facings": 2
+    },
+    {
+      "sku": "D21",
+      "shelf": 3,
+      "facings": 5
+    },
+    {
+      "sku": "D22",
+      "shelf": 3,
+      "facings": 5
+    },
+    {
+      "sku": "D23",
+      "shelf": 3,
+      "facings": 4
+    },
+    {
+      "sku": "D24",
+      "shelf": 3,
+      "facings": 3
+    },
+    {
+      "sku": "D26",
+      "shelf": 3,
+      "facings": 6
+    },
+    {
+      "sku": "D27",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "D31",
+      "shelf": 4,
+      "facings": 5
+    },
+    {
+      "sku": "D32",
+      "shelf": 4,
+      "facings": 4
+    },
+    {
+      "sku": "D33",
+      "shelf": 4,
+      "facings": 4
+    },
+    {
+      "sku": "D34",
+      "shelf": 4,
+      "facings": 3
+    },
+    {
+      "sku": "D35",
+      "shelf": 4,
+      "facings": 3
+    },
+    {
+      "sku": "D36",
+      "shelf": 4,
+      "facings": 4
+    },
+    {
+      "sku": "D37",
+      "shelf": 4,
+      "facings": 4
+    },
+    {
+      "sku": "D38",
+      "shelf": 4,
+      "facings": 3
+    },
+    {
+      "sku": "D41",
+      "shelf": 5,
+      "facings": 3
+    },
+    {
+      "sku": "D42",
+      "shelf": 5,
+      "facings": 6
+    },
+    {
+      "sku": "D43",
+      "shelf": 5,
+      "facings": 3
+    },
+    {
+      "sku": "D45",
+      "shelf": 5,
+      "facings": 3
+    },
+    {
+      "sku": "D46",
+      "shelf": 5,
+      "facings": 2
+    },
+    {
+      "sku": "D47",
+      "shelf": 5,
+      "facings": 2
+    }
+  ],
+  "missing": [
+    "D25",
+    "D44"
+  ],
+  "shelf_ok": false,
+  "note": "Λάθος προϊόν σε δύο θέσεις (Heineken στη θέση Άμστελ 330, Λουξ λεμονάδα στη θέση ΕΨΑ), Heineken 500 με 1 πρόσοψη."
+}
