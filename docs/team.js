@@ -27,7 +27,7 @@ window.TEAM = [
   },
   {
     name: "Athanasios Karaferhs",
-    role: "Shelf analysis and suggestions",
+    role: "Solution analysis",
     built: "Built a vision-based shelf monitoring system that identifies products, detects gaps, and generates refill and placement suggestions.",
     background: "C++/Python developer and computer science and telecommunications student.",
     skills: ["FastAPI", "UI/UX", "Automated testing"],
