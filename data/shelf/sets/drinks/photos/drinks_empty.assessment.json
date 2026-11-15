@@ -1,0 +1,503 @@
+{
+  "shelf_ok": false,
+  "occluded": false,
+  "shelves": [
+    {
+      "level": "top",
+      "items": [
+        {
+          "label": "Άλφα Μπίρα Lager φιάλη 500ml",
+          "sku": "D01",
+          "facings": 1,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            189,
+            80,
+            313,
+            110
+          ]
+        },
+        {
+          "label": "Βεργίνα Μπίρα Lager φιάλη 500ml",
+          "sku": "D02",
+          "facings": 1,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            187,
+            188,
+            311,
+            215
+          ]
+        },
+        {
+          "label": "Βεργίνα Μπίρα Weiss φιάλη 500ml",
+          "sku": "D03",
+          "facings": 1,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            184,
+            283,
+            311,
+            310
+          ]
+        },
+        {
+          "label": "Βεργίνα Μπίρα Red φιάλη 500ml",
+          "sku": "D04",
+          "facings": 1,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            184,
+            335,
+            311,
+            362
+          ]
+        },
+        {
+          "label": "Kaiser Μπίρα Pilsner φιάλη 500ml",
+          "sku": "D06",
+          "facings": 1,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            180,
+            468,
+            307,
+            497
+          ]
+        }
+      ]
+    },
+    {
+      "level": "eye",
+      "items": [
+        {
+          "label": "Mythos Μπίρα Lager κουτί 500ml",
+          "sku": "D12",
+          "facings": 1,
+          "target_facings": 5,
+          "placement_ok": true,
+          "box_2d": [
+            342,
+            207,
+            431,
+            233
+          ]
+        },
+        {
+          "label": "Φιξ Μπίρα Lager κουτί 500ml",
+          "sku": "D13",
+          "facings": 2,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            340,
+            332,
+            429,
+            383
+          ]
+        },
+        {
+          "label": "Άμστελ Μπίρα Lager κουτί 500ml",
+          "sku": "D15",
+          "facings": 1,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            336,
+            490,
+            427,
+            518
+          ]
+        },
+        {
+          "label": "Kaiser Μπίρα Pilsner κουτί 500ml",
+          "sku": "D17",
+          "facings": 1,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            336,
+            648,
+            424,
+            675
+          ]
+        }
+      ]
+    },
+    {
+      "level": "eye",
+      "items": [
+        {
+          "label": "Άλφα Μπίρα Lager κουτί 330ml",
+          "sku": "D21",
+          "facings": 1,
+          "target_facings": 5,
+          "placement_ok": true,
+          "box_2d": [
+            460,
+            82,
+            527,
+            108
+          ]
+        },
+        {
+          "label": "Mythos Μπίρα Lager κουτί 330ml",
+          "sku": "D22",
+          "facings": 1,
+          "target_facings": 5,
+          "placement_ok": true,
+          "box_2d": [
+            460,
+            203,
+            527,
+            230
+          ]
+        },
+        {
+          "label": "Βεργίνα Μπίρα Lager κουτί 330ml",
+          "sku": "D24",
+          "facings": 1,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            456,
+            422,
+            522,
+            448
+          ]
+        },
+        {
+          "label": "Άμστελ Μπίρα Lager κουτί 330ml",
+          "sku": "D25",
+          "facings": 2,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            449,
+            500,
+            522,
+            550
+          ]
+        },
+        {
+          "label": "Heineken Μπίρα Lager κουτί 330ml",
+          "sku": "D26",
+          "facings": 1,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            456,
+            577,
+            522,
+            603
+          ]
+        },
+        {
+          "label": "Kaiser Μπίρα Pilsner κουτί 330ml",
+          "sku": "D27",
+          "facings": 1,
+          "target_facings": 2,
+          "placement_ok": true,
+          "box_2d": [
+            456,
+            653,
+            522,
+            678
+          ]
+        }
+      ]
+    },
+    {
+      "level": "bottom",
+      "items": [
+        {
+          "label": "Άλφα Μπίρα χωρίς αλκοόλ κουτί 330ml",
+          "sku": "D31",
+          "facings": 1,
+          "target_facings": 5,
+          "placement_ok": true,
+          "box_2d": [
+            553,
+            83,
+            620,
+            110
+          ]
+        },
+        {
+          "label": "Φιξ Άνευ μπίρα χωρίς αλκοόλ κουτί 330ml",
+          "sku": "D32",
+          "facings": 1,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            553,
+            205,
+            622,
+            232
+          ]
+        },
+        {
+          "label": "Άμστελ Free μπίρα χωρίς αλκοόλ κουτί 330ml",
+          "sku": "D33",
+          "facings": 2,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            562,
+            298,
+            629,
+            338
+          ]
+        },
+        {
+          "label": "Βεργίνα Μπίρα χωρίς αλκοόλ κουτί 330ml",
+          "sku": "D35",
+          "facings": 2,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            544,
+            433,
+            611,
+            485
+          ]
+        },
+        {
+          "label": "Coca-Cola Original Taste κουτί 330ml",
+          "sku": "D36",
+          "facings": 2,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            558,
+            510,
+            629,
+            545
+          ]
+        },
+        {
+          "label": "Coca-Cola Zero κουτί 330ml",
+          "sku": "D37",
+          "facings": 1,
+          "target_facings": 4,
+          "placement_ok": true,
+          "box_2d": [
+            562,
+            582,
+            629,
+            600
+          ]
+        },
+        {
+          "label": "Ήβη Σόδα με λεμόνι κουτί 330ml",
+          "sku": "D38",
+          "facings": 2,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            556,
+            653,
+            627,
+            688
+          ]
+        }
+      ]
+    },
+    {
+      "level": "bottom",
+      "items": [
+        {
+          "label": "Λουξ Cola 1,5lt",
+          "sku": "D43",
+          "facings": 2,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            624,
+            273,
+            793,
+            335
+          ]
+        },
+        {
+          "label": "ΕΨΑ Λεμονάδα με ανθρακικό 1,5lt",
+          "sku": "D44",
+          "facings": 1,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            629,
+            365,
+            791,
+            398
+          ]
+        },
+        {
+          "label": "Ήβη Πορτοκαλάδα με ανθρακικό 1,5lt",
+          "sku": "D45",
+          "facings": 1,
+          "target_facings": 3,
+          "placement_ok": true,
+          "box_2d": [
+            624,
+            462,
+            787,
+            497
+          ]
+        }
+      ]
+    }
+  ],
+  "missing": [
+    {
+      "sku": "D05",
+      "product": "Άμστελ Μπίρα Lager φιάλη 500ml",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D07",
+      "product": "Φιξ Μπίρα Μαύρη φιάλη 330ml",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D08",
+      "product": "Μάμος Μπίρα Αφιλτράριστη φιάλη 330ml",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D11",
+      "product": "Άλφα Μπίρα Lager κουτί 500ml",
+      "target_facings": 5,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D14",
+      "product": "Βεργίνα Μπίρα Lager κουτί 500ml",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D16",
+      "product": "Heineken Μπίρα Lager κουτί 500ml",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D23",
+      "product": "Φιξ Μπίρα Lager κουτί 330ml",
+      "target_facings": 4,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D34",
+      "product": "Mythos 0.0% μπίρα χωρίς αλκοόλ κουτί 330ml",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D41",
+      "product": "Λουξ Πορτοκαλάδα με ανθρακικό 1,5lt",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D42",
+      "product": "Λουξ Λεμονάδα 1,5lt",
+      "target_facings": 3,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D46",
+      "product": "Ήβη Πορτοκαλάδα χωρίς ανθρακικό 1,5lt",
+      "target_facings": 2,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    },
+    {
+      "sku": "D47",
+      "product": "Coca-Cola Zero 1,5lt",
+      "target_facings": 2,
+      "why": "Κωδικός του planogram που δεν φαίνεται στο ράφι."
+    }
+  ],
+  "misplaced": [],
+  "foreign": [],
+  "visual_issues": [],
+  "suggested_layout": [
+    {
+      "level": "top",
+      "order": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08"
+      ],
+      "why": "Όπως το planogram του σετ."
+    },
+    {
+      "level": "eye",
+      "order": [
+        "D11",
+        "D12",
+        "D13",
+        "D14",
+        "D15",
+        "D16",
+        "D17"
+      ],
+      "why": "Όπως το planogram του σετ."
+    },
+    {
+      "level": "eye",
+      "order": [
+        "D21",
+        "D22",
+        "D23",
+        "D24",
+        "D25",
+        "D26",
+        "D27"
+      ],
+      "why": "Όπως το planogram του σετ."
+    },
+    {
+      "level": "bottom",
+      "order": [
+        "D31",
+        "D32",
+        "D33",
+        "D34",
+        "D35",
+        "D36",
+        "D37",
+        "D38"
+      ],
+      "why": "Όπως το planogram του σετ."
+    },
+    {
+      "level": "bottom",
+      "order": [
+        "D41",
+        "D42",
+        "D43",
+        "D44",
+        "D45",
+        "D46",
+        "D47"
+      ],
+      "why": "Όπως το planogram του σετ."
+    }
+  ],
+  "summary": "Ράφι ποτών: λείπουν 12 κωδικοί, 25 κωδικοί με λιγότερες προσόψεις. Χρειάζεται αναπλήρωση από την αποθήκη και διόρθωση θέσεων."
+}

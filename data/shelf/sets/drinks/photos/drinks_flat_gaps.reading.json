@@ -1,0 +1,446 @@
+{
+  "items": [
+    {
+      "sku": "D01",
+      "label": "Άλφα Μπίρα Lager φιάλη 500ml",
+      "shelf": 1,
+      "position": 1,
+      "facings": 4,
+      "box_2d": [
+        58,
+        41,
+        233,
+        194
+      ]
+    },
+    {
+      "sku": "D02",
+      "label": "Βεργίνα Μπίρα Lager φιάλη 500ml",
+      "shelf": 1,
+      "position": 2,
+      "facings": 4,
+      "box_2d": [
+        58,
+        202,
+        233,
+        337
+      ]
+    },
+    {
+      "sku": "D03",
+      "label": "Βεργίνα Μπίρα Weiss φιάλη 500ml",
+      "shelf": 1,
+      "position": 3,
+      "facings": 2,
+      "box_2d": [
+        58,
+        345,
+        233,
+        412
+      ]
+    },
+    {
+      "sku": "D04",
+      "label": "Βεργίνα Μπίρα Red φιάλη 500ml",
+      "shelf": 1,
+      "position": 4,
+      "facings": 2,
+      "box_2d": [
+        58,
+        420,
+        233,
+        489
+      ]
+    },
+    {
+      "sku": "D05",
+      "label": "Άμστελ Μπίρα Lager φιάλη 500ml",
+      "shelf": 1,
+      "position": 5,
+      "facings": 3,
+      "box_2d": [
+        58,
+        497,
+        233,
+        611
+      ]
+    },
+    {
+      "sku": "D06",
+      "label": "Kaiser Μπίρα Pilsner φιάλη 500ml",
+      "shelf": 1,
+      "position": 6,
+      "facings": 2,
+      "box_2d": [
+        54,
+        619,
+        233,
+        690
+      ]
+    },
+    {
+      "sku": "D07",
+      "label": "Φιξ Μπίρα Μαύρη φιάλη 330ml",
+      "shelf": 1,
+      "position": 7,
+      "facings": 3,
+      "box_2d": [
+        99,
+        698,
+        233,
+        818
+      ]
+    },
+    {
+      "sku": "D08",
+      "label": "Μάμος Μπίρα Αφιλτράριστη φιάλη 330ml",
+      "shelf": 1,
+      "position": 8,
+      "facings": 3,
+      "box_2d": [
+        99,
+        826,
+        233,
+        951
+      ]
+    },
+    {
+      "sku": "D11",
+      "label": "Άλφα Μπίρα Lager κουτί 500ml",
+      "shelf": 2,
+      "position": 1,
+      "facings": 5,
+      "box_2d": [
+        282,
+        43,
+        401,
+        220
+      ]
+    },
+    {
+      "sku": "D13",
+      "label": "Φιξ Μπίρα Lager κουτί 500ml",
+      "shelf": 2,
+      "position": 3,
+      "facings": 3,
+      "box_2d": [
+        282,
+        414,
+        401,
+        518
+      ]
+    },
+    {
+      "sku": "D14",
+      "label": "Βεργίνα Μπίρα Lager κουτί 500ml",
+      "shelf": 2,
+      "position": 4,
+      "facings": 3,
+      "box_2d": [
+        282,
+        529,
+        401,
+        635
+      ]
+    },
+    {
+      "sku": "D15",
+      "label": "Άμστελ Μπίρα Lager κουτί 500ml",
+      "shelf": 2,
+      "position": 5,
+      "facings": 3,
+      "box_2d": [
+        282,
+        645,
+        401,
+        753
+      ]
+    },
+    {
+      "sku": "D16",
+      "label": "Heineken Μπίρα Lager κουτί 500ml",
+      "shelf": 2,
+      "position": 6,
+      "facings": 3,
+      "box_2d": [
+        282,
+        764,
+        401,
+        868
+      ]
+    },
+    {
+      "sku": "D17",
+      "label": "Kaiser Μπίρα Pilsner κουτί 500ml",
+      "shelf": 2,
+      "position": 7,
+      "facings": 2,
+      "box_2d": [
+        282,
+        878,
+        401,
+        947
+      ]
+    },
+    {
+      "sku": "D21",
+      "label": "Άλφα Μπίρα Lager κουτί 330ml",
+      "shelf": 3,
+      "position": 1,
+      "facings": 5,
+      "box_2d": [
+        452,
+        41,
+        534,
+        219
+      ]
+    },
+    {
+      "sku": "D23",
+      "label": "Φιξ Μπίρα Lager κουτί 330ml",
+      "shelf": 3,
+      "position": 3,
+      "facings": 4,
+      "box_2d": [
+        452,
+        401,
+        534,
+        537
+      ]
+    },
+    {
+      "sku": "D24",
+      "label": "Βεργίνα Μπίρα Lager κουτί 330ml",
+      "shelf": 3,
+      "position": 4,
+      "facings": 3,
+      "box_2d": [
+        452,
+        544,
+        534,
+        650
+      ]
+    },
+    {
+      "sku": "D25",
+      "label": "Άμστελ Μπίρα Lager κουτί 330ml",
+      "shelf": 3,
+      "position": 5,
+      "facings": 3,
+      "box_2d": [
+        452,
+        657,
+        534,
+        765
+      ]
+    },
+    {
+      "sku": "D26",
+      "label": "Heineken Μπίρα Lager κουτί 330ml",
+      "shelf": 3,
+      "position": 6,
+      "facings": 3,
+      "box_2d": [
+        452,
+        773,
+        534,
+        877
+      ]
+    },
+    {
+      "sku": "D27",
+      "label": "Kaiser Μπίρα Pilsner κουτί 330ml",
+      "shelf": 3,
+      "position": 7,
+      "facings": 2,
+      "box_2d": [
+        452,
+        884,
+        534,
+        951
+      ]
+    },
+    {
+      "sku": "D31",
+      "label": "Άλφα Μπίρα χωρίς αλκοόλ κουτί 330ml",
+      "shelf": 4,
+      "position": 1,
+      "facings": 5,
+      "box_2d": [
+        585,
+        41,
+        668,
+        219
+      ]
+    },
+    {
+      "sku": "D32",
+      "label": "Φιξ Άνευ μπίρα χωρίς αλκοόλ κουτί 330ml",
+      "shelf": 4,
+      "position": 2,
+      "facings": 4,
+      "box_2d": [
+        585,
+        227,
+        668,
+        362
+      ]
+    },
+    {
+      "sku": "D33",
+      "label": "Άμστελ Free μπίρα χωρίς αλκοόλ κουτί 330ml",
+      "shelf": 4,
+      "position": 3,
+      "facings": 4,
+      "box_2d": [
+        585,
+        370,
+        668,
+        472
+      ]
+    },
+    {
+      "sku": "D34",
+      "label": "Mythos 0.0% μπίρα χωρίς αλκοόλ κουτί 330ml",
+      "shelf": 4,
+      "position": 4,
+      "facings": 3,
+      "box_2d": [
+        585,
+        479,
+        668,
+        554
+      ]
+    },
+    {
+      "sku": "D35",
+      "label": "Βεργίνα Μπίρα χωρίς αλκοόλ κουτί 330ml",
+      "shelf": 4,
+      "position": 5,
+      "facings": 3,
+      "box_2d": [
+        585,
+        561,
+        668,
+        667
+      ]
+    },
+    {
+      "sku": "D36",
+      "label": "Coca-Cola Original Taste κουτί 330ml",
+      "shelf": 4,
+      "position": 6,
+      "facings": 4,
+      "box_2d": [
+        585,
+        674,
+        668,
+        768
+      ]
+    },
+    {
+      "sku": "D37",
+      "label": "Coca-Cola Zero κουτί 330ml",
+      "shelf": 4,
+      "position": 7,
+      "facings": 4,
+      "box_2d": [
+        585,
+        776,
+        668,
+        869
+      ]
+    },
+    {
+      "sku": "D38",
+      "label": "Ήβη Σόδα με λεμόνι κουτί 330ml",
+      "shelf": 4,
+      "position": 8,
+      "facings": 3,
+      "box_2d": [
+        585,
+        877,
+        668,
+        951
+      ]
+    },
+    {
+      "sku": "D41",
+      "label": "Λουξ Πορτοκαλάδα με ανθρακικό 1,5lt",
+      "shelf": 5,
+      "position": 1,
+      "facings": 3,
+      "box_2d": [
+        722,
+        42,
+        939,
+        169
+      ]
+    },
+    {
+      "sku": "D42",
+      "label": "Λουξ Λεμονάδα 1,5lt",
+      "shelf": 5,
+      "position": 2,
+      "facings": 3,
+      "box_2d": [
+        722,
+        178,
+        939,
+        305
+      ]
+    },
+    {
+      "sku": "D44",
+      "label": "ΕΨΑ Λεμονάδα με ανθρακικό 1,5lt",
+      "shelf": 5,
+      "position": 4,
+      "facings": 3,
+      "box_2d": [
+        722,
+        453,
+        939,
+        589
+      ]
+    },
+    {
+      "sku": "D45",
+      "label": "Ήβη Πορτοκαλάδα με ανθρακικό 1,5lt",
+      "shelf": 5,
+      "position": 5,
+      "facings": 3,
+      "box_2d": [
+        722,
+        598,
+        939,
+        740
+      ]
+    },
+    {
+      "sku": "D46",
+      "label": "Ήβη Πορτοκαλάδα χωρίς ανθρακικό 1,5lt",
+      "shelf": 5,
+      "position": 6,
+      "facings": 2,
+      "box_2d": [
+        722,
+        749,
+        939,
+        843
+      ]
+    },
+    {
+      "sku": "D47",
+      "label": "Coca-Cola Zero 1,5lt",
+      "shelf": 5,
+      "position": 7,
+      "facings": 2,
+      "box_2d": [
+        722,
+        853,
+        939,
+        949
+      ]
+    }
+  ]
+}

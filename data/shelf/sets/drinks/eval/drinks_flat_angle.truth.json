@@ -1,0 +1,186 @@
+{
+  "photo": "data/shelf/sets/drinks/photos/drinks_flat_angle.jpg",
+  "items": [
+    {
+      "sku": "D01",
+      "shelf": 1,
+      "facings": 4
+    },
+    {
+      "sku": "D02",
+      "shelf": 1,
+      "facings": 4
+    },
+    {
+      "sku": "D03",
+      "shelf": 1,
+      "facings": 2
+    },
+    {
+      "sku": "D05",
+      "shelf": 1,
+      "facings": 3
+    },
+    {
+      "sku": "D06",
+      "shelf": 1,
+      "facings": 2
+    },
+    {
+      "sku": "D07",
+      "shelf": 1,
+      "facings": 3
+    },
+    {
+      "sku": "D08",
+      "shelf": 1,
+      "facings": 3
+    },
+    {
+      "sku": "D11",
+      "shelf": 2,
+      "facings": 5
+    },
+    {
+      "sku": "D12",
+      "shelf": 2,
+      "facings": 5
+    },
+    {
+      "sku": "D13",
+      "shelf": 2,
+      "facings": 3
+    },
+    {
+      "sku": "D14",
+      "shelf": 2,
+      "facings": 3
+    },
+    {
+      "sku": "D15",
+      "shelf": 2,
+      "facings": 1
+    },
+    {
+      "sku": "D16",
+      "shelf": 2,
+      "facings": 1
+    },
+    {
+      "sku": "D17",
+      "shelf": 2,
+      "facings": 2
+    },
+    {
+      "sku": "D21",
+      "shelf": 3,
+      "facings": 5
+    },
+    {
+      "sku": "D22",
+      "shelf": 3,
+      "facings": 5
+    },
+    {
+      "sku": "D23",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "D24",
+      "shelf": 3,
+      "facings": 1
+    },
+    {
+      "sku": "D25",
+      "shelf": 3,
+      "facings": 3
+    },
+    {
+      "sku": "D26",
+      "shelf": 3,
+      "facings": 1
+    },
+    {
+      "sku": "D27",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "D31",
+      "shelf": 4,
+      "facings": 5
+    },
+    {
+      "sku": "D32",
+      "shelf": 4,
+      "facings": 4
+    },
+    {
+      "sku": "D33",
+      "shelf": 4,
+      "facings": 2
+    },
+    {
+      "sku": "D34",
+      "shelf": 4,
+      "facings": 3
+    },
+    {
+      "sku": "D35",
+      "shelf": 4,
+      "facings": 1
+    },
+    {
+      "sku": "D36",
+      "shelf": 4,
+      "facings": 4
+    },
+    {
+      "sku": "D37",
+      "shelf": 4,
+      "facings": 4
+    },
+    {
+      "sku": "D38",
+      "shelf": 4,
+      "facings": 1
+    },
+    {
+      "sku": "D41",
+      "shelf": 5,
+      "facings": 3
+    },
+    {
+      "sku": "D42",
+      "shelf": 5,
+      "facings": 3
+    },
+    {
+      "sku": "D43",
+      "shelf": 5,
+      "facings": 1
+    },
+    {
+      "sku": "D44",
+      "shelf": 5,
+      "facings": 1
+    },
+    {
+      "sku": "D45",
+      "shelf": 5,
+      "facings": 3
+    },
+    {
+      "sku": "D47",
+      "shelf": 5,
+      "facings": 2
+    }
+  ],
+  "missing": [
+    "D04",
+    "D46"
+  ],
+  "shelf_ok": false,
+  "note": "Μισογεμάτο, θερμότερο φως, λήψη λίγο από τα αριστερά."
+}

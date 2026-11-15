@@ -1,0 +1,146 @@
+{
+  "photo": "data/shelf/sets/drinks/photos/drinks_empty.jpg",
+  "items": [
+    {
+      "sku": "D43",
+      "shelf": 5,
+      "facings": 2
+    },
+    {
+      "sku": "D44",
+      "shelf": 5,
+      "facings": 1
+    },
+    {
+      "sku": "D45",
+      "shelf": 5,
+      "facings": 1
+    },
+    {
+      "sku": "D31",
+      "shelf": 4,
+      "facings": 1
+    },
+    {
+      "sku": "D32",
+      "shelf": 4,
+      "facings": 1
+    },
+    {
+      "sku": "D33",
+      "shelf": 4,
+      "facings": 2
+    },
+    {
+      "sku": "D35",
+      "shelf": 4,
+      "facings": 2
+    },
+    {
+      "sku": "D36",
+      "shelf": 4,
+      "facings": 2
+    },
+    {
+      "sku": "D37",
+      "shelf": 4,
+      "facings": 1
+    },
+    {
+      "sku": "D38",
+      "shelf": 4,
+      "facings": 2
+    },
+    {
+      "sku": "D21",
+      "shelf": 3,
+      "facings": 1
+    },
+    {
+      "sku": "D22",
+      "shelf": 3,
+      "facings": 1
+    },
+    {
+      "sku": "D24",
+      "shelf": 3,
+      "facings": 1
+    },
+    {
+      "sku": "D25",
+      "shelf": 3,
+      "facings": 2
+    },
+    {
+      "sku": "D26",
+      "shelf": 3,
+      "facings": 1
+    },
+    {
+      "sku": "D27",
+      "shelf": 3,
+      "facings": 1
+    },
+    {
+      "sku": "D12",
+      "shelf": 2,
+      "facings": 1
+    },
+    {
+      "sku": "D13",
+      "shelf": 2,
+      "facings": 2
+    },
+    {
+      "sku": "D15",
+      "shelf": 2,
+      "facings": 1
+    },
+    {
+      "sku": "D17",
+      "shelf": 2,
+      "facings": 1
+    },
+    {
+      "sku": "D01",
+      "shelf": 1,
+      "facings": 1
+    },
+    {
+      "sku": "D02",
+      "shelf": 1,
+      "facings": 1
+    },
+    {
+      "sku": "D03",
+      "shelf": 1,
+      "facings": 1
+    },
+    {
+      "sku": "D04",
+      "shelf": 1,
+      "facings": 1
+    },
+    {
+      "sku": "D06",
+      "shelf": 1,
+      "facings": 1
+    }
+  ],
+  "missing": [
+    "D05",
+    "D07",
+    "D08",
+    "D11",
+    "D14",
+    "D16",
+    "D23",
+    "D34",
+    "D41",
+    "D42",
+    "D46",
+    "D47"
+  ],
+  "shelf_ok": false,
+  "note": "Σχεδόν άδειο: πολλά κενά, το πολύ 1–2 προσόψεις."
+}
