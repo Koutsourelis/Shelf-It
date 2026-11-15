@@ -15,6 +15,10 @@ from . import config
 SHELF_DIR = config.SHELF_DIR          # data/shelf ή data/shelf/sets/<SHELF_SET>
 PHOTOS_DIR = SHELF_DIR / "photos"
 DAYS = 28
+# Οι στήλες του products που φτιάχνει η build(). Αν μια υπάρχουσα βάση δεν τις έχει όλες, είναι παλιά
+# και το agentkit/tools/data.py την ξαναχτίζει.
+PRODUCT_COLUMNS = {"sku", "name", "brand", "unit_cost", "unit_price", "case_size", "category",
+                   "price_source", "cost_source"}
 
 
 def _rows(name: str) -> list[dict]:
