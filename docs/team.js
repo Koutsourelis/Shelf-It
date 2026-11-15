@@ -16,13 +16,13 @@
    ===================================================================== */
 window.TEAM = [
   {
-    name: "",
+    name: "Anastasios Ntoukas",
     role: "Vision",
     built: "Turns the shelf photo into a reliable table: which product, where, how many facings.",
-    background: "",
-    skills: [],
-    linkedin: "",
-    github: "",
+    background: "Computer Science student with experience in software development, AI tools, and cybersecurity.",
+    skills: ["Software Development", "AI Tools & API Integration", "Reverse Engineering"],
+    linkedin: "www.linkedin.com/in/anastasios-ntoukas-7614872bb",
+    github: "https://github.com/itsTasos",
     photo: "",
   },
   {
