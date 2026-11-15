@@ -210,7 +210,7 @@ async def notify_shelf_change(changed: dict, frame: Path | None = None) -> None:
         lines.append(f"✓ Αποκαταστάθηκε: {t['text']}")
 
     open_now = tasks.open_tasks()
-    head = f"ShelfSense · {len(open_now)} εκκρεμείς εργασίες" if open_now else "ShelfSense · Το ράφι είναι σωστό ✓"
+    head = f"Shelf-it · {len(open_now)} εκκρεμείς εργασίες" if open_now else "Shelf-it · Το ράφι είναι σωστό ✓"
     caption = head + ("\n\n" + "\n".join(lines) if lines else "")
     rows = _task_rows(open_now)
 
@@ -255,7 +255,7 @@ async def send_test_ping() -> dict:
     if not subs:
         hint = f" Άνοιξε το @{bot_username} και πάτα /start." if bot_username else " Στείλε /start στο bot από το κινητό σου."
         return {"ok": False, "text": "Δεν υπάρχει συνδεδεμένο chat." + hint}
-    n = await broadcast(f"ShelfSense · Δοκιμή σύνδεσης επιτυχής ({time.strftime('%H:%M:%S')}).")
+    n = await broadcast(f"Shelf-it · Δοκιμή σύνδεσης επιτυχής ({time.strftime('%H:%M:%S')}).")
     return {"ok": n > 0, "text": f"Στάλθηκε δοκιμαστικό μήνυμα σε {n} συνομιλία." if n else "Αποτυχία αποστολής στο Telegram."}
 
 
@@ -406,7 +406,7 @@ async def _handle(update: dict) -> None:
         names = "\n".join(f"  /mode {s.name} — {s.title}" for s in SCENARIOS.values())
         await send(
             chat_id,
-            "Συνδέθηκες στο ShelfSense.\n"
+            "Συνδέθηκες στο Shelf-it.\n"
             "Θα λαμβάνεις εδώ ζωντανές ειδοποιήσεις ραφιού, αυτόματες παραγγελίες και προτάσεις διάταξης.\n\n"
             "• Στείλε φωτογραφία ραφιού εδώ για άμεση σάρωση\n"
             "• /tasks — Εκκρεμείς εργασίες υπαλλήλου\n"
@@ -441,7 +441,7 @@ async def _handle(update: dict) -> None:
         state_txt = "Σωστό ✓" if st["shelf_ok"] else f"{st['open']} εκκρεμείς εργασίες"
         await send(
             chat_id,
-            f"Κατάσταση ShelfSense\n"
+            f"Κατάσταση Shelf-it\n"
             f"• Ράφι: {state_txt}\n"
             f"• Μοντέλο όρασης: {st['model']}\n"
             f"• Σαρώσεις κάμερας: {st['frames']} frames ({st['model_calls']} κλήσεις μοντέλου)\n"

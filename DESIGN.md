@@ -1,4 +1,4 @@
-# ShelfSense Design System (`DESIGN.md`)
+# Shelf-it Design System (`DESIGN.md`)
 
 **Design Authority:** Apple Human Interface Guidelines (macOS & iOS)
 **Surface Mode:** `Operate` (Impeccable framework — Restrained semantic color, flat grouped hierarchy, native ergonomics)

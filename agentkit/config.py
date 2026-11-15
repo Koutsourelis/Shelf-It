@@ -112,7 +112,7 @@ EVIDENCE_COUNTRY = _env("EVIDENCE_COUNTRY") or "gr"      # κωδικός χώρ
 EVIDENCE_MIN_SOURCES = int(_env("EVIDENCE_MIN_SOURCES", "2"))
 
 # --- Ταυτότητα του project (φαίνεται στην κονσόλα) --------------------------
-PROJECT_NAME = _env("PROJECT_NAME") or "ShelfSense"
+PROJECT_NAME = _env("PROJECT_NAME") or "Shelf-it"
 PROJECT_TAGLINE = _env("PROJECT_TAGLINE") or "Έλεγχος ραφιού & αυτόματη αναπλήρωση"
 # Αρχείο εικόνας μέσα στον φάκελο console/ (π.χ. ui/logo.svg).
 PROJECT_LOGO = _env("PROJECT_LOGO") or "ui/logo.svg"

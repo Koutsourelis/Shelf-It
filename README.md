@@ -1,6 +1,6 @@
-# ShelfSense
+# Shelf-it
 
-**ShelfSense** turns a phone or aisle camera into an autonomous shelf-monitoring and merchandising system for supermarket teams. Built at the **Gen AI Summit Hackathon (Athens, 14–15 November 2026 — Open Track)**.
+**Shelf-it** turns a phone or aisle camera into an autonomous shelf-monitoring and merchandising system for supermarket teams. Built at the **Gen AI Summit Hackathon (Athens, 14–15 November 2026 — Open Track)**.
 
 - **Who it is for:** Supermarket department managers and aisle staff in small-to-mid grocery stores that lack expensive fixed shelf sensors.
 - **Problem:** ~8% of grocery SKUs are out of stock at any hour, and 43% of shoppers do not substitute inside the store (Gruen, Corsten & Bharadwaj, 2002) — yet manual shelf walks are slow, stockouts sit unnoticed for hours, and eye-level space goes to low-margin items.
