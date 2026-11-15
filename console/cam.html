@@ -12,7 +12,7 @@
   .cam-wrap {
     max-width: 560px;
     margin: 0 auto;
-    padding: 12px 14px 32px;
+    padding: 12px 14px 36px;
   }
   .mode-seg { margin-bottom: 12px; }
   .mode-seg a {
@@ -37,15 +37,15 @@
     position: relative;
     width: 100%;
     aspect-ratio: 3 / 4;
-    max-height: calc(100dvh - 250px);
-    min-height: 320px;
+    max-height: 54dvh;
+    min-height: 290px;
     background: #0B0B0D;
     border-radius: 18px;
     overflow: hidden;
     border: 1px solid var(--surface-border);
   }
   @media (min-width: 768px) {
-    .vf-stage { aspect-ratio: 16 / 9; max-height: 520px; }
+    .vf-stage { aspect-ratio: 16 / 9; max-height: 480px; }
   }
   #video {
     width: 100%;
@@ -61,21 +61,37 @@
     pointer-events: none;
   }
 
+  .scan-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #0A84FF, transparent);
+    background-size: 200% 100%;
+    animation: scanMove 1.15s linear infinite;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 5;
+  }
+  .vf-stage.scanning .scan-bar { opacity: 1; }
+  @keyframes scanMove { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
   /* Clean Gemini-Live style framing reticle */
   .reticle {
     position: absolute;
-    inset: 11% 9%;
-    border: 2px solid rgba(255, 255, 255, 0.55);
+    inset: 10% 8%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
     border-radius: 22px;
     pointer-events: none;
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
   }
   .vf-stage.scanning .reticle {
     border-color: #0A84FF;
-    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.24);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25);
   }
-  .vf-stage.ok .reticle { border-color: rgba(52, 199, 89, 0.8); }
-  .vf-stage.bad .reticle { border-color: rgba(255, 59, 48, 0.85); }
+  .vf-stage.ok .reticle { border-color: rgba(52, 199, 89, 0.85); }
+  .vf-stage.bad .reticle { border-color: rgba(255, 59, 48, 0.88); }
 
   .hud-top {
     position: absolute;
@@ -86,7 +102,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    z-index: 3;
+    z-index: 4;
   }
   .hud-pill {
     display: inline-flex;
@@ -94,7 +110,7 @@
     gap: 8px;
     padding: 7px 12px;
     border-radius: 999px;
-    background: rgba(18, 18, 22, 0.76);
+    background: rgba(18, 18, 22, 0.78);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     color: #FFFFFF;
@@ -115,7 +131,7 @@
     padding: 0;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(18, 18, 22, 0.76);
+    background: rgba(18, 18, 22, 0.78);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     color: #FFFFFF;
@@ -136,7 +152,7 @@
     color: rgba(255, 255, 255, 0.88);
     font-size: 14px;
     line-height: 1.5;
-    z-index: 4;
+    z-index: 6;
   }
   .hud-hint a { color: #0A84FF; }
 
@@ -148,13 +164,33 @@
     align-items: center;
   }
   .cam-meta {
-    margin-top: 10px;
+    margin-top: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-size: var(--fs-foot);
     color: var(--label-secondary);
     padding: 0 2px;
+  }
+
+  .live-sheet {
+    margin-top: 12px;
+  }
+  .sheet-row {
+    padding: 10px 14px;
+    font-size: var(--fs-callout);
+    line-height: 1.42;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+  }
+  .sheet-row + .sheet-row {
+    border-top: 1px solid var(--separator);
+  }
+  .sheet-row .sdot { margin-top: 6px; }
+  .sheet-summary {
+    color: var(--label-secondary);
+    font-size: var(--fs-callout);
   }
 </style>
 </head>
@@ -183,6 +219,7 @@
   </div>
 
   <div class="vf-stage" id="vfStage">
+    <div class="scan-bar" aria-hidden="true"></div>
     <video id="video" autoplay playsinline muted></video>
     <canvas id="overlay"></canvas>
     <div class="reticle" aria-hidden="true"></div>
@@ -206,8 +243,12 @@
   </div>
 
   <div class="cam-meta">
-    <span id="subInfo">Αυτόματη μετάδοση στην οθόνη ραφιού (/shelf)</span>
+    <span id="subInfo">Ζωντανή μετάδοση στην οθόνη ραφιού (/shelf)</span>
     <span class="mono" id="timerLbl">…</span>
+  </div>
+
+  <div class="group-surface live-sheet" id="liveSheet">
+    <div class="sheet-row sheet-summary">Στόχευσε το ράφι — η πρώτη ανάγνωση ξεκινά αυτόματα.</div>
   </div>
 </main>
 
@@ -233,11 +274,12 @@
 
 <script>
 const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
 const COLORS = { ok: "#34C759", low: "#FF9500", missing: "#FF3B30", misplaced: "#FF3B30", unknown: "#AF52DE", gap: "#FF3B30" };
 
 let devices = [], devIdx = 0, facing = "environment";
-let interval = 5, countdown = 2, paused = false, sending = false, previewBusy = false, last = null;
+let interval = 5, countdown = 1, paused = false, sending = false, sendStarted = 0, previewBusy = false, last = null;
 
 async function keepAwake() {
   try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch {}
@@ -246,7 +288,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) keep
 
 async function startCam(opts) {
   if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-  const constraints = opts || { facingMode: { ideal: facing }, width: { ideal: 1600 }, height: { ideal: 1200 } };
+  const constraints = opts || { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 960 } };
   video.srcObject = await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
   await video.play();
   devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
@@ -257,13 +299,29 @@ $("flipBtn").onclick = async () => {
   try {
     if (devices.length > 1) {
       devIdx = (devIdx + 1) % devices.length;
-      await startCam({ deviceId: { exact: devices[devIdx].deviceId }, width: { ideal: 1600 }, height: { ideal: 1200 } });
+      await startCam({ deviceId: { exact: devices[devIdx].deviceId }, width: { ideal: 1280 }, height: { ideal: 960 } });
     } else {
       facing = facing === "environment" ? "user" : "environment";
       await startCam();
     }
+    countdown = 1;
   } catch {}
 };
+
+function isVideoDark() {
+  if (video.readyState < 2 || !video.videoWidth) return true;
+  const c = document.createElement("canvas");
+  c.width = 16; c.height = 12;
+  const g = c.getContext("2d");
+  g.drawImage(video, 0, 0, 16, 12);
+  const d = g.getImageData(0, 0, 16, 12).data;
+  let sum = 0, mx = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = (d[i] + d[i + 1] + d[i + 2]) / 3;
+    sum += y; if (y > mx) mx = y;
+  }
+  return (sum / (d.length / 4)) < 6 && mx < 20;
+}
 
 function grabBlob(maxSide, quality) {
   const vw = video.videoWidth, vh = video.videoHeight;
@@ -288,7 +346,7 @@ function drawBoxes() {
   const statusOf = {};
   (last.findings || []).forEach(x => { if (x.sku) statusOf[x.sku] = x.type; });
 
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.2;
   ctx.font = "600 11px 'SF Mono', ui-monospace, monospace";
   (last.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
     if (!it.box_2d) return;
@@ -299,54 +357,102 @@ function drawBoxes() {
     const col = COLORS[st] || "#34C759";
     ctx.strokeStyle = col;
     ctx.strokeRect(x, y, w, h);
-    if (st !== "ok") {
-      const lbl = it.sku || "?";
-      const tw = ctx.measureText(lbl).width + 8;
-      ctx.fillStyle = col;
-      ctx.fillRect(x, Math.max(y - 18, 0), tw, 18);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(lbl, x + 4, Math.max(y - 18, 0) + 13);
-    }
+    const lbl = it.sku ? (st === "ok" ? `${it.sku} ✓` : it.sku) : String(it.label || "?").slice(0, 16);
+    const tw = ctx.measureText(lbl).width + 8;
+    const ty = Math.max(y - 18, 0);
+    ctx.fillStyle = col;
+    ctx.fillRect(x, ty, tw, 18);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(lbl, x + 4, ty + 13);
   }));
 }
 
+function renderSheet(d) {
+  const tasks = d.tasks || [];
+  const itemsSeen = (d.shelves || []).reduce((n, sh) => n + (sh.items || []).length, 0);
+  const rows = [];
+
+  if (tasks.length) {
+    tasks.forEach(t => {
+      const ord = t.order && t.order.order_no ? ` · <span class="mono">${esc(t.order.order_no)} (${t.order.eur.toFixed(2)} €)</span>` : "";
+      rows.push(`<div class="sheet-row"><span class="sdot bad"></span><div><b>${esc(t.text)}</b>${ord}</div></div>`);
+    });
+    rows.push(`<div class="sheet-row"><a href="/tasks" style="font-weight:500">Άνοιγμα ουράς εργασιών (${tasks.length}) →</a></div>`);
+  } else if (d.unknown_shelf) {
+    rows.push(`<div class="sheet-row"><span class="sdot warn"></span><div><b>Ράφι εκτός καταλόγου (${itemsSeen} αντικείμενα)</b><div class="sheet-summary">${esc(d.summary || "Αναγνωρίστηκαν τα προϊόντα χωρίς αυτόματες παραγγελίες.")}</div></div></div>`);
+  } else if (d.status && d.status !== "idle") {
+    rows.push(`<div class="sheet-row"><span class="sdot ok"></span><div><b>Το ράφι είναι σωστό (${itemsSeen} κωδικοί)</b>${d.summary ? `<div class="sheet-summary">${esc(d.summary)}</div>` : ""}</div></div>`);
+  } else {
+    rows.push(`<div class="sheet-row sheet-summary">Στόχευσε το ράφι — η ανάγνωση ξεκινά αυτόματα.</div>`);
+  }
+
+  $("liveSheet").innerHTML = rows.join("");
+}
+
 function updateHud(d) {
+  if (d.status === "busy") {
+    $("hudDot").className = "sdot blue";
+    $("hudText").textContent = "Ολοκλήρωση προηγούμενης ανάλυσης…";
+    countdown = 2;
+    return;
+  }
+  if (d.status === "dark") {
+    $("hudDot").className = "sdot warn";
+    $("hudText").textContent = "Πολύ σκοτεινή εικόνα…";
+    countdown = 2;
+    return;
+  }
   last = d;
   const tasks = d.tasks || [];
   window.ShelfSenseShell?.setTaskBadge(tasks.length);
   const stg = $("vfStage"), dot = $("hudDot"), txt = $("hudText");
   stg.classList.remove("ok", "bad");
   dot.className = "sdot";
+  const secTxt = d.seconds ? ` (${d.seconds}s)` : "";
+
   if (d.status === "occluded") {
-    dot.classList.add("warn"); txt.textContent = "Περιορισμένη ορατότητα";
+    dot.classList.add("warn"); txt.textContent = "Περιορισμένη ορατότητα" + secTxt;
   } else if (d.unknown_shelf) {
-    dot.classList.add("warn"); txt.textContent = "Ράφι εκτός καταλόγου";
+    dot.classList.add("warn"); txt.textContent = "Ράφι εκτός καταλόγου" + secTxt;
   } else if (tasks.length) {
     stg.classList.add("bad"); dot.classList.add("bad");
-    txt.textContent = `${tasks.length} ${tasks.length === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`;
+    txt.textContent = `${tasks.length} ${tasks.length === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}${secTxt}`;
   } else if (d.status !== "idle") {
     stg.classList.add("ok"); dot.classList.add("ok");
-    txt.textContent = "Το ράφι είναι σωστό";
+    txt.textContent = "Το ράφι είναι σωστό" + secTxt;
   } else {
     txt.textContent = "Στόχευσε το ράφι…";
   }
   drawBoxes();
+  renderSheet(d);
 }
 
 async function sendFrame(force = false) {
   if (sending || !video.videoWidth) return;
+  if (!force && isVideoDark()) { countdown = 1; return; }
   sending = true;
+  sendStarted = Date.now();
   $("vfStage").classList.add("scanning");
-  $("timerLbl").textContent = "Gemini…";
+  $("hudDot").className = "sdot blue";
+  $("hudText").textContent = "Ανάγνωση ραφιού από Gemini…";
   try {
-    const blob = await grabBlob(1600, 0.86);
+    const blob = await grabBlob(1152, 0.84);
     if (!blob) return;
     const body = new FormData(); body.append("file", blob, "cam.jpg");
     const r = await fetch("/api/shelf/frame" + (force ? "?force=1" : ""), { method: "POST", body });
     const data = await r.json();
-    if (r.ok) updateHud(data);
-  } catch {}
-  finally {
+    if (!r.ok) {
+      $("hudDot").className = "sdot warn";
+      $("hudText").textContent = "Καθυστέρηση δικτύου · νέα προσπάθεια…";
+      countdown = 2;
+      return;
+    }
+    updateHud(data);
+  } catch {
+    $("hudDot").className = "sdot warn";
+    $("hudText").textContent = "Απώλεια σύνδεσης · επανάληψη…";
+    countdown = 2;
+  } finally {
     sending = false;
     $("vfStage").classList.remove("scanning");
   }
@@ -354,23 +460,27 @@ async function sendFrame(force = false) {
 
 // Lightweight 1 FPS RAM preview relay so laptop /shelf mirrors live phone camera smoothly
 setInterval(async () => {
-  if (paused || document.hidden || previewBusy || !video.videoWidth) return;
+  if (paused || document.hidden || previewBusy || !video.videoWidth || isVideoDark()) return;
   previewBusy = true;
   try {
-    const blob = await grabBlob(760, 0.68);
+    const blob = await grabBlob(720, 0.66);
     if (blob) {
       const body = new FormData(); body.append("file", blob, "preview.jpg");
       await fetch("/api/shelf/preview", { method: "POST", body });
     }
   } catch {}
   finally { previewBusy = false; }
-}, 1100);
+}, 1050);
 
 setInterval(() => {
   if (paused) { $("timerLbl").textContent = "σε παύση"; return; }
-  if (sending) return;
+  if (sending) {
+    const el = Math.round((Date.now() - sendStarted) / 1000);
+    $("timerLbl").textContent = `ανάλυση Gemini… ${el}s`;
+    return;
+  }
   countdown -= 1;
-  $("timerLbl").textContent = `έλεγχος σε ${Math.max(countdown, 0)}s`;
+  $("timerLbl").textContent = `επόμενος έλεγχος σε ${Math.max(countdown, 0)}s`;
   if (countdown <= 0) { countdown = interval; sendFrame(false); }
 }, 1000);
 
@@ -385,15 +495,15 @@ window.addEventListener("resize", drawBoxes);
   try {
     const s = await (await fetch("/api/live/status")).json();
     interval = Math.max(s.interval || 5, 3);
-    countdown = 2;
-    updateHud(s);
+    if (s.status && s.status !== "idle") updateHud(s);
   } catch {}
   try {
     await startCam();
     $("hint").hidden = true;
+    countdown = 1;
   } catch (e) {
     $("hint").hidden = false;
-    $("hint").innerHTML = `<div>Η συνεχής ζωντανή κάμερα απαιτεί σύνδεση <b>HTTPS</b> (π.χ. <code>python scripts/run_tunnel.py</code>).<br><br><a href="/capture">Μετάβαση σε λήψη μίας φωτογραφίας →</a></div>`;
+    $("hint").innerHTML = `<div>Η συνεχής ζωντανή κάμερα απαιτεί σύνδεση <b>HTTPS</b> (<code>python scripts/run_tunnel.py</code>).<br><br><a href="/capture">Μετάβαση σε λήψη μίας φωτογραφίας →</a></div>`;
   }
 })();
 </script>

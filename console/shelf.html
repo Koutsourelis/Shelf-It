@@ -531,7 +531,8 @@ function draw() {
   (last.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
     if (!it.box_2d) return;
     const st = !it.sku ? "unknown" : (statusOf[it.sku] || (it.placement_ok === false ? "misplaced" : "ok"));
-    box(it.box_2d, COLORS[st], st === "ok" ? "" : (it.sku || "?"));
+    const tag = it.sku ? (st === "ok" ? `${it.sku} ✓` : it.sku) : String(it.label || "?").slice(0, 18);
+    box(it.box_2d, COLORS[st], tag);
   }));
   (last.proposals || []).forEach(p => arrow(p, f));
 }
@@ -748,9 +749,10 @@ setInterval(() => {
   if (countdown <= 0) { countdown = interval; scan(); }
 }, 1000);
 
+const sseStart = Date.now() / 1000 - 2;
 new EventSource("/api/events").onmessage = m => {
   const ev = JSON.parse(m.data);
-  if (ev.run_id !== "system" || Date.now() / 1000 - ev.ts > 6) return;
+  if (ev.run_id !== "system" || ev.ts < sseStart) return;
   if (["shelf_log", "live_frame", "live_report", "recommendation_feedback"].includes(ev.type)) {
     fetch("/api/live/status").then(r => r.json()).then(s => {
       if (!sending) {
@@ -889,13 +891,37 @@ document.addEventListener("submit", async e => {
 window.addEventListener("resize", draw);
 video.addEventListener("loadedmetadata", draw);
 
+function isVideoDark() {
+  if (!video.videoWidth || !video.videoHeight) return true;
+  const c = document.createElement("canvas");
+  c.width = 16; c.height = 12;
+  const g = c.getContext("2d");
+  g.drawImage(video, 0, 0, 16, 12);
+  const d = g.getImageData(0, 0, 16, 12).data;
+  let sum = 0, mx = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = (d[i] + d[i + 1] + d[i + 2]) / 3;
+    sum += y; if (y > mx) mx = y;
+  }
+  return (sum / (d.length / 4)) < 7 && mx < 22;
+}
+
 (async () => {
   const s = await (await fetch("/api/live/status")).json();
   interval = s.interval; render(s);
   $("mode").textContent = s.provider === "mock" ? "mock" : s.model;
   if (mirrorMode) { setMirror(true, false); return; }
-  try { await openCamera(); $("hint").hidden = true; countdown = 2; }
-  catch (e) {
+  try {
+    await openCamera();
+    await new Promise(r => setTimeout(r, 450));
+    if (isVideoDark()) {
+      // Laptop webcam privacy cover is closed -> automatically listen to mobile camera!
+      setMirror(true, false);
+      return;
+    }
+    $("hint").hidden = true;
+    countdown = 2;
+  } catch (e) {
     setMirror(true, false);
   }
 })();

@@ -45,6 +45,22 @@ class TestLiveMobileMirror(unittest.TestCase):
         client.post("/api/live/reset")
         self.assertEqual(client.get("/api/shelf/preview.jpg").status_code, 204)
 
+    def test_pitch_black_frame_is_skipped_without_calling_gemini(self) -> None:
+        import io
+        from PIL import Image
+        from unittest.mock import patch as mpatch
+
+        buf = io.BytesIO()
+        Image.new("RGB", (320, 240), (0, 0, 0)).save(buf, format="JPEG")
+        black_jpeg = buf.getvalue()
+
+        with mpatch.object(config, "VISION_PROVIDER", "gemini"):
+            client = TestClient(app)
+            r = client.post("/api/shelf/frame?force=1", files={"file": ("black.jpg", black_jpeg, "image/jpeg")})
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r.json()["status"], "dark")
+            self.assertEqual(live.STATE.model_calls, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

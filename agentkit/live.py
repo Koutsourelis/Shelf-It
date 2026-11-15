@@ -203,6 +203,10 @@ async def process_frame(data: bytes, force: bool = False, single: bool = False) 
             STATE.preview_jpeg = data
             STATE.preview_ts = time.time()
         thumb = await asyncio.to_thread(_thumb, data)
+        if config.vision_provider() != "mock":
+            px = thumb.tobytes()
+            if (sum(px) / len(px)) < 7.0 and max(px) < 22:
+                return {**status(), "status": "dark", "detail": "Η κάμερα είναι κλειστή ή πολύ σκοτεινή"}
         if not (force or single) and STATE.prev_thumb is not None and STATE.last:
             d = _diff(thumb, STATE.prev_thumb)
             if d < config.LIVE_DIFF_THRESHOLD:
@@ -212,11 +216,16 @@ async def process_frame(data: bytes, force: bool = False, single: bool = False) 
         verdict = await assess_photo(frame)
         STATE.model_calls += 1
         if config.vision_provider() != "mock" and unknown_ratio(verdict) >= config.LIVE_UNKNOWN_RATIO:
-            # Το ράφι δεν είναι του τμήματος: ξαναδιαβάζεται χωρίς κατάλογο, ώστε να μη βγει «φέρε τους καφέδες»
-            tasks.log("foreign", "Το ράφι δεν ανήκει στο τμήμα· το αξιολογώ χωρίς κατάλογο")
-            verdict = await assess_photo(frame, catalog=[])
-            verdict["unknown_shelf"] = True
-            STATE.model_calls += 1
+            # Το ράφι δεν είναι του τμήματος: κρατάμε τα αντικείμενα/κουτιά που ήδη είδε χωρίς 2η κλήση 20s,
+            # αλλά μηδενίζουμε ελλείψεις/παραγγελίες του καταλόγου καφέ.
+            tasks.log("foreign", "Ράφι εκτός καταλόγου· αξιολόγηση εικόνας χωρίς αυτόματες παραγγελίες")
+            verdict = {
+                **verdict,
+                "missing": [],
+                "misplaced": [m for m in verdict.get("misplaced") or [] if not m.get("sku")],
+                "foreign": [],
+                "unknown_shelf": True,
+            }
         seconds = round(time.time() - t0, 1)
         if verdict["occluded"]:
             events.emit("system", "live_frame", frame=frame.name, status="occluded", seconds=seconds)
