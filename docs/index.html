@@ -48,7 +48,12 @@
 
   /* ---------- nav ---------- */
   nav.top { position: absolute; inset: 0 0 auto 0; z-index: 10; }
-  nav.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  nav.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; gap: 16px; }
+  .tabs { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
+  .tabs a { padding: 7px 16px; border-radius: 999px; color: rgba(255,255,255,0.78); font-weight: 650; font-size: 0.88rem; text-decoration: none; }
+  .tabs a:hover { color: #fff; }
+  .tabs a[aria-current="page"] { background: var(--mint); color: var(--night); }
+  @media (max-width: 1000px) and (min-width: 761px) { nav.top .links { gap: 16px; } nav.top .links a { font-size: 0.85rem; } }
   .brand { display: flex; align-items: center; gap: 10px; font: 700 1.15rem var(--display); color: #fff; text-decoration: none; }
   .brand svg { width: 30px; height: 30px; }
   nav.top .links { display: flex; gap: 26px; }
@@ -235,6 +240,15 @@
   }
 
   /* ---------- team ---------- */
+  .team-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 40px; }
+  @media (max-width: 900px) { .team-strip { grid-template-columns: 1fr 1fr; } }
+  .team-strip > div { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+  .team-strip .avatar { width: 48px; height: 48px; font-size: 1rem; margin-bottom: 12px; }
+  .team-strip b { display: block; font-family: var(--display); font-size: 1.02rem; line-height: 1.2; }
+  .team-strip small { display: block; margin-top: 6px; font: 600 0.72rem var(--mono); color: var(--green); text-transform: uppercase; letter-spacing: 0.05em; }
+  .team-strip .tbd b { color: var(--soft); }
+  .team-strip .tbd .avatar { background: var(--line); color: var(--soft); }
+  .team-more { display: inline-block; margin-top: 22px; font-weight: 650; color: var(--green); text-decoration: none; }
   .team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 44px; }
   .member { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
   .avatar { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font: 800 1.3rem var(--display); color: var(--night); background: var(--mint); margin-bottom: 14px; overflow: hidden; }
@@ -260,8 +274,11 @@
       <a href="#arch">Architecture</a>
       <a href="#inside">Features</a>
       <a href="#data">Data</a>
-      <a href="#team" hidden>Team</a>
       <a href="#links">Links</a>
+    </div>
+    <div class="tabs" role="navigation" aria-label="Pages">
+      <a href="index.html" aria-current="page">Product</a>
+      <a href="team.html">Team</a>
     </div>
   </div>
 </nav>
@@ -566,12 +583,13 @@
   </div>
 </section>
 
-<!-- Filled from PAGE.team in the script at the end of this file. Stays hidden while it is empty. -->
-<section id="team" hidden>
+<!-- Team strip. Names, roles and backgrounds come from team.js (the Team tab reads the same file). -->
+<section id="team">
   <div class="wrap">
     <span class="eyebrow">Team</span>
-    <h2>Who built it.</h2>
-    <div class="team-grid" id="team-grid"></div>
+    <h2>Five people, <br>one per stage.</h2>
+    <div class="team-strip" id="team-strip"></div>
+    <a class="team-more" href="team.html">Meet the team →</a>
   </div>
 </section>
 
@@ -587,19 +605,17 @@
 
 <footer>ShelfSense · Gen AI Summit Hackathon · Athens 2026</footer>
 
+<script src="team.js"></script>
 <script>
 /* =====================================================================
    EDIT HERE. Everything the team adds to the page lives in PAGE below.
-   Empty video or empty team list = that section stays hidden.
+   Empty video = the demo section stays hidden. Team names and backgrounds: team.js.
    ===================================================================== */
 const PAGE = {
   // YouTube link (unlisted is fine), or a file next to this page such as "demo.mp4" (keep it under 25 MB).
   video: "",
 
-  // One entry per person. photo is optional: a file in docs/team/ (e.g. "team/giannis.jpg") or leave "".
-  team: [
-    // { name: "Full Name", role: "Data and evidence", background: "One line about you.", link: "https://www.linkedin.com/in/...", photo: "" },
-  ],
+  // The team is in team.js, not here.
 
   // The link list at the bottom (and the QR). The demo video is added on top automatically.
   links: [
@@ -624,17 +640,13 @@ const PAGE = {
     document.getElementById("demo").hidden = false;
   }
 
-  const team = (PAGE.team || []).filter((m) => m && m.name);
-  if (team.length) {
-    document.getElementById("team-grid").innerHTML = team.map((m) => {
-      const initials = m.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-      const avatar = m.photo ? `<img src="${esc(m.photo)}" alt="">` : esc(initials);
-      const link = m.link ? `<a href="${esc(m.link)}" target="_blank" rel="noopener">Profile →</a>` : "";
-      return `<div class="member"><div class="avatar">${avatar}</div><h3>${esc(m.name)}</h3><div class="role">${esc(m.role)}</div><p>${esc(m.background)}</p>${link}</div>`;
-    }).join("");
-    document.getElementById("team").hidden = false;
-    document.querySelector('nav.top a[href="#team"]').hidden = false;
-  }
+  const team = window.TEAM || [];
+  document.getElementById("team-strip").innerHTML = team.map((m) => {
+    const named = !!(m.name && m.name.trim());
+    const ini = named ? m.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() : "?";
+    const avatar = m.photo ? `<img src="${esc(m.photo)}" alt="">` : esc(ini);
+    return `<div class="${named ? "" : "tbd"}"><div class="avatar">${avatar}</div><b>${named ? esc(m.name) : "Name to be added"}</b><small>${esc(m.role)}</small></div>`;
+  }).join("");
 
   const links = (PAGE.video ? [{ title: "Watch the demo", note: "Two minutes, start to finish", url: "#demo" }] : []).concat(PAGE.links || []);
   document.getElementById("tree").innerHTML = links.map((l) =>
