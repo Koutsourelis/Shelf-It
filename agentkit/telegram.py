@@ -227,7 +227,7 @@ async def notify_shelf_change(changed: dict, frame: Path | None = None) -> None:
 
 
 async def notify_proposal(prop: dict) -> None:
-    """Στέλνει πρόταση διάταξης (Κ3/Κ4/Κ5) στο Telegram με κουμπιά Αποδοχής, Ταμπέλας PNG και Απόρριψης."""
+    """Στέλνει πρόταση διάταξης (Κ3/Κ4/Κ5/Κ7) στο Telegram με κουμπιά Αποδοχής, Ταμπέλας PNG και Απόρριψης."""
     if not config.TELEGRAM_BOT_TOKEN or not subscribers():
         return
     rid = prop.get("recommendation_id") or ""

@@ -96,9 +96,11 @@ def _short(obj, limit: int = 600) -> str:
     return text if len(text) <= limit else text[:limit] + "…"
 
 
-async def _call_tool(ctx: RunContext, call: ToolCall) -> ToolResult:
+async def _call_tool(ctx: RunContext, call: ToolCall, by_code: bool = False) -> ToolResult:
+    """by_code: η κλήση έρχεται από το first_calls του σεναρίου, όχι από το μοντέλο· δεν χρειάζεται να είναι στη
+    λίστα εργαλείων του μοντέλου."""
     tool = REGISTRY.get(call.name)
-    if tool is None or call.name not in ctx.scenario.tools:
+    if tool is None or (call.name not in ctx.scenario.tools and not by_code):
         return ToolResult(call.id, f"Άγνωστο εργαλείο: {call.name}", is_error=True)
     ctx.emit("tool_call", id=call.id, name=call.name, input=call.input)
     started = time.time()
@@ -133,7 +135,15 @@ async def run_agent(goal: str, scenario_name: str | None = None, source: str = "
     final, status = "", "done"
     tokens_in = tokens_out = 0
     try:
-        conv.add_user(goal)
+        # Τα σταθερά πρώτα βήματα τα τρέχει ο κώδικας, όχι το μοντέλο: κάθε γύρος του μοντέλου κοστίζει
+        # δευτερόλεπτα, τα εργαλεία χιλιοστά. Φαίνονται στην κονσόλα και στο ίχνος ελέγχου όπως κάθε κλήση.
+        done = []
+        for n, (name, args) in enumerate(scenario.first_calls, 1):
+            res = await _call_tool(ctx, ToolCall(id=f"code-{n}", name=name, input=dict(args)), by_code=True)
+            done.append(f"[{name}]{' ΣΦΑΛΜΑ' if res.is_error else ''}\n{res.content}")
+        conv.add_user(goal if not done else
+                      goal + "\n\nΟ κώδικας έτρεξε ήδη αυτά τα εργαλεία για σένα. Τα αποτελέσματά τους:\n\n"
+                      + "\n\n".join(done))
         for step in range(1, config.MAX_STEPS + 1):
             turn = await conv.step()
             tokens_in += turn.input_tokens

@@ -90,6 +90,46 @@ class PrivateLabel(unittest.TestCase):
         self.assertEqual(hits, [])
 
 
+class Destination(unittest.TestCase):
+    """Κ7: ο κωδικός που ο πελάτης ψάχνει έτσι κι αλλιώς πάει κάτω δεξιά, όχι στο ύψος των ματιών."""
+
+    def shelf(self):
+        return [slot("T1", 1, "top", 1), slot("STAR", 1, "top", 2, units=30.0, margin=60.0), slot("T3", 1, "top", 3),
+                slot("E1", 2, "eye", 1, margin=12.0), slot("E2", 2, "eye", 2, margin=20.0), slot("E3", 2, "eye", 3, margin=14.0),
+                slot("B1", 3, "bottom", 1, margin=4.0), slot("B2", 3, "bottom", 2, margin=5.0), slot("B3", 3, "bottom", 3, margin=6.0)]
+
+    def test_top_unit_seller_is_a_destination(self):
+        self.assertEqual([d.sku for d in rules.destinations(self.shelf(), R)], ["STAR"])
+
+    def test_equal_sellers_have_no_destination(self):
+        self.assertEqual(rules.destinations([slot("A", 1, "top", 1), slot("B", 2, "eye", 1), slot("C", 3, "bottom", 1)], R), [])
+
+    def test_declared_brand_is_a_destination(self):
+        declared = {**R, "K7": {**R["K7"], "destination_brands": ["Γνωστή"]}}
+        slots = [slot("A", 1, "top", 1, brand="Γνωστή"), slot("B", 2, "eye", 1), slot("C", 3, "bottom", 1)]
+        self.assertEqual([d.sku for d in rules.destinations(slots, declared)], ["A"])
+
+    def test_destination_goes_bottom_right_not_to_eye_level(self):
+        hits, _ = rules.evaluate(self.shelf(), R)
+        self.assertNotIn("STAR", [h.move.get("sku") for h in hits if h.rule in ("Κ4", "Κ5")])
+        k7 = next(h for h in hits if h.rule == "Κ7")
+        self.assertEqual(k7.move, {"sku": "STAR", "swap_with": "B3"})
+
+    def test_no_suggestion_when_already_bottom_right(self):
+        slots = [slot("E1", 2, "eye", 1), slot("B1", 3, "bottom", 1), slot("STAR", 3, "bottom", 2, units=30.0)]
+        self.assertIsNone(rules.destination_corner(slots, R))
+
+    def test_layout_puts_margin_in_the_middle_and_destination_bottom_right(self):
+        layout = {l["level"]: l for l in rules.target_layout(self.shelf(), R)}
+        self.assertTrue(layout["bottom"]["order"][-1].startswith("STAR"))
+        self.assertTrue(layout["eye"]["order"][1].startswith("E2"))            # το μεγαλύτερο περιθώριο στο κέντρο
+        self.assertEqual(sum(len(l["order"]) for l in layout.values()), 9)     # κανένας κωδικός δεν χάνεται
+        self.assertIn("Κ7", layout["bottom"]["why"])
+
+    def test_layout_is_empty_without_sales(self):
+        self.assertEqual(rules.target_layout([slot("A", 2, "eye", 1, units=0), slot("B", 3, "bottom", 1, units=0)], R), [])
+
+
 class Evaluate(unittest.TestCase):
     def test_says_so_when_sales_are_missing(self):
         hits, skipped = rules.evaluate([slot("A", 1, "top", 1, margin=0, revenue=0, units=0)], R)
