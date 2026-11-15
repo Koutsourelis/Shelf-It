@@ -37,8 +37,8 @@
 
   /* ---------- stage: designed at 1600×900, scaled to fit ---------- */
   .stage { position: absolute; left: 50%; top: 50%; width: 1600px; height: 900px; transform-origin: 50% 50%; background: var(--bg); overflow: hidden; }
-  .slide { position: absolute; inset: 0; padding: 96px 120px 110px; display: flex; flex-direction: column; opacity: 0; visibility: hidden; background: var(--bg); }
-  .slide.active { opacity: 1; visibility: visible; transition: opacity .35s ease; }
+  .slide { position: absolute; inset: 0; padding: 96px 120px 110px; display: flex; flex-direction: column; opacity: 0; visibility: hidden; z-index: 1; }
+  .slide.active { opacity: 1; visibility: visible; }
   .slide :where(h1, h2, h3, p) { margin: 0; }
   .eyebrow { font: 500 18px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--mute); margin-bottom: 28px; }
   .serif { font-family: var(--serif); font-weight: 400; }
@@ -64,14 +64,28 @@
   @media (hover: none) { .hint { display: none; } }
 
   /* ---------- 1 · title ---------- */
-  .s-title { justify-content: flex-end; padding-bottom: 120px; }
-  .s-title .bg { position: absolute; inset: 0; background: url(assets/shelf-drinks.jpg) center 35% / cover; opacity: .42; filter: grayscale(.35); }
-  .s-title .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,.15) 0%, rgba(10,10,10,.55) 45%, #0a0a0a 88%); }
-  .s-title > *:not(.bg):not(.shade) { position: relative; }
-  .s-title h1 { font: 400 168px/.92 var(--serif); letter-spacing: -.02em; }
+  .s-title { flex-direction: row; align-items: center; gap: 70px; padding-top: 110px; }
+  .s-title .copy { flex: 1; }
+  .s-title h1 { font: 400 132px/.92 var(--serif); letter-spacing: -.02em; }
   .s-title h1 em { color: var(--lime); }
-  .s-title p { font-size: 32px; line-height: 1.4; color: #cfcfcf; max-width: 1080px; margin-top: 30px; }
-  .s-title .meta { font: 500 17px var(--mono); color: var(--soft); margin-top: 40px; letter-spacing: .06em; }
+  .s-title p { font-size: 27px; line-height: 1.45; color: #cfcfcf; max-width: 640px; margin-top: 30px; }
+  .s-title .meta { font: 500 15px var(--mono); color: var(--soft); margin-top: 34px; letter-spacing: .06em; line-height: 1.7; }
+  .viewfinder { flex: 0 0 700px; position: relative; padding: 34px 0 30px; }
+  .viewfinder .vf-top, .viewfinder .vf-bot { position: absolute; left: 0; right: 0; display: flex; justify-content: space-between; font: 500 13px var(--mono); color: var(--soft); letter-spacing: .08em; }
+  .viewfinder .vf-top { top: 6px; } .viewfinder .vf-bot { bottom: 0; }
+  .rec { color: var(--gap); } .rec::before { content: "\25CF"; margin-right: 6px; animation: blink 1.2s steps(2, start) infinite; }
+  .corner { position: absolute; width: 34px; height: 34px; border: 3px solid var(--lime); z-index: 3; pointer-events: none; }
+  .corner.tl { left: -12px; top: 22px; border-right: 0; border-bottom: 0; }
+  .corner.tr { right: -12px; top: 22px; border-left: 0; border-bottom: 0; }
+  .corner.bl { left: -12px; bottom: 18px; border-right: 0; border-top: 0; }
+  .corner.br { right: -12px; bottom: 18px; border-left: 0; border-top: 0; }
+  .chip { position: absolute; z-index: 4; background: #fff; color: #141414; border-radius: 14px; padding: 12px 16px; font-size: 16px; line-height: 1.3; display: flex; gap: 12px; align-items: center; box-shadow: 0 18px 40px -14px rgba(0,0,0,.8); max-width: 290px; }
+  .chip b { display: block; font-size: 17px; }
+  .chip small { color: #666; font-size: 14px; }
+  .chip i { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-style: normal; font-weight: 700; }
+  .chip.c1 { left: -64px; top: 13%; } .chip.c1 i { background: #ffe1d6; color: #c2410c; }
+  .chip.c2 { right: -48px; top: 47%; } .chip.c2 i { background: #e6ecff; color: #3346a8; }
+  .chip.c3 { right: 4%; bottom: -8px; } .chip.c3 i { background: #ecfccb; color: #3f6212; }
 
   /* ---------- 2 · person ---------- */
   .s-person .cols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 90px; align-items: start; margin-top: 10px; }
@@ -102,7 +116,7 @@
   /* ---------- 5 · one shelf ---------- */
   .s-shelf { flex-direction: row; gap: 64px; align-items: center; padding-top: 110px; }
   .s-shelf .left { flex: 0 0 760px; }
-  .shot { position: relative; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 70px -30px rgba(0,0,0,.9), 0 0 0 1px var(--line); }
+  .shot { position: relative; z-index: 1; border-radius: 14px; overflow: hidden; box-shadow: 0 30px 70px -30px rgba(0,0,0,.9), 0 0 0 1px var(--line); }
   .shot img { display: block; width: 100%; height: auto; }
   .gapbox { position: absolute; border: 3px dashed var(--gap); background: rgba(255,106,61,.18); border-radius: 6px; }
   .gapbox span { position: absolute; left: -3px; top: -3px; transform: translateY(-100%); background: var(--gap); color: #111; font: 700 13px/1 var(--mono); padding: 6px 8px; border-radius: 6px 6px 6px 0; white-space: nowrap; }
@@ -119,6 +133,7 @@
   .trail div { display: grid; grid-template-columns: 220px 1fr; gap: 12px; padding: 7px 0; border-top: 1px dashed rgba(255,255,255,.08); }
   .trail div:first-child { border: 0; }
   .trail span { color: var(--lime); }
+  .trail em { font-style: normal; }
   .watch { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; background: var(--lime); color: #111; text-decoration: none; font-weight: 700; font-size: 20px; padding: 14px 22px; border-radius: 999px; }
 
   /* ---------- 6 · steps ---------- */
@@ -202,30 +217,129 @@
   .links a i { font-style: normal; color: var(--lime); font-size: 28px; }
   .fine { font-size: 17px; color: var(--mute); margin-top: 26px; line-height: 1.5; }
 
+  /* =====================================================================
+     MOTION. Everything below runs only on the active slide (.play).
+     ===================================================================== */
+  .net { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .brand .call { font: 500 15px var(--mono); color: var(--mute); margin-left: 14px; white-space: pre; }
+  .brand .call::after { content: "\258D"; color: var(--lime); margin-left: 2px; animation: blink 1s steps(2, start) infinite; }
+  .counter { display: flex; gap: 16px; align-items: center; }
+  .live { color: var(--lime); letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+  .live::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--lime); margin-right: 8px; animation: ping 1.6s ease-out infinite; vertical-align: 1px; }
+  .progress { box-shadow: 0 0 14px 2px rgba(198,244,50,.6); }
+  @keyframes blink { to { visibility: hidden; } }
+  @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(198,244,50,.6); } 100% { box-shadow: 0 0 0 10px rgba(198,244,50,0); } }
+
+  /* slide entrance */
+  .slide.play { animation: slideIn .7s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes slideIn { from { opacity: 0; transform: scale(1.015); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+
+  /* words of a heading come in one by one, out of a blur */
+  .w { display: inline-block; white-space: pre; }
+  .play .w { animation: wordIn .8s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(.12s + var(--w) * 55ms); }
+  @keyframes wordIn { from { opacity: 0; transform: translateY(.35em); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
+
+  /* staggered blocks */
+  .play .rv { animation: rv .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--d0, .45s) + var(--i) * 75ms); }
+  @keyframes rv { from { opacity: 0; transform: translateY(22px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+
+  /* camera frame: scan line, detection boxes, chips (as on the project page) */
+  .shot .box { position: absolute; border: 2px solid rgba(255,255,255,.85); border-radius: 5px; }
+  .shot .box.gap { border: 3px dashed var(--gap); background: rgba(255,106,61,.2); z-index: 2; }
+  .shot .box.gap span { position: absolute; left: -3px; top: -3px; transform: translateY(-100%); background: var(--gap); color: #111; font: 700 12px/1 var(--mono); padding: 5px 7px; border-radius: 5px 5px 5px 0; white-space: nowrap; }
+  .shot .scan { position: absolute; left: 0; right: 0; height: 22%; top: -22%; z-index: 3; pointer-events: none; opacity: 0;
+    background: linear-gradient(180deg, transparent, rgba(198,244,50,.32)); border-bottom: 2px solid var(--lime); box-shadow: 0 6px 22px rgba(198,244,50,.45); }
+  .play .shot .scan { animation: scan 1.6s cubic-bezier(.5,0,.5,1) .35s both; }
+  .play .shot .box { animation: pop .35s ease-out both; animation-delay: calc(.6s + var(--b) * 35ms); }
+  .play .shot .box.gap { animation: pop .35s ease-out both, pulse 1.8s ease-in-out infinite; animation-delay: calc(1.9s + var(--b) * 180ms), calc(2.6s + var(--b) * 180ms); }
+  @keyframes scan { 0% { top: -22%; opacity: 1; } 92% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+  @keyframes pop { from { opacity: 0; transform: scale(1.12); } to { opacity: 1; transform: none; } }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,106,61,0); } 50% { box-shadow: 0 0 0 6px rgba(255,106,61,.35); } }
+  .play .chip { animation: rv .6s cubic-bezier(.2,.7,.2,1) both; }
+  .play .chip.c1 { animation-delay: 2.5s; } .play .chip.c2 { animation-delay: 2.9s; } .play .chip.c3 { animation-delay: 3.3s; }
+  .play .corner { animation: lock .6s cubic-bezier(.2,.7,.2,1) both .1s; }
+  @keyframes lock { from { opacity: 0; transform: scale(1.6); } to { opacity: 1; transform: none; } }
+
+  /* slide 5: the agent works through its tools */
+  .s-shelf.play .taskcard { animation: rv .6s cubic-bezier(.2,.7,.2,1) both 2.3s; }
+  .s-shelf.play .trail div { animation: rv .4s ease-out both; animation-delay: calc(2.8s + var(--i) * .45s); }
+  .s-shelf.play .trail em { display: inline-block; animation: type .5s steps(28) both; animation-delay: calc(3.0s + var(--i) * .45s); }
+  @keyframes type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+  /* slide 6: a packet runs along the wire and lights each step */
+  .steps { position: relative; }
+  .wire { position: absolute; left: 0; right: 0; top: -22px; height: 2px; background: var(--line); }
+  .wire i { position: absolute; top: -4px; left: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 16px 4px rgba(198,244,50,.6); opacity: 0; }
+  .play .wire i { animation: run 2.6s cubic-bezier(.45,0,.55,1) 1.1s infinite; }
+  @keyframes run { 0% { left: 0; opacity: 0; } 8% { opacity: 1; } 85% { opacity: 1; } 100% { left: calc(100% - 10px); opacity: 0; } }
+  .s-how.play .step { animation: rv .7s cubic-bezier(.2,.7,.2,1) both, lit 1.3s ease-out both; animation-delay: calc(.45s + var(--i) * 75ms), calc(1.25s + var(--i) * .5s); }
+  @keyframes lit { 0% { border-color: var(--line); box-shadow: none; } 25% { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime), 0 0 40px -6px rgba(198,244,50,.5); } 100% { border-color: rgba(198,244,50,.35); box-shadow: none; } }
+
+  /* slide 7: a data packet travels along the pipeline */
+  .arch { position: relative; overflow: visible; }
+  .packet { position: absolute; top: -2px; left: 0; width: 70px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, transparent, var(--lime)); box-shadow: 0 0 14px 2px rgba(198,244,50,.6); opacity: 0; z-index: 2; }
+  .play .packet { animation: travel 3.4s linear 1.2s infinite; }
+  @keyframes travel { 0% { left: 0; opacity: 0; } 5% { opacity: 1; } 95% { opacity: 1; } 100% { left: calc(100% - 70px); opacity: 0; } }
+  .s-arch.play .arch > div { animation: rv .7s cubic-bezier(.2,.7,.2,1) both, glowcol 1.3s ease-out both; animation-delay: calc(.5s + var(--i) * .22s), calc(1.3s + var(--i) * .8s); }
+  @keyframes glowcol { 0% { background: transparent; } 25% { background: rgba(198,244,50,.08); } 100% { background: transparent; } }
+
+  /* slide 8: the shelf label drops in */
+  .s-rules.play .label { animation: drop .9s cubic-bezier(.2,.9,.25,1.15) both 1.2s; }
+  @keyframes drop { from { opacity: 0; transform: translateY(-40px) rotate(-6deg); } to { opacity: 1; transform: rotate(-1.2deg); } }
+
+  /* slide 11: timeline bars draw left to right */
+  .next > div { position: relative; border-top-color: var(--line) !important; }
+  .next > div::before { content: ""; position: absolute; left: 0; top: -2px; height: 2px; width: 100%; background: var(--lime); transform-origin: 0 50%; transform: scaleX(0); }
+  .s-next.play .next > div::before { animation: bar 1s cubic-bezier(.6,0,.2,1) both; animation-delay: calc(.8s + var(--i) * .45s); }
+  @keyframes bar { to { transform: scaleX(1); } }
+
+  /* reduced motion: everything is simply there */
+  @media (prefers-reduced-motion: reduce) {
+    .slide *, .slide.play, .slide.play * { animation: none !important; }
+    .next > div::before { transform: none; }
+    .net, .shot .scan { display: none; }
+  }
+
   /* ---------- print / PDF: one slide per page ---------- */
   @media print {
     @page { size: 1600px 900px; margin: 0; }
     html, body { overflow: visible; height: auto; background: var(--bg); }
     .stage { position: static; transform: none !important; width: 1600px; height: auto; background: none; }
     .slide { position: relative; width: 1600px; height: 900px; opacity: 1; visibility: visible; page-break-after: always; break-after: page; background: var(--bg); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .controls, .hint, .progress, .counter { display: none; }
+    .controls, .hint, .progress, .counter, .net, .brand .call, .scan { display: none !important; }
+    .slide, .slide * { animation: none !important; }
+    .next > div::before { transform: none; }
+    .slide { z-index: auto; }
   }
-  @media (prefers-reduced-motion: reduce) { .slide, .progress { transition: none; } }
 </style>
 </head>
 <body>
 <div class="stage" id="stage">
-  <div class="brand"><i></i>Shelf-It</div>
-  <div class="counter" id="counter"></div>
+  <canvas class="net" id="net" width="1600" height="900"></canvas>
+  <div class="brand"><i></i>Shelf-It<span class="call" id="call"></span></div>
+  <div class="counter"><span class="live">agent live</span><span id="counter"></span></div>
 
   <!-- 1 · Title -->
-  <section class="slide s-title" data-title="Title">
-    <div class="bg"></div><div class="shade"></div>
-    <div class="eyebrow">An agent for supermarket shelves</div>
-    <h1>The shelf checks <em>itself.</em></h1>
-    <p>Shelf-It finds shelf gaps from one phone photo, tells the shelf worker what to bring from the backroom,
-      and orders what the store has run out of.</p>
-    <div class="meta">Gen AI Summit Hackathon · Athens · 14–15 November 2026 · Open Track</div>
+  <section class="slide s-title" data-title="Title" data-call="boot()">
+    <div class="copy">
+      <div class="eyebrow">An agent for supermarket shelves</div>
+      <h1 class="split">The shelf checks <em>itself.</em></h1>
+      <p class="rv">Shelf-It finds shelf gaps from one phone photo, tells the shelf worker what to bring from the backroom,
+        and orders what the store has run out of.</p>
+      <div class="meta rv">Gen AI Summit Hackathon · Athens · 14–15 November 2026<br>Open Track</div>
+    </div>
+    <div class="viewfinder">
+      <div class="vf-top"><span class="rec">LIVE · CAM 01</span><span>beer &amp; soft drinks bay</span></div>
+      <div class="shot" data-boxes>
+        <img src="assets/shelf-drinks.jpg" width="1400" height="1050" alt="A shelf of Greek beers and soft drinks; the agent outlines every product and marks three empty slots.">
+        <div class="scan"></div>
+      </div>
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <div class="vf-bot"><span>read_shelf → 34 products · 3 missing</span><span class="clock">00:00:04</span></div>
+      <div class="chip c1"><i>!</i><span><b>3 products missing</b><small>Missing products come first</small></span></div>
+      <div class="chip c2"><i>↗</i><span><b>Bring 20 units</b><small>From the backroom, task sent</small></span></div>
+      <div class="chip c3"><i>✓</i><span><b>Order 3 cases</b><small>Within the limit, placed</small></span></div>
+    </div>
   </section>
 
   <!-- 2 · The person -->
@@ -233,7 +347,7 @@
     <div class="eyebrow">Who it is for</div>
     <div class="cols">
       <div>
-        <p class="quote">Every morning, a department manager walks the aisles and checks <em>every shelf by eye.</em></p>
+        <p class="quote split">Every morning, a department manager walks the aisles and checks <em>every shelf by eye.</em></p>
         <p class="who"><b>Shelf-It is for</b> department managers and shelf workers in small and mid-size grocery
           stores that do not have fixed shelf cameras or sensors. All they need is a phone.</p>
       </div>
@@ -249,14 +363,14 @@
   <section class="slide s-cost" data-title="The cost">
     <div class="eyebrow">Why it matters</div>
     <div class="top">
-      <div class="big">40%</div>
-      <p class="say">of the sales from an empty shelf are lost to the store.
+      <div class="big"><span data-count>40</span>%</div>
+      <p class="say split">of the sales from an empty shelf are lost to the store.
         <small>When a product is missing, 31% of shoppers buy it at another store and 9% do not buy it at all.</small></p>
     </div>
     <div class="row3">
-      <div><b>8.3%</b><span>of products are missing from the shelf at any given moment, on average.</span></div>
+      <div><b><span data-count>8.3</span>%</b><span>of products are missing from the shelf at any given moment, on average.</span></div>
       <div><b>1 in 4</b><span>gaps are products the store already has, just not on the shelf.</span></div>
-      <div><b>52 studies</b><span>in 29 countries behind these numbers.</span></div>
+      <div><b><span data-count>52</span> studies</b><span>in 29 countries behind these numbers.</span></div>
     </div>
     <p class="source">Source: Gruen, Corsten &amp; Bharadwaj (2002), <i>Retail Out-of-Stocks: A Worldwide Examination of Extent,
       Causes and Consumer Responses</i>. 52 studies in 29 countries; the 8.3% average comes from the 40 studies that measured it.</p>
@@ -265,7 +379,7 @@
   <!-- 4 · The solution -->
   <section class="slide s-solution" data-title="The solution">
     <div class="eyebrow">The solution</div>
-    <h2 class="head">Take a photo. <em>Get a fixed shelf.</em></h2>
+    <h2 class="head split">Take a photo. <em>Get a fixed shelf.</em></h2>
     <p class="lede">Shelf-It is an AI agent with a small set of tools. It reads a photo of the shelf, compares it with
       the planogram, and turns every gap into work: a task for the shelf worker, or an order to the central warehouse.</p>
     <div class="three">
@@ -281,18 +395,16 @@
   <!-- 5 · One shelf, start to finish -->
   <section class="slide s-shelf" data-title="One shelf, start to finish">
     <div class="left">
-      <div class="shot">
+      <div class="shot" data-boxes>
         <img src="assets/shelf-drinks.jpg" width="1400" height="1050" alt="A shelf of Greek beers and soft drinks with three empty slots marked.">
-        <div class="gapbox" style="left:25.0%;top:33.8%;width:17.0%;height:11.2%"><span>MISSING · MYTHOS 500ML</span></div>
-        <div class="gapbox" style="left:24.5%;top:48.9%;width:16.2%;height:8.4%"><span>MISSING · MYTHOS 330ML</span></div>
-        <div class="gapbox" style="left:31.8%;top:73.8%;width:13.2%;height:22.0%"><span>MISSING · ΛΟΥΞ COLA 1,5L</span></div>
+        <div class="scan"></div>
       </div>
       <p class="caption">Test shelf composed by code from real Greek product photos (sklavenitis.gr), not a photo of a real store.
         The three gaps are the ones in its planogram.</p>
     </div>
     <div class="right">
       <div class="eyebrow" style="margin-bottom:0">One shelf, start to finish</div>
-      <h2 class="head">One photo in. <em>Three gaps, three actions.</em></h2>
+      <h2 class="head split">One photo in. <em>Three gaps, three actions.</em></h2>
       <div class="taskcard">
         <div class="hd"><i></i>Task · refill, beer</div>
         <div class="r"><span>Product</span><span>Mythos lager can 330ml</span></div>
@@ -301,11 +413,11 @@
         <div class="r"><span>Why first</span><span>Missing product</span></div>
       </div>
       <div class="trail">
-        <div><span>read_shelf</span>34 products on 5 shelves</div>
-        <div><span>check_planogram</span>3 missing: D12, D22, D43</div>
-        <div><span>replenishment_plan</span>D22: 20 units from backroom · K1, K2</div>
-        <div><span>order_from_warehouse</span>D12, D43: 3 cases, within limit → placed</div>
-        <div><span>layout_suggestions</span>up to two moves · K3–K8</div>
+        <div><span>read_shelf</span><em>34 products on 5 shelves</em></div>
+        <div><span>check_planogram</span><em>3 missing: D12, D22, D43</em></div>
+        <div><span>replenishment_plan</span><em>D22: 20 units from backroom · K1, K2</em></div>
+        <div><span>order_from_warehouse</span><em>D12, D43: 3 cases, within limit → placed</em></div>
+        <div><span>layout_suggestions</span><em>up to two moves · K3–K8</em></div>
       </div>
       <a class="watch" id="watch" href="#" target="_blank" rel="noopener" hidden>▶ Watch the 1-minute demo</a>
     </div>
@@ -314,8 +426,8 @@
   <!-- 6 · How it works -->
   <section class="slide s-how" data-title="How it works">
     <div class="eyebrow">How it works</div>
-    <h2 class="head">Five steps, from photo <em>to refilled shelf.</em></h2>
-    <div class="steps">
+    <h2 class="head split">Five steps, from photo <em>to refilled shelf.</em></h2>
+    <div class="steps"><div class="wire"><i></i></div>
       <div class="step"><div class="n">01</div><h3>Snap</h3><span class="tag t-person">person</span>
         <p>One tap on the phone, or a phone left on the shelf as a live camera, checked every 5 seconds.</p></div>
       <div class="step"><div class="n">02</div><h3>Read</h3><span class="tag t-model">model</span>
@@ -333,8 +445,8 @@
   <!-- 7 · Architecture -->
   <section class="slide s-arch" data-title="Architecture">
     <div class="eyebrow">Architecture</div>
-    <h2 class="head">One agent, <em>a small set of tools.</em></h2>
-    <div class="arch">
+    <h2 class="head split">One agent, <em>a small set of tools.</em></h2>
+    <div class="arch"><div class="packet"></div>
       <div><span class="tag t-person">person</span><h3>Capture</h3><ul>
         <li><b>One-tap scan</b>Phone camera page <code>/capture</code></li>
         <li><b>Live camera</b>A phone on the shelf, checked every 5 seconds <code>/cam</code></li>
@@ -361,7 +473,7 @@
   <!-- 8 · Rules -->
   <section class="slide s-rules" data-title="Eight rules">
     <div class="eyebrow">Every number has a source</div>
-    <h2 class="head">Eight rules decide <em>what to suggest.</em></h2>
+    <h2 class="head split">Eight rules decide <em>what to suggest.</em></h2>
     <div class="cols">
       <div class="rules">
         <div class="rule"><span class="k">K1</span><h3>Which gap first</h3><p>Daily sales × 0.40 lost</p><small>Gruen et al. 2002</small></div>
@@ -394,7 +506,7 @@
   <!-- 9 · Data -->
   <section class="slide s-data" data-title="Real and synthetic data">
     <div class="eyebrow">Data</div>
-    <h2 class="head">Honest about <em>what is real.</em></h2>
+    <h2 class="head split">Honest about <em>what is real.</em></h2>
     <div class="data">
       <div><h3><span class="tag t-real">real</span>Used as is</h3><ul>
         <li><b>Product identity</b>Name, brand, pack size and barcode from Open Food Facts</li>
@@ -414,7 +526,7 @@
   <!-- 10 · Built in 29 hours -->
   <section class="slide s-built" data-title="Built in 29 hours">
     <div class="eyebrow">What we built this weekend</div>
-    <h2 class="head">Built in <em>29 hours.</em></h2>
+    <h2 class="head split">Built in <em><span data-count>29</span> hours.</em></h2>
     <div class="cols">
       <ul class="built">
         <li><b>Shelf vision</b>One structured Gemini call per photo, with boxes, and rejection of dark or covered frames</li>
@@ -430,7 +542,7 @@
       </ul>
       <div class="facts">
         <div><b>Hardware: a phone.</b><span>The phone camera is the shelf sensor. No fixed cameras, no shelf labels to install.</span></div>
-        <div><b>88 automated tests</b><span>run offline, with no API key.</span></div>
+        <div><b><span data-count>88</span> automated tests</b><span>run offline, with no API key.</span></div>
         <div><b>Declared boilerplate.</b><span>Before the event we prepared a generic agent skeleton with no shelf logic. It is listed in the README and tagged <code style="font-family:var(--mono);color:var(--lime)">boilerplate</code> in the git history.</span></div>
         <div><div class="stack"><span>Gemini</span><span>treg</span><span>fal</span><span>Open Food Facts</span><span>Telegram</span><span>FastAPI</span><span>DuckDB</span></div></div>
       </div>
@@ -440,7 +552,7 @@
   <!-- 11 · What's next -->
   <section class="slide s-next" data-title="What comes next">
     <div class="eyebrow">What comes next</div>
-    <h2 class="head">One shelf today. <em>Every store tomorrow.</em></h2>
+    <h2 class="head split">One shelf today. <em>Every store tomorrow.</em></h2>
     <div class="next">
       <div><div class="when">Today</div><h3>Department manager</h3>
         <p>One phone, one aisle, and a task list ready before the store opens.</p></div>
@@ -454,7 +566,7 @@
   <!-- 12 · Team and links -->
   <section class="slide s-team" data-title="Team and links">
     <div class="eyebrow">Team and links</div>
-    <h2 class="head">Five people, <em>two days.</em></h2>
+    <h2 class="head split">Five people, <em>two days.</em></h2>
     <div class="cols">
       <ul class="team" id="team"></ul>
       <div>
@@ -511,21 +623,132 @@ const DECK = {
   const counter = document.getElementById("counter");
   const progress = document.getElementById("progress");
   const prev = document.getElementById("prev"), next = document.getElementById("next");
-  let i = 0;
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let i = -1, timers = [];
+
+  /* ---------- one-time preparation ---------- */
+  // Detection boxes from the stored reading of the drinks shelf (the same boxes as on the project page).
+  const BOXES = "9.3,14,14,15.6|23.3,14,12.7,15.6|36,14,6.7,15.8|42.8,14,6.7,15.8|49.7,14,10.8,15.8|60.8,13.8,6.9,16.2|68.2,17.8,11.3,12.2|79.8,17.8,11.9,12.4|8.8,33.8,16.2,10.9|42,34,10,11.1|52.5,34,10.2,11.1|63.3,34,10.4,11.3|74.2,34.2,10.1,11.4|84.8,34.4,6.9,11.2|8.3,48.9,16.2,8|40.7,49.3,12.8,8|53.8,49.6,10.2,8|64.5,49.8,10.3,8|75.2,49.8,10.1,8.2|85.7,50,6.6,8|8,60.9,16.3,8.2|24.5,61.3,12.8,8.3|37.5,61.6,10,8.2|47.7,61.8,7.3,8.2|55.3,62,10.4,8.2|66,62.2,9.2,8.2|75.5,62.2,9.2,8.2|85,62.4,7.5,8.3|7.3,73.3,12.2,20.9|19.5,73.8,12.3,21.1|45,74.7,13.3,21.1|58.7,74.9,13.8,21.3|73,75.3,9.3,21.1|82.8,75.6,9.5,21.1";
+  const GAPS = [["25,33.8,17,11.2", "MISSING · MYTHOS 500ML"], ["24.5,48.9,16.2,8.4", "MISSING · MYTHOS 330ML"], ["31.8,73.8,13.2,22", "MISSING · ΛΟΥΞ COLA 1,5L"]];
+  const boxCss = (c) => { const [l, t, w, h] = c.split(","); return `left:${l}%;top:${t}%;width:${w}%;height:${h}%`; };
+  document.querySelectorAll(".shot[data-boxes]").forEach((shot) => {
+    shot.insertAdjacentHTML("beforeend",
+      BOXES.split("|").map((c, k) => `<div class="box" style="${boxCss(c)};--b:${k}"></div>`).join("") +
+      GAPS.map(([c, label], k) => `<div class="box gap" style="${boxCss(c)};--b:${k}"><span>${label}</span></div>`).join(""));
+  });
+
+  // Split headings into words, keeping <em> and counters intact.
+  function splitWords(el) {
+    let n = 0;
+    (function walk(node) {
+      Array.from(node.childNodes).forEach((c) => {
+        if (c.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          c.textContent.split(/(\s+)/).forEach((part) => {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+            const w = document.createElement("span"); w.className = "w"; w.style.setProperty("--w", n++); w.textContent = part; frag.appendChild(w);
+          });
+          c.replaceWith(frag);
+        } else if (c.nodeType === 1 && c.hasAttribute("data-count")) {
+          c.classList.add("w"); c.style.setProperty("--w", n++);
+        } else if (c.nodeType === 1 && c.tagName !== "BR" && c.tagName !== "SMALL") walk(c);
+      });
+    })(el);
+  }
+  document.querySelectorAll(".split").forEach(splitWords);
+
+  // Blocks that rise in, in reading order.
+  const REVEAL = [".lede", ".who", ".pains li", ".s-cost .say small", ".row3 > div", ".source", ".three > div", ".caption",
+    ".s-shelf .eyebrow", ".step", ".verdict", ".arch > div", ".note2 > div", ".rule", ".label-cap", ".data h3", ".data li",
+    ".built li", ".facts > div", ".next > div", ".team li", ".links a", ".fine"].join(",");
+  slides.forEach((sl) => {
+    let k = 0;
+    sl.querySelectorAll(REVEAL).forEach((el) => { el.classList.add("rv"); el.style.setProperty("--i", k++); });
+    sl.querySelectorAll(".trail div").forEach((el, n) => el.style.setProperty("--i", n));
+    sl.querySelectorAll(".step, .arch > div, .next > div").forEach((el, n) => el.style.setProperty("--i", n));
+  });
+  document.querySelectorAll(".eyebrow, .team b").forEach((el) => { el.dataset.text = el.textContent; });
+  document.querySelectorAll("[data-count]").forEach((el) => { el.dataset.to = el.textContent; });
+
+  /* ---------- effects that run on each visit ---------- */
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  let frameJobs = 0;                             // bumping this cancels running frame loops
+  const GLYPHS = "▮▯░▒01<>/\\_=+*#$%ABCDEFXYZ";
+  function scramble(el, delay, dur) {
+    const text = el.dataset.text; if (still) { el.textContent = text; return; }
+    el.textContent = text.replace(/\S/g, " ");
+    const job = frameJobs;
+    later(() => {
+      const t0 = performance.now();
+      (function frame(t) {
+        if (job !== frameJobs) return;
+        const p = Math.min(1, (t - t0) / dur), cut = Math.floor(p * text.length);
+        el.textContent = text.slice(0, cut) + text.slice(cut).replace(/\S/g, () => GLYPHS[(Math.random() * GLYPHS.length) | 0]);
+        if (p < 1) requestAnimationFrame(frame); else el.textContent = text;
+      })(t0);
+    }, delay);
+  }
+  function countUp(el, delay) {
+    const to = el.dataset.to, target = parseFloat(to), dec = (to.split(".")[1] || "").length;
+    if (still) { el.textContent = to; return; }
+    el.textContent = (0).toFixed(dec);
+    const job = frameJobs;
+    later(() => {
+      const t0 = performance.now(), dur = 1400;
+      (function frame(t) {
+        if (job !== frameJobs) { el.textContent = to; return; }
+        const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = (target * e).toFixed(dec);
+        if (p < 1) requestAnimationFrame(frame); else el.textContent = to;
+      })(t0);
+    }, delay);
+  }
+  const call = document.getElementById("call");
+  function typeCall(text) {
+    if (still) { call.textContent = text; return; }
+    call.textContent = ""; let n = 0;
+    (function step() { call.textContent = text.slice(0, ++n); if (n < text.length) later(step, 28); })();
+  }
+  const clock = document.querySelector(".clock");
+  function tickClock() {
+    if (!clock) return;
+    const t0 = Date.now();
+    (function tick() {
+      const sec = Math.floor((Date.now() - t0) / 1000) + 4;
+      clock.textContent = `00:${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+      later(tick, 1000);
+    })();
+  }
+
+  function play(sl) {
+    timers.forEach(clearTimeout); timers = []; frameJobs++;
+    slides.forEach((x) => x.classList.remove("play"));
+    void sl.offsetWidth;                         // restart CSS animations
+    sl.classList.add("play");
+    sl.querySelectorAll(".eyebrow").forEach((el) => scramble(el, 80, 650));
+    sl.querySelectorAll(".team b").forEach((el, k) => scramble(el, 500 + k * 140, 700));
+    sl.querySelectorAll("[data-count]").forEach((el) => countUp(el, 350));
+    const name = sl.dataset.title.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    typeCall(`› ${sl.dataset.call || `present("${name}")`}`);
+    if (sl.classList.contains("s-title")) tickClock();
+  }
 
   function fit() {
-    const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
-    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
-    stage.style.transformOrigin = "50% 50%";
+    const sc = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    stage.style.transform = `translate(-50%, -50%) scale(${sc})`;
   }
   function show(n, push) {
-    i = Math.max(0, Math.min(slides.length - 1, n));
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    if (n === i) return;
+    i = n;
     slides.forEach((el, k) => el.classList.toggle("active", k === i));
     counter.textContent = `${String(i + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
     progress.style.width = `${((i + 1) / slides.length) * 100}%`;
     prev.disabled = i === 0; next.disabled = i === slides.length - 1;
     document.title = `Shelf-It · ${slides[i].dataset.title}`;
     if (push !== false) history.replaceState(null, "", `#${i + 1}`);
+    play(slides[i]);
   }
   const fromHash = () => { const n = parseInt(location.hash.slice(1), 10); return isNaN(n) ? 0 : n - 1; };
 
@@ -539,6 +762,7 @@ const DECK = {
     else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(i - 1); }
     else if (e.key === "Home") show(0);
     else if (e.key === "End") show(slides.length - 1);
+    else if (e.key === "r" || e.key === "R") play(slides[i]);
   });
   let x0 = null;
   document.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
@@ -547,6 +771,41 @@ const DECK = {
     const dx = e.changedTouches[0].clientX - x0; x0 = null;
     if (Math.abs(dx) > 40) show(i + (dx < 0 ? 1 : -1));
   });
+
+  /* ---------- background: a slow network of agents passing messages ---------- */
+  (function network() {
+    const cv = document.getElementById("net"); if (still || !cv.getContext) return;
+    const ctx = cv.getContext("2d"), W = 1600, H = 900, N = 64, R = 170;
+    const nodes = Array.from({ length: N }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .25, vy: (Math.random() - .5) * .25 }));
+    let pulses = [];
+    function draw() {
+      if (!document.hidden) {
+        ctx.clearRect(0, 0, W, H);
+        for (const n of nodes) { n.x += n.vx; n.y += n.vy; if (n.x < 0 || n.x > W) n.vx *= -1; if (n.y < 0 || n.y > H) n.vy *= -1; }
+        const edges = [];
+        for (let a = 0; a < N; a++) for (let b = a + 1; b < N; b++) {
+          const d = Math.hypot(nodes[a].x - nodes[b].x, nodes[a].y - nodes[b].y);
+          if (d < R) {
+            edges.push([a, b]);
+            ctx.strokeStyle = `rgba(198,244,50,${(1 - d / R) * .13})`; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(nodes[a].x, nodes[a].y); ctx.lineTo(nodes[b].x, nodes[b].y); ctx.stroke();
+          }
+        }
+        ctx.fillStyle = "rgba(242,242,242,.32)";
+        for (const n of nodes) { ctx.beginPath(); ctx.arc(n.x, n.y, 1.6, 0, 6.283); ctx.fill(); }
+        if (edges.length && Math.random() < .05 && pulses.length < 6) { const [a, b] = edges[(Math.random() * edges.length) | 0]; pulses.push({ a, b, t: 0 }); }
+        pulses = pulses.filter((p) => (p.t += .018) < 1);
+        for (const p of pulses) {
+          const A = nodes[p.a], B = nodes[p.b], x = A.x + (B.x - A.x) * p.t, y = A.y + (B.y - A.y) * p.t;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, 10);
+          g.addColorStop(0, "rgba(198,244,50,.9)"); g.addColorStop(1, "rgba(198,244,50,0)");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 10, 0, 6.283); ctx.fill();
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
 
   fit();
   show(fromHash(), false);
