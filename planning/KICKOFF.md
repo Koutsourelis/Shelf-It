@@ -3,6 +3,27 @@
 Πηγές: η σελίδα https://hackathon.polymath42.com/deck/kickoff (14 Νοε), οι φωτογραφίες διαφανειών στο #notes της
 ομάδας, το #announcements του Discord του hackathon. Ενημερώνεται όταν βγαίνει κάτι νέο.
 
+## ΥΠΟΒΟΛΗ: τι ζητούν (ανακοίνωση 15 Νοε, 12:21)
+
+**Προθεσμία: Κυριακή 15 Νοε, 18:00.** Μία υποβολή ανά ομάδα στη φόρμα: https://hackathon.polymath42.com/submission
+(οδηγεί στο https://tally.so/r/2ja2We). Οι κριτές πρέπει να μπορούν να ανοίξουν το repo και τον σύνδεσμο του demo.
+
+Με σειρά σημασίας:
+
+1. **Δημόσιο repo στο GitHub.** Το δικό μας είναι σήμερα **ιδιωτικό**: πρέπει να γίνει δημόσιο πριν την υποβολή.
+2. **Βίντεο demo περίπου 1 λεπτού**, εγγραφή οθόνης που δείχνει: για ποιον είναι, ποιο πρόβλημα λύνει, ποια είναι η
+   λύση. **Πρέπει να ανέβει στο YouTube ως «unlisted».**
+3. Διαφάνειες δεν απαιτούνται, είναι ευπρόσδεκτες.
+
+Μετά την αξιολόγηση: **8 ομάδες** παρουσιάζουν **3 λεπτά + 2 λεπτά ερωτήσεις** στο αμφιθέατρο, και **4** περνούν στον
+τελικό της Δευτέρας. Η επιτροπή έχει τεχνικό, growth και ερευνητικό υπόβαθρο. Κριτές: https://hackathon.polymath42.com/judging
+
+**Επιτροπή κριτών (επίσημη λίστα):** Lars Rasmussen (συνιδρυτής Google Maps, Panathēnea), Anastasios Andronidis (Tools
+for Humanity), Socrates Charisis και Kostas Kopanidis (Quintessential), Dimi Panagiotopoulos (fal), Georgios
+Kontogiannis (Wonderful), Abed Hamami (διοργανωτής), Guy Krief (Big Pi Ventures), Markos Fragkiadakis (Leonidas),
+Orestis Meikopoulos (Τράπεζα Πειραιώς). Θα ρωτήσουν πώς δουλεύει, τι χτίστηκε στο hackathon, ποιον βοηθά και πού μπορεί
+να πάει.
+
 ## Τα σημαντικά με μια ματιά
 
 - **Έπαθλα (επιβεβαιωμένα): 5.000 / 2.500 / 1.000 €**, χορηγία της **Quintessential**. Άρα η Quintessential είναι ο
