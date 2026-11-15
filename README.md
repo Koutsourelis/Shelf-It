@@ -2,6 +2,10 @@
 
 **ShelfSense** turns a phone or aisle camera into an autonomous shelf-monitoring and merchandising system for supermarket teams. Built at the **Gen AI Summit Hackathon (Athens, 14–15 November 2026 — Open Track)**.
 
+- **Who it is for:** Supermarket department managers and aisle staff in small-to-mid grocery stores that lack expensive fixed shelf sensors.
+- **Problem:** ~8% of grocery SKUs are out of stock at any hour, and 43% of shoppers do not substitute inside the store (Gruen, Corsten & Bharadwaj, 2002) — yet manual shelf walks are slow, stockouts sit unnoticed for hours, and eye-level space goes to low-margin items.
+- **Solution:** Point a phone (`/cam`, `/capture`, or Telegram) at the bay. Gemini reads the shelf, deterministic SQL checks backroom stock, dispatches cropped tasks to staff, places bounded warehouse orders automatically, and proposes sourced K1–K7 layout moves with printable `fal` shelf talkers.
+
 > **Design invariant:** The vision model reads the shelf image; **every number** (missing units, backroom refills, warehouse cases, order totals, sales at risk, and margin per facing) is computed deterministically by Python and DuckDB SQL and recorded in an inspectable audit trail.
 
 ---
