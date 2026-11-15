@@ -131,9 +131,11 @@
     const named = !!(m.name && m.name.trim());
     const avatar = m.photo ? `<img src="${esc(m.photo)}" alt="${esc(m.name)}">` : (named ? esc(initials(m.name)) : "?");
     const skills = (m.skills || []).length ? `<div class="skills">${m.skills.map((s) => `<span>${esc(s)}</span>`).join("")}</div>` : "";
+    const url = (u) => /^https?:\/\//i.test(u) ? u : "https://" + u.replace(/^\/+/, "");
+    const gh = (g) => /github\.com/i.test(g) ? url(g) : "https://github.com/" + g.replace(/^@/, "");
     const links = [
-      m.linkedin ? `<a href="${esc(m.linkedin)}" target="_blank" rel="noopener">LinkedIn →</a>` : "",
-      m.github ? `<a href="https://github.com/${esc(m.github)}" target="_blank" rel="noopener">GitHub →</a>` : "",
+      m.linkedin ? `<a href="${esc(url(m.linkedin.trim()))}" target="_blank" rel="noopener">LinkedIn →</a>` : "",
+      m.github ? `<a href="${esc(gh(m.github.trim()))}" target="_blank" rel="noopener">GitHub →</a>` : "",
     ].join("");
     return `<article class="card${named ? "" : " empty"}">
       <div class="head"><div class="avatar">${avatar}</div><div><h3>${named ? esc(m.name) : "Name to be added"}</h3><span class="role">${esc(m.role)}</span></div></div>
