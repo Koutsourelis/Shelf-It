@@ -115,8 +115,9 @@ def facing_transfer(slots: list[Slot], rules: dict) -> Suggestion | None:
 
 def eye_level_swap(slots: list[Slot], rules: dict) -> Suggestion | None:
     r = rules["K4"]
+    known = {d.sku for d in destinations(slots, rules)}      # Κ7: ο προορισμός δεν διεκδικεί το ύψος των ματιών
     eye = [s for s in slots if s.level == "eye"]
-    rest = [s for s in slots if s.level != "eye"]
+    rest = [s for s in slots if s.level != "eye" and s.sku not in known]
     if not eye or not rest:
         return None
     best = max(rest, key=lambda s: s.margin_per_facing)
@@ -144,7 +145,10 @@ def centre_position(slots: list[Slot], rules: dict) -> Suggestion | None:
     if len(eye) < 3:
         return None
     middle = {eye[(len(eye) - 1) // 2].sku, eye[len(eye) // 2].sku}
-    target = max(eye, key=lambda s: s.margin_per_facing)
+    known = {d.sku for d in destinations(slots, rules)}
+    target = max((s for s in eye if s.sku not in known), key=lambda s: s.margin_per_facing, default=None)
+    if target is None:
+        return None
     if target.sku in middle:
         return None
     now = eye[len(eye) // 2]
@@ -186,6 +190,109 @@ def private_label_adjacency(slots: list[Slot], rules: dict) -> list[Suggestion]:
     return out
 
 
+# --- Κ7 ------------------------------------------------------------------------------------------------
+
+def unit_share(slots: list[Slot]) -> dict[str, float]:
+    """Μερίδιο κάθε κωδικού στα τεμάχια που πουλά το ράφι την ημέρα (0 έως 1)."""
+    total = sum(s.units_day for s in slots)
+    return {s.sku: (s.units_day / total if total else 0.0) for s in slots}
+
+
+def destinations(slots: list[Slot], rules: dict) -> list[Slot]:
+    """Κωδικοί-προορισμός: ο πελάτης τους ψάχνει όπου κι αν είναι, άρα δεν χρειάζονται την καλή θέση.
+
+    Προορισμός είναι ό,τι έχει μερίδιο τεμαχίων τουλάχιστον min_share_vs_average φορές το μέσο μερίδιο του
+    ραφιού, ή μάρκα δηλωμένη στο destination_brands του rules.json. Πρώτος ο ισχυρότερος.
+    """
+    r = rules.get("K7")
+    if not r or len(slots) < 2:
+        return []
+    share, limit = unit_share(slots), r["min_share_vs_average"] / len(slots)
+    brands = {b.strip().lower() for b in r.get("destination_brands", [])}
+    hits = [s for s in slots if s.brand.strip().lower() in brands or (share[s.sku] and share[s.sku] >= limit)]
+    return sorted(hits, key=lambda s: -s.units_day)
+
+
+def destination_corner(slots: list[Slot], rules: dict) -> Suggestion | None:
+    """Ο ισχυρότερος προορισμός που δεν είναι ήδη εκεί πάει στο κάτω ράφι, δεξιά."""
+    r = rules.get("K7")
+    bottom = sorted((s for s in slots if s.level == "bottom"), key=lambda s: s.position)
+    known = destinations(slots, rules)
+    if not r or not bottom or not known:
+        return None
+    share, ids = unit_share(slots), {d.sku for d in known}
+    spots = list(reversed(bottom))                       # από δεξιά προς τα αριστερά
+    for d, spot in zip(known, spots):
+        if d.sku == spot.sku:
+            continue
+        if spot.sku in ids and d.level == "bottom":      # δύο προορισμοί ήδη κάτω: η μεταξύ τους σειρά δεν αξίζει αλλαγή
+            continue
+        pct = lambda x: f"{100 * x:.1f}".replace(".", ",") + "%"
+        return Suggestion(
+            rule="Κ7", title=r["title"],
+            what=f"Το {d.sku} ({d.name}) στο κάτω ράφι δεξιά, στη θέση του {spot.sku} ({spot.name}).",
+            figure=f"το {d.sku} κάνει το {pct(share[d.sku])} των τεμαχίων του ραφιού (όριο προορισμού "
+                   f"{pct(r['min_share_vs_average'] / len(slots))})· ο πελάτης το ψάχνει όπου κι αν είναι. "
+                   "Δεν δίνεται ποσοστό αύξησης.",
+            source=r["source"],
+            expression="units_day / sum(units_day) >= min_share_vs_average / n_skus",
+            variables={"share": round(share[d.sku], 3), "min_share_vs_average": r["min_share_vs_average"],
+                       "n_skus": len(slots)},
+            result=round(share[d.sku], 3), move={"sku": d.sku, "swap_with": spot.sku})
+    return None
+
+
+def _centre_out(ranked: list[Slot]) -> list[Slot]:
+    """Ο πρώτος στο κέντρο, ο δεύτερος δεξιά του, ο τρίτος αριστερά του κ.ο.κ. (Κ5)."""
+    out: list[Slot] = []
+    for i, s in enumerate(ranked):
+        if i and i % 2 == 0:
+            out.insert(0, s)
+        else:
+            out.append(s)
+    return out
+
+
+def target_layout(slots: list[Slot], rules: dict | None = None) -> list[dict]:
+    """Η διάταξη που βγαίνει από τις πωλήσεις: ένα στοιχείο ανά επίπεδο, με σειρά από αριστερά.
+
+    Κάθε επίπεδο κρατά όσους κωδικούς έχει σήμερα. Οι προορισμοί (Κ7) πάνε κάτω δεξιά. Από τους υπόλοιπους, όσοι
+    έχουν το μεγαλύτερο περιθώριο ανά πρόσοψη την ημέρα πάνε στο ύψος των ματιών με τον πρώτο στο κέντρο (Κ4, Κ5),
+    οι επόμενοι πάνω και οι τελευταίοι κάτω αριστερά. Επιστρέφει [] όταν λείπουν πωλήσεις ή επίπεδα.
+    """
+    rules = rules or load()
+    size = {lv: sum(1 for s in slots if s.level == lv) for lv in ("top", "eye", "bottom")}
+    if not size["eye"] or not size["bottom"] or not any(s.units_day for s in slots):
+        return []
+    share = unit_share(slots)
+    known = destinations(slots, rules)[:size["bottom"]]
+    ids = {d.sku for d in known}
+    ranked = sorted((s for s in slots if s.sku not in ids), key=lambda s: -s.margin_per_facing)
+    eye, ranked = ranked[:size["eye"]], ranked[size["eye"]:]
+    top, low = ranked[:size["top"]], ranked[size["top"]:]
+    eye, top = _centre_out(eye), _centre_out(top)
+    bottom = low[::-1] + known[::-1]                     # ο ισχυρότερος προορισμός τέρμα δεξιά
+
+    name = lambda s: f"{s.sku} {s.name}"
+    per = lambda group: ", ".join(f"{s.sku} {_eur(s.margin_per_facing)}" for s in
+                                  sorted(group, key=lambda s: -s.margin_per_facing))
+    pct = lambda s: f"{100 * share[s.sku]:.1f}".replace(".", ",") + "%"
+    out = []
+    if top:
+        out.append({"level": "top", "order": [name(s) for s in top],
+                    "why": f"Οι επόμενοι σε περιθώριο ανά πρόσοψη την ημέρα: {per(top)}."})
+    out.append({"level": "eye", "order": [name(s) for s in eye],
+                "why": f"Το μεγαλύτερο περιθώριο ανά πρόσοψη την ημέρα, ο πρώτος στο κέντρο: {per(eye)} (Κ4, Κ5)."})
+    why = []
+    if known:
+        why.append("Δεξιά " + ", ".join(f"{d.sku} με {pct(d)} των τεμαχίων του ραφιού" for d in known)
+                   + ": ο πελάτης τους ψάχνει όπου κι αν είναι (Κ7).")
+    if low:
+        why.append(f"Αριστερά το χαμηλότερο περιθώριο ανά πρόσοψη: {per(low)}.")
+    out.append({"level": "bottom", "order": [name(s) for s in bottom], "why": " ".join(why)})
+    return out
+
+
 def _swap(slots: list[Slot], a: str, b: str) -> list[Slot]:
     """Νέα λίστα όπου οι κωδικοί a και b έχουν ανταλλάξει ράφι, επίπεδο και θέση."""
     by = {s.sku: s for s in slots}
@@ -198,7 +305,7 @@ def _swap(slots: list[Slot], a: str, b: str) -> list[Slot]:
 # --- Όλοι μαζί -----------------------------------------------------------------------------------------
 
 def evaluate(slots: list[Slot], rules: dict | None = None) -> tuple[list[Suggestion], list[str]]:
-    """Τρέχει τους κανόνες διάταξης. Η θέση (Κ4, Κ5, Κ6) προηγείται των προσόψεων (Κ3). Επιστρέφει και τι παραλείφθηκε."""
+    """Τρέχει τους κανόνες διάταξης. Η θέση (Κ4, Κ5, Κ7, Κ6) προηγείται των προσόψεων (Κ3). Επιστρέφει και τι παραλείφθηκε."""
     rules = rules or load()
     skipped = []
     if not slots:
@@ -207,7 +314,7 @@ def evaluate(slots: list[Slot], rules: dict | None = None) -> tuple[list[Suggest
         return [], ["Δεν υπάρχουν επαρκή δεδομένα για τους Κ3, Κ4, Κ5, Κ6: λείπουν οι πωλήσεις."]
     out: list[Suggestion] = []
     # Κάθε ανταλλαγή εφαρμόζεται πριν τρέξει ο επόμενος κανόνας, ώστε οι προτάσεις να μη διεκδικούν την ίδια θέση.
-    for fn in (eye_level_swap, centre_position):
+    for fn in (eye_level_swap, centre_position, destination_corner):
         hit = fn(slots, rules)
         if hit:
             out.append(hit)

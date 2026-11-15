@@ -19,7 +19,23 @@ def db() -> duckdb.DuckDBPyConnection:
         if not config.DB_PATH.exists():
             raise FileNotFoundError("Δεν υπάρχει data/demo.duckdb. Τρέξε: python scripts/make_demo_data.py")
         _con = duckdb.connect(str(config.DB_PATH))
+        if _stale(_con):
+            # Βάση χτισμένη από παλιότερο κώδικα (π.χ. χωρίς products.category): κάθε scan θα έσκαγε με
+            # BinderException. Ξαναχτίζεται από τα CSV· η build() κλείνει μόνη της την κοινή σύνδεση.
+            from .. import demo_data
+            demo_data.build()
+            _con = duckdb.connect(str(config.DB_PATH))
     return _con
+
+
+def _stale(con: duckdb.DuckDBPyConnection) -> bool:
+    """Λείπει στήλη που περιμένει ο κώδικας από τον κατάλογο;"""
+    from .. import demo_data
+    try:
+        have = {r[0] for r in con.execute("describe products").fetchall()}
+    except duckdb.Error:
+        return True
+    return not demo_data.PRODUCT_COLUMNS <= have
 
 
 def run_sql(sql: str, params: list | None = None) -> tuple[list[str], list[tuple]]:

@@ -231,6 +231,19 @@ async def process_frame(data: bytes, force: bool = False, single: bool = False) 
             events.emit("system", "live_frame", frame=frame.name, status="occluded", seconds=seconds)
             return {**status(), "status": "occluded", "seconds": seconds,
                     "detail": "Κάτι κρύβει το ράφι· το frame δεν μετράει"}
+        if not verdict.get("unknown_shelf"):
+            # Η διάταξη που βλέπει ο υπεύθυνος βγαίνει από τις πωλήσεις (Κ4, Κ5, Κ7), όχι από το μοντέλο: ίδια σε
+            # κάθε scan και με αριθμούς από SQL. Σε ράφι χωρίς κατάλογο δεν υπάρχουν πωλήσεις· μένει του μοντέλου.
+            try:
+                from .tools.shelf import stats_layout
+                verdict["suggested_layout"] = await asyncio.to_thread(stats_layout) or verdict["suggested_layout"]
+            except Exception as e:
+                events.emit("system", "log", text=f"Διάταξη από πωλήσεις: {type(e).__name__}: {e}")
+        try:        # ο agent που ξεκινά μετά το scan (check_planogram, replenishment_plan) θέλει την ανάγνωση έτοιμη
+            from .tools.shelf import record_reading
+            await asyncio.to_thread(record_reading, frame.name, verdict)
+        except Exception as e:
+            events.emit("system", "log", text=f"Καταγραφή ανάγνωσης: {type(e).__name__}: {e}")
         STATE.prev_thumb = thumb
         STATE.verdict = verdict
         found = to_findings(verdict)
