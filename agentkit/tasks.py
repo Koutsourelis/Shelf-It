@@ -27,7 +27,8 @@ MAX_PROPOSALS = 3
 OPEN = ("open", "in_progress")
 VERB = {"restock": "Φέρε", "relocate": "Μετακίνησε", "remove": "Βγάλε", "tidy": "Τακτοποίησε"}
 # εύρημα του live.findings() -> τύπος εργασίας
-KIND = {"missing": "restock", "low": "restock", "misplaced": "relocate", "unknown": "remove", "visual": "tidy"}
+KIND = {"missing": "restock", "low": "restock", "gap": "restock", "misplaced": "relocate", "unknown": "remove",
+        "visual": "tidy"}
 
 
 def _now() -> float:
@@ -50,6 +51,17 @@ def reset() -> None:
 
 
 # --- Προτάσεις διάταξης (τις αποφασίζει ο agent, τους αριθμούς τους βγάζει ο κώδικας) ---
+
+def cancel_open() -> int:
+    """Η κάμερα δείχνει άλλο ράφι: οι ανοιχτές εργασίες του προηγούμενου ακυρώνονται, δεν «έγιναν»."""
+    n = 0
+    for task in TASKS.values():
+        if task["status"] in OPEN:
+            task.update(status="cancelled", done=_now(), needs_approval=None)
+            n += 1
+    PROPOSALS.clear()
+    return n
+
 
 def clear_proposals() -> None:
     PROPOSALS.clear()
@@ -86,11 +98,12 @@ def _stock() -> dict[str, dict]:
     Αν το πλανόγραμμα δεν έχει τον κωδικό, παίρνουμε DEFAULT_DEPTH.
     """
     from .tools.data import run_sql
+    from .identity import display_name
     _, rows = run_sql("""
         select p.sku, p.name, p.case_size, coalesce(b.on_hand, 0), p.unit_cost,
-               (select pl.depth from planogram pl where pl.sku = p.sku limit 1)
+               (select pl.depth from planogram pl where pl.sku = p.sku limit 1), p.brand
         from products p left join backroom b using (sku) order by p.sku""")
-    return {r[0]: {"name": r[1], "case_size": r[2], "on_hand": r[3], "unit_cost": r[4],
+    return {r[0]: {"name": display_name(r[1], r[6]), "case_size": r[2], "on_hand": r[3], "unit_cost": r[4],
                    "depth": r[5] or DEFAULT_DEPTH} for r in rows}
 
 
@@ -115,6 +128,12 @@ def _text(finding: dict, numbers: dict | None, stock: dict) -> str:
     name = (stock.get(finding["sku"]) or {}).get("name") or finding.get("label") or finding["sku"] or ""
     shelf = finding["shelf"]
     level = {"top": "πάνω", "eye": "ύψος ματιών", "bottom": "κάτω"}.get(finding.get("level") or "", "")
+    if finding["type"] == "gap":
+        where = f" ({level})" if level else ""
+        n = finding.get("need") or 1
+        room = f"χωράει {n} τεμάχιο" if n == 1 else f"χωράνε {n} τεμάχια"
+        return (f"Γέμισε το ράφι {shelf}{where}: κενό στο {name}, {room}" if name
+                else f"Γέμισε το ράφι {shelf}{where}: υπάρχει κενό, {room}")
     if finding["type"] in ("missing", "low"):
         where = f" ({level})" if level else ""
         n = numbers or {}
@@ -123,6 +142,9 @@ def _text(finding: dict, numbers: dict | None, stock: dict) -> str:
             return f"Φέρε από την αποθήκη: {name}, {n['from_backroom']} τεμάχια, ράφι {shelf}{where}{rest}"
         if n.get("to_order"):
             return f"Λείπει {name} από το ράφι {shelf}{where} · δεν υπάρχει στην αποθήκη"
+        if not numbers and finding.get("need"):
+            few = "πρόσοψη" if finding["need"] == 1 else "προσόψεις"
+            return f"Γέμισε το ράφι {shelf}{where}: {name}, λείπουν {finding['need']} {few}"
         return f"Φέρε από την αποθήκη: {name}, ράφι {shelf}{where}"
     if finding["type"] == "misplaced":
         to_level = {"top": "πάνω", "eye": "ύψος ματιών", "bottom": "κάτω"}.get(finding.get("to_level") or "", "")
@@ -224,7 +246,9 @@ def sync(findings: list[dict], frame: Path) -> dict:
         task_id = _task_id(finding)
         seen.add(task_id)
         existing = TASKS.get(task_id)
-        numbers = plan_units(finding, stock) if finding["type"] in ("missing", "low") else None
+        # Χωρίς κωδικό καταλόγου δεν ξέρουμε απόθεμα ούτε κιβώτιο: η εργασία βγαίνει, παραγγελία ποτέ.
+        numbers = (plan_units(finding, stock) if finding["type"] in ("missing", "low") and finding.get("sku") in stock
+                   else None)
         if existing and existing["status"] in OPEN:
             existing["last_seen"] = _now()
             existing["priority"] = finding["priority"]

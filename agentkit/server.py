@@ -275,6 +275,7 @@ async def get_shelf_preview(since: float = 0.0):
     """Επιστρέφει το τελευταίο live frame κινητού αν είναι φρέσκο (<20s) και νεότερο από το since."""
     raw = live.STATE.preview_jpeg
     ts = live.STATE.preview_ts
+    # the header carries ts with three decimals, so compare at that precision or the same frame is sent again
     if not raw or (time.time() - ts > 20.0) or round(ts, 3) <= round(since, 3):
         return Response(status_code=204)
     return Response(raw, media_type="image/jpeg",

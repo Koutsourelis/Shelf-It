@@ -140,10 +140,11 @@ Phone (/cam, /capture, Telegram) or Aisle Webcam (/shelf)
 | **K5** | Highest-margin eye-level SKU placed at horizontal center | Atalay, Bodur & Rasolofoarison (2012) |
 | **K6** | Private-label SKU placed adjacent to the category brand leader | Sayman, Hoch & Raju (2002) |
 | **K7** | High-velocity destination SKUs (`≥ 1.8×` mean unit share) placed bottom-right to free eye level | Merchandising destination rule |
+| **K8** | Heavy packs (`≥ 1 kg / 1 L`) kept on the bottom shelf for safety and ergonomics | Merchandising & ergonomic rule |
 
-### Shelf Datasets (`SHELF_SET`)
+### Shelf Datasets (`SHELF_SET` & Auto-Detection)
 
-Switch datasets via `SHELF_SET` in `.env` (each builds its own `data/demo_<set>.duckdb`):
+`agentkit/shelfsets.py` automatically detects which bay the camera is looking at from visible brands and switches the active catalog, planogram, and DuckDB on the fly (`SHELF_SET` in `.env` sets the initial bay):
 - **`""` (default — `data/shelf/`):** 9-SKU Greek coffee bay (`C01–C09`) with photorealistic before/after scenes.
 - **`trad` (`data/shelf/sets/trad/`):** Real supermarket shelf photo paired with **Open Food Facts** barcode/brand metadata (`off_products.json`).
 - **`drinks` (`data/shelf/sets/drinks/`):** 37-SKU Greek beer & soft-drink bay (`D01–D37`) with an 18-photo evaluation suite (`eval/`).
@@ -155,7 +156,7 @@ Switch datasets via `SHELF_SET` in `.env` (each builds its own `data/demo_<set>.
 All test suites run offline without API keys and leave runtime state untouched:
 
 ```bash
-python -m unittest discover tests          # 63 unit & integration tests
+python -m unittest discover tests          # 86 unit & integration tests
 python scripts/check_setup.py              # End-to-end mock agent, DuckDB, evidence & Playwright check
 python scripts/check_recommendations.py    # 28 SQLite recommendation & feedback contract checks
 python scripts/check_shelf_talker.py       # 41 shelf-talker composition & fal contract checks

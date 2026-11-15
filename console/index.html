@@ -147,6 +147,26 @@
   #plan .mark { width: 14px; flex: none; text-align: center; color: var(--sys-blue); font-family: var(--font-mono); }
   #plan li.done .mark { color: var(--sys-green); }
 
+  /* Latest shelf photo: follows every new photo from the camera, the phone or Telegram */
+  #shelfshot { border-bottom: 1px solid var(--separator); background: var(--bg-primary); }
+  #shelfshot > summary {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    padding: 10px 20px; cursor: pointer; list-style: none; font-size: 13px;
+  }
+  #shelfshot > summary::-webkit-details-marker { display: none; }
+  #shelfshot > summary b { font-weight: 600; }
+  #shelfshot > summary a { margin-left: auto; font-size: 12px; }
+  #shotBody { display: flex; gap: 16px; padding: 0 20px 14px; align-items: flex-start; flex-wrap: wrap; }
+  #shotStage { position: relative; flex: none; max-width: 100%; line-height: 0; background: #141416; border-radius: 8px; overflow: hidden; }
+  #shotStage img { display: block; max-width: 100%; max-height: 300px; }
+  #shotStage canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #shotSum { flex: 1; min-width: 220px; font-size: 12.5px; line-height: 1.45; color: var(--label-secondary); }
+  #shotSum p { margin: 0 0 8px; color: var(--label-primary); }
+  #shotSum ul { margin: 0 0 8px; padding-left: 18px; }
+  #shotSum li { margin-bottom: 3px; }
+  #shotSum li b { color: var(--label-primary); font-weight: 600; }
+  #shelfshot.fresh > summary b { color: var(--sys-blue); }
+
   #timeline {
     flex: 1;
     overflow-y: auto;
@@ -385,6 +405,13 @@
   </section>
 
   <section id="center">
+    <details id="shelfshot" hidden>
+      <summary><b>Τελευταία φωτογραφία ραφιού</b><span class="mono mut" id="shotMeta"></span><a href="/shelf">Άνοιγμα στο Ράφι</a></summary>
+      <div id="shotBody">
+        <div id="shotStage"><img id="shotImg" alt="Η τελευταία φωτογραφία ραφιού που αναλύθηκε"><canvas id="shotOverlay"></canvas></div>
+        <div id="shotSum"></div>
+      </div>
+    </details>
     <div id="runhead" hidden>
       <p id="goal"></p>
       <div id="meta"></div>
@@ -532,7 +559,12 @@ function connect() {
   es.onmessage = m => handle(JSON.parse(m.data));
 }
 function handle(ev) {
-  if (ev.run_id === "system") { if (ev.type === "demo") toast(ev.text); return; }
+  if (ev.run_id === "system") {
+    if (ev.type === "demo") toast(ev.text);
+    // Νέα φωτογραφία ή αλλαγή στις εργασίες: η κονσόλα δείχνει αμέσως την πιο πρόσφατη λήψη.
+    if (["live_frame", "live_report", "shelf_log"].includes(ev.type) && Date.now() / 1000 - ev.ts < 8) scheduleShot();
+    return;
+  }
   let run = runs.get(ev.run_id);
   if (!run) { run = { id: ev.run_id, goal: "", status: "running", events: [], started: ev.ts }; runs.set(ev.run_id, run); }
   run.events.push(ev);
@@ -544,6 +576,70 @@ function handle(ev) {
   renderRuns();
   if (run.id === selected) scheduleRender();
 }
+// --- Τελευταία φωτογραφία ραφιού (ό,τι ανέλυσε το live loop: κάμερα, κινητό, Telegram, αρχείο) ---------------
+const SHOT_COLORS = { ok: "#34C759", low: "#FF9500", missing: "#FF3B30", misplaced: "#FF3B30", unknown: "#AF52DE", seen: "#0A84FF", move: "#5856D6" };
+const SHELF_EL = { top: "πάνω ράφι", eye: "ύψος ματιών", bottom: "κάτω ράφι" };
+let shotFrame = null, shotData = null, shotTimer = null;
+function scheduleShot() { clearTimeout(shotTimer); shotTimer = setTimeout(() => refreshShot(true), 250); }
+async function refreshShot(announce) {
+  let d;
+  try { d = await api("/api/live/status"); } catch (e) { return; }
+  if (!d.frame) return;
+  shotData = d;
+  const box = $("shelfshot");
+  if (d.frame !== shotFrame) {
+    shotFrame = d.frame;
+    $("shotImg").src = "/files/live/" + encodeURIComponent(d.frame);
+    box.hidden = false; box.open = true;
+    if (announce) {
+      toast("Νέα φωτογραφία ραφιού");
+      box.classList.add("fresh"); setTimeout(() => box.classList.remove("fresh"), 4000);
+    }
+  }
+  const items = (d.shelves || []).flatMap(sh => sh.items || []);
+  const fills = (d.findings || []).filter(x => x.type === "low" || x.type === "missing" || x.type === "gap");
+  const nameOf = {}; items.forEach(it => { if (it.sku) nameOf[it.sku] = it.name || it.label; });
+  const label = x => nameOf[x.sku] || x.name || x.label || x.sku || "";
+  const moves = (d.findings || []).filter(x => x.type === "misplaced").concat(d.moves || []);
+  $("shotMeta").textContent = `${d.frame} · ${d.shelf_title ? "ράφι: " + d.shelf_title + " · " : ""}${items.length} προϊόντα · ${(d.tasks || []).length} εργασίες` + (d.seconds ? ` · ${d.seconds}s` : "");
+  $("shotSum").innerHTML =
+    (d.unknown_shelf ? `<p><b>Ράφι εκτός καταλόγου.</b> Τα προϊόντα διαβάζονται από την ετικέτα· ο agent δεν ξεκινά, γιατί δεν υπάρχουν πωλήσεις.</p>` : "") +
+    (d.summary ? `<p>${esc(d.summary)}</p>` : "") +
+    (fills.length ? `<b>Θέλουν γέμισμα</b><ul>${fills.slice(0, 5).map(x => `<li><b>${esc(label(x) || "Κενό στο ράφι")}</b>, ${x.type === "missing" ? "λείπει εντελώς" : x.type === "gap" ? "χωράνε " + esc(x.need) + " τεμάχια" : "λείπουν " + esc(x.need) + " προσόψεις"}</li>`).join("")}</ul>` : "") +
+    (moves.length ? `<b>Αλλάζουν ράφι</b><ul>${moves.slice(0, 5).map(m => `<li><b>${esc(label(m))}</b> → ${esc(SHELF_EL[m.to_level] || m.to_level)}${m.why ? ": " + esc(m.why) : ""}</li>`).join("")}</ul>` : "") +
+    (!fills.length && !moves.length && !d.unknown_shelf && !(d.tasks || []).length ? `<p>Το ράφι είναι σωστό.</p>` : "");
+  drawShot();
+}
+function drawShot() {
+  const img = $("shotImg"), cv = $("shotOverlay"), d = shotData;
+  if (!d || !img.clientWidth) return;
+  const W = cv.width = img.clientWidth, H = cv.height = img.clientHeight, c = cv.getContext("2d");
+  c.clearRect(0, 0, W, H);
+  c.lineWidth = 2; c.font = "600 10.5px ui-monospace, Menlo, monospace";
+  const status = {};
+  (d.moves || []).forEach(m => { status[m.sku || m.label] = "move"; });
+  (d.findings || []).forEach(x => { const k = x.sku || x.label; if (k && x.type !== "visual") status[k] = x.type; });
+  (d.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
+    if (!it.box_2d) return;
+    const [y0, x0, y1, x1] = it.box_2d, x = x0 * W / 1000, y = y0 * H / 1000, w = (x1 - x0) * W / 1000, h = (y1 - y0) * H / 1000;
+    const st = status[it.sku || it.label] || (it.sku ? "ok" : (d.unknown_shelf ? "seen" : "unknown"));
+    const color = SHOT_COLORS[st] || SHOT_COLORS.unknown;
+    c.strokeStyle = color; c.strokeRect(x, y, w, h);
+    let text = it.name || it.label || it.sku || "?";
+    const room = Math.max(w, 48) - 8;
+    if (c.measureText(text).width > room) {
+      while (text.length > 1 && c.measureText(text + "…").width > room) text = text.slice(0, -1);
+      text = text.trimEnd() + "…";
+    }
+    const tw = c.measureText(text).width + 8, ty = Math.max(y - 15, 0);
+    c.fillStyle = color; c.fillRect(x, ty, tw, 15);
+    c.fillStyle = "#FFFFFF"; c.fillText(text, x + 4, ty + 11);
+  }));
+}
+$("shotImg").addEventListener("load", drawShot);
+$("shelfshot").addEventListener("toggle", drawShot);
+window.addEventListener("resize", drawShot);
+
 let pending = false;
 function scheduleRender() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; renderRun(); }); }
 
@@ -678,6 +774,7 @@ $("sysClose").onclick = () => { $("sys").hidden = true; };
 $("sys").onclick = e => { if (e.target.id === "sys") $("sys").hidden = true; };
 
 init().catch(e => toast("Σφάλμα: " + e.message));
+refreshShot(false);
 </script>
 </body>
 </html>
