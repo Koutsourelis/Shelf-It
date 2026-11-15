@@ -805,6 +805,32 @@ function arrow(p, f) {
 const RULE = { K3: "Χώρος στο ράφι", K4: "Ύψος ματιών", K5: "Κέντρο ραφιού", K7: "Προορισμός κάτω δεξιά", K8: "Βαριά συσκευασία κάτω" };
 const evidCache = {};          // proposal id -> html (successful loads only; errors are retried)
 const evidErr = {};            // proposal id -> state html
+
+// Evidence pack (/api/evidence) -> html: search-demand trend, up to 3 verified sources, and who served them.
+// pack.sources is a count; the links live in pack.evidence (one entry per verified claim).
+function evidenceHTML(pack) {
+  const parts = [];
+  const ch = pack.search_trend?.change;
+  if (ch && Number.isFinite(ch.change_pct)) {
+    const pct = (ch.change_pct > 0 ? "+" : "") + Math.round(ch.change_pct) + "%";
+    parts.push(`<span class="evid-trend">Δείκτης αναζητήσεων «${esc(pack.search_trend.keyword || pack.category || "")}»: <b>${esc(pct)}</b> (${esc(ch.from)} → ${esc(ch.to)})</span>`);
+  }
+  const seen = new Set();
+  const links = (pack.evidence || []).filter(e => e.url && !seen.has(e.url) && seen.add(e.url)).slice(0, 3);
+  if (links.length) {
+    parts.push(...links.map(e => `<a href="${esc(e.url)}" target="_blank" rel="noopener" title="${esc(e.claim || "")}">${esc(e.title || e.url)}</a>`));
+  } else {
+    parts.push(`<span>Περιθώριο ${esc(pack.margin_pct ?? "—")}% · Δεν βρέθηκαν εξωτερικές πηγές.</span>`);
+  }
+  const calls = pack.treg_calls || [];
+  if (pack.provider === "treg" || calls.length) {
+    const cost = Number(pack.treg_cost_usd || 0).toFixed(3);
+    parts.push(`<span class="evid-via">Αναζήτηση μέσω treg · ${calls.length} κλήσεις · ${esc(cost)} $${pack.from_cache ? " · αποθηκευμένο" : ""}</span>`);
+  } else if (pack.provider) {
+    parts.push(`<span class="evid-via">Αναζήτηση μέσω ${esc(pack.provider)}</span>`);
+  }
+  return parts.join("");
+}
 const openTalkerForms = new Set();
 const inflight = new Set();    // "rec:<rid>", "order:<taskId>", "evid:<pid>" — survives re-renders from SSE
 const propUi = {};             // rid -> [kind, label, detail, tech] shown next to the proposal
@@ -1382,10 +1408,7 @@ document.addEventListener("click", async e => {
     if (last) render(last);
     try {
       const { data: pack } = await S.api(`/api/evidence/${encodeURIComponent(sku)}`);
-      const srcs = (pack.sources || []).slice(0, 3);
-      evidCache[pid] = srcs.length
-        ? srcs.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.domain || s.url)}</a>`).join("")
-        : `<span>Περιθώριο ${esc(pack.margin_pct ?? "—")}% · Δεν βρέθηκαν εξωτερικές πηγές.</span>`;
+      evidCache[pid] = evidenceHTML(pack);
     } catch (err) {
       devLog("evidence", err);
       evidErr[pid] = S.stateHTML("error", "Τα τεκμήρια δεν φορτώθηκαν", "Πάτησε «Τεκμήρια» ξανά.");

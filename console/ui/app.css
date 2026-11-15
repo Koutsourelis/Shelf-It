@@ -890,6 +890,8 @@ button[aria-busy="true"]::before, .btn[aria-busy="true"]::before {
   line-height: 1.42;
 }
 .prop-evid a { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prop-evid .evid-trend { display: block; color: var(--label-primary); }
+.prop-evid .evid-via { display: block; margin-top: 4px; font-size: 11px; }
 .prop-talker {
   margin-top: 8px;
   display: inline-flex;

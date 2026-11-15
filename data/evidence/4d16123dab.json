@@ -1,0 +1,138 @@
+{
+  "category": "Κακάο",
+  "region": "Ελλάδα",
+  "audience": "",
+  "retrieved_at": "2026-11-15",
+  "provider": "treg",
+  "queries": [
+    "Κακάο τιμές σουπερμάρκετ έρευνα ΙΕΛΚΑ ielka.gr",
+    "Κακάο πωλήσεις σούπερ μάρκετ Circana selfservice.gr",
+    "Κακάο σούπερ μάρκετ πωλήσεις NielsenIQ Circana 2026 powergame.gr",
+    "Κακάο αγορά Ελλάδα πωλήσεις τάση 2026",
+    "Κακάο καταναλωτές Ελλάδα προτιμήσεις έρευνα"
+  ],
+  "sources": 6,
+  "dropped": 0,
+  "evidence": [
+    {
+      "claim": "Οι τιμές στην κατηγορία μπισκότα, σοκολάτες, ζαχαρώδη κατέγραψαν αύξηση 8,89% τον Ιανουάριο 2025 σε σχέση με τον Ιανουάριο 2024 στις αλυσίδες σούπερ μάρκετ.",
+      "value": 8.89,
+      "unit": "%",
+      "quote": "• Μπισκότα, σοκολάτες, ζαχαρώδη: +8,89%",
+      "url": "https://ielka.gr/anakoinosi-5-2-2024/",
+      "title": "Αμετάβλητες οι τιμές των προϊόντων στα σουπερμάρκετ τον ...",
+      "listed_source": "ΙΕΛΚΑ",
+      "published": "2025-02-05",
+      "region": "Ελλάδα",
+      "note": null
+    },
+    {
+      "claim": "Οι διεθνείς τιμές του κακάο επηρεάζουν τις κατηγορίες των γλυκών, των ροφημάτων και των ειδών πρωινού.",
+      "value": null,
+      "unit": null,
+      "quote": "Οι διεθνείς τιμές του κακάο και του καφέ, σίγουρα επηρεάζουν τις κατηγορίες των γλυκών και των ροφημάτων, αλλά και την κατηγορία με τα είδη πρωϊνού, που περιλαμβάνει και πολλά είδη με σοκολάτα.",
+      "url": "https://ielka.gr/anakoinosi-5-2-2024/",
+      "title": "Αμετάβλητες οι τιμές των προϊόντων στα σουπερμάρκετ τον ...",
+      "listed_source": "ΙΕΛΚΑ",
+      "published": "2025-02-05",
+      "region": "Ελλάδα",
+      "note": null
+    }
+  ],
+  "search_trend": {
+    "keyword": "Κακάο",
+    "country": "gr",
+    "source": "δείκτης αναζητήσεων μέσω treg (dataforseo.x.keywords-data-dataforseo-trends-explore-live)",
+    "tool": "treg.google.keywords.trends",
+    "method": "μέσος όρος του τελευταίου τετάρτου της περιόδου έναντι του πρώτου· η εποχικότητα δεν αφαιρείται",
+    "change": {
+      "change_pct": 85.7,
+      "first_avg": 33.8,
+      "last_avg": 62.7,
+      "from": "2025-11-16",
+      "to": "2026-11-01",
+      "points": 51
+    },
+    "note": null
+  },
+  "treg_calls": [
+    {
+      "tool": "treg.google.keywords.trends",
+      "cost_usd": 0.0012,
+      "ok": true,
+      "error": null,
+      "served_by": "dataforseo.x.keywords-data-dataforseo-trends-explore-live"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.007,
+      "ok": true,
+      "error": null,
+      "served_by": "exa.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.007,
+      "ok": true,
+      "error": null,
+      "served_by": "exa.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    }
+  ],
+  "reason": null
+}

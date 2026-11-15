@@ -2,58 +2,196 @@
   "category": "Καφές",
   "region": "Ελλάδα",
   "audience": "",
-  "retrieved_at": "2026-11-14",
-  "provider": "duckduckgo",
+  "retrieved_at": "2026-11-15",
+  "provider": "treg",
   "queries": [
+    "αγορά καφέ ελληνικός στιγμιαίος espresso κάψουλες πωλήσεις σούπερ μάρκετ selfservice.gr",
+    "Καφές τιμές σουπερμάρκετ έρευνα ΙΕΛΚΑ ielka.gr",
+    "Καφές πωλήσεις σούπερ μάρκετ Circana selfservice.gr",
     "Καφές αγορά Ελλάδα πωλήσεις τάση 2026",
     "Καφές καταναλωτές Ελλάδα προτιμήσεις έρευνα"
   ],
   "sources": 6,
-  "dropped": 4,
+  "dropped": 1,
   "evidence": [
     {
-      "claim": "Η αξία των πωλήσεων καφέ στο επτάμηνο Ιανουαρίου-Ιουλίου 2026 ανήλθε σε 304,7 εκατ. ευρώ.",
-      "value": 304.7,
-      "unit": "εκατ. ευρώ",
-      "quote": "Στο επτάμηνο Ιανουαρίου-Ιουλίου 2026, η αξία των πωλήσεων έφτασε τα 304,7 εκατ. ευρώ, έναντι 279,7 εκατ. ευρώ το αντίστοιχο διάστημα του 2025, σημειώνοντας άνοδο 8,9%.",
-      "url": "https://www.businessnews.gr/epixeiriseis/item/348320-kafes-i-agora-ton-501-ekat-evro-pou-allazei-xarmani",
-      "title": "Καφές: Η αγορά των 501 εκατ. ευρώ που αλλάζει «χαρμάνι»",
-      "published": "2026-10-02",
-      "region": null,
-      "note": null
-    },
-    {
-      "claim": "Η μέση τιμή ανά κιλό για τις κάψουλες καφέ διαμορφώθηκε στα 60,2 ευρώ στο επτάμηνο του 2026.",
-      "value": 60.2,
-      "unit": "ευρώ",
-      "quote": "Στις κάψουλες, η μέση τιμή έφθασε τα 60,2 ευρώ το κιλό.",
-      "url": "https://www.philenews.com/oikonomia/kafti-grammi/article/1777125/i-ellines-den-kovoun-ton-kafe-polisis-ano-ton-e500-ekat-ke-strofi-ston-espresso-sto-spiti/",
-      "title": "Καφές: Πωλήσεις άνω των €500 εκατ. στην Ελλάδα",
-      "published": "2026-10-02",
-      "region": null,
-      "note": null
-    },
-    {
-      "claim": "Η μέση τιμή ανά κιλό για τον ελληνικό καφέ ανήλθε στα 18,6 ευρώ στο επτάμηνο του 2026.",
-      "value": 18.6,
-      "unit": "ευρώ",
-      "quote": "Στο επτάμηνο του 2026, οι μέσες τιμές ανά κιλό διαμορφώθηκαν στα 18,6 ευρώ για τον ελληνικό, στα 34,1 ευρώ για τον στιγμιαίο, στα 21,1 ευρώ για τον φίλτρου, στα 23,5 ευρώ για τον espresso σε κόκκους και στα 26,9 ευρώ για τον αλεσμένο espresso.",
-      "url": "https://www.philenews.com/oikonomia/kafti-grammi/article/1777125/i-ellines-den-kovoun-ton-kafe-polisis-ano-ton-e500-ekat-ke-strofi-ston-espresso-sto-spiti/",
-      "title": "Καφές: Πωλήσεις άνω των €500 εκατ. στην Ελλάδα",
-      "published": "2026-10-02",
-      "region": null,
-      "note": null
-    },
-    {
-      "claim": "Τα cafe και οι αλυσίδες καφέ συγκεντρώνουν το 74,2% των προτιμήσεων στην κατανάλωση εκτός σπιτιού.",
-      "value": 74.2,
+      "claim": "Το πρώτο πεντάμηνο του 2024 η αγορά του καφέ στο οργανωμένο λιανεμπόριο τροφίμων κατέγραψε ανάπτυξη 3,3% σε όγκο πωλήσεων.",
+      "value": 3.3,
       "unit": "%",
-      "quote": "Τα cafe και οι αλυσίδες καφέ συγκεντρώνουν τις προτιμήσεις σε ποσοστό 74,2%, ενώ ο καφές πλησιάζει την μπίρα ως προς το αγαπημένο προϊόν κατανάλωσης εκτός σπιτιού.",
-      "url": "https://www.tovima.gr/2026/10/02/finance/agora-kafe-ti-allazei-stis-synitheies-ton-ellinon/",
-      "title": "Αγορά καφέ: Τι αλλάζει στις συνήθειες των Ελλήνων - ΤΟ ΒΗΜΑ",
-      "published": "2026-10-02",
-      "region": null,
+      "quote": "Τα στοιχεία αναφέρουν ανάπτυξη στο σύνολο της αγοράς του καφέ στο πρώτο πεντάμηνο του 2024, τόσο σε όγκο πωλήσεων, κατά 3,3%, όσο και σε αξία, ελάχιστα εντονότερα, κατά 3,9%, σε σύγκριση με την αντίστοιχη περυσινή χρονική περίοδο.",
+      "url": "https://selfservice.gr/nielseniq-kai-gfk-anodika-se-tziro-kai-ogko-o-kafes-sto-souper-market-anodikotera-oi-kapsoules/",
+      "title": "NielsenIQ και GfK: Ανοδικά σε τζίρο και όγκο ο καφές στο σούπερ μάρκετ, ανοδικότερα οι κάψουλες - selfservice.gr | Σελφ σέρβις",
+      "listed_source": "Σελφ Σέρβις",
+      "published": "2024-07-12",
+      "region": "Ελλάδα",
       "note": null
+    },
+    {
+      "claim": "Το πρώτο πεντάμηνο του 2024 η αξία πωλήσεων της αγοράς του καφέ στο οργανωμένο λιανεμπόριο τροφίμων αυξήθηκε κατά 3,9%.",
+      "value": 3.9,
+      "unit": "%",
+      "quote": "Τα στοιχεία αναφέρουν ανάπτυξη στο σύνολο της αγοράς του καφέ στο πρώτο πεντάμηνο του 2024, τόσο σε όγκο πωλήσεων, κατά 3,3%, όσο και σε αξία, ελάχιστα εντονότερα, κατά 3,9%, σε σύγκριση με την αντίστοιχη περυσινή χρονική περίοδο.",
+      "url": "https://selfservice.gr/nielseniq-kai-gfk-anodika-se-tziro-kai-ogko-o-kafes-sto-souper-market-anodikotera-oi-kapsoules/",
+      "title": "NielsenIQ και GfK: Ανοδικά σε τζίρο και όγκο ο καφές στο σούπερ μάρκετ, ανοδικότερα οι κάψουλες - selfservice.gr | Σελφ σέρβις",
+      "listed_source": "Σελφ Σέρβις",
+      "published": "2024-07-12",
+      "region": "Ελλάδα",
+      "note": null
+    },
+    {
+      "claim": "Οι κάψουλες καφέ παρουσιάζουν ρυθμό ανάπτυξης 11,1% και μερίδιο 16,8% σε αξία πωλήσεων στο συνολικό τζίρο της κατηγορίας.",
+      "value": 16.8,
+      "unit": "%",
+      "quote": "Η υποκατηγορία των καψουλών καφέ, αν και ακόμη έχει σχετικά μικρή συμμετοχή στον τζίρο της συνολικής κατηγορίας -με μερίδιο 16,8% σε αξία πωλήσεων- παρουσιάζει αξιοσημείωτο ρυθμό ανάπτυξης της τάξεως του 11,1%, ο οποίος είναι σταθερά ανοδικός τα τελευταία χρόνια.",
+      "url": "https://selfservice.gr/nielseniq-kai-gfk-anodika-se-tziro-kai-ogko-o-kafes-sto-souper-market-anodikotera-oi-kapsoules/",
+      "title": "NielsenIQ και GfK: Ανοδικά σε τζίρο και όγκο ο καφές στο σούπερ μάρκετ, ανοδικότερα οι κάψουλες - selfservice.gr | Σελφ σέρβις",
+      "listed_source": "Σελφ Σέρβις",
+      "published": "2024-07-12",
+      "region": "Ελλάδα",
+      "note": null
+    },
+    {
+      "claim": "Ο εσπρέσο κατέχει μερίδιο 15% σε όγκο και 25% σε αξία στον επιμερισμό της κατανάλωσης στα σούπερ μάρκετ.",
+      "value": 15,
+      "unit": "%",
+      "quote": "Ακολουθεί ο στιγμιαίος καφές με ποσοστό 18% σε όγκο και 30% σε αξία, o εσπρέσο με 15% σε όγκο και 25% σε αξία, ο καφές φίλτρου με μερίδιο περίπου 17% σε όγκο και 13% σε αξία.",
+      "url": "https://www.powergame.gr/epichirisis/795936/kafes-o-antagonismos-stin-agora-tis-kapsoulas-kai-o-neos-paiktis/",
+      "title": "Καφές: Ο ανταγωνισμός στην αγορά της κάψουλας και ο νέος παίκτης",
+      "listed_source": "Powergame",
+      "published": "2025-01-29",
+      "region": "Ελλάδα",
+      "note": null
+    },
+    {
+      "claim": "Η συνολική αξία πωλήσεων espresso στο πρώτο οκτάμηνο του 2024 ανήλθε σε 53,88 εκατ. ευρώ, αυξημένη κατά 9,4%.",
+      "value": 53.88,
+      "unit": "εκατ. ευρώ",
+      "quote": "Η συνολική αξία πωλήσεων espresso συμπλήρωσε 53,88 εκατ. ευρώ, αυξημένη κατά 9,4% σε σχέση με τα 49,26 εκατ. ευρώ του πρώτου οκταμήνου του 2023.",
+      "url": "https://selfservice.gr/circana-oi-poliseis-kafe-sto-elliniko-souper-market/",
+      "title": "Circana: Οι πωλήσεις καφέ στο ελληνικό σούπερ μάρκετ",
+      "listed_source": "Σελφ Σέρβις",
+      "published": "2024-11-25",
+      "region": "Ελλάδα",
+      "note": null
+    },
+    {
+      "claim": "Ο καφές espresso ιδιωτικής ετικέτας αυξήθηκε κατά 51,3% σε αξία στο οκτάμηνο του 2024.",
+      "value": 51.3,
+      "unit": "%",
+      "quote": "Ο καφές espresso ιδιωτικής ετικέτας γνώρισε φέτος πιένες: Στο οκτάμηνο 2024 αυξήθηκε κατά 51,3% σε αξία (4,77 εκατ. ευρώ, έναντι 3,15 εκατ. ευρώ) και κατά 53,7% σε όγκο (194 έναντι 126 τόνων).",
+      "url": "https://selfservice.gr/circana-oi-poliseis-kafe-sto-elliniko-souper-market/",
+      "title": "Circana: Οι πωλήσεις καφέ στο ελληνικό σούπερ μάρκετ",
+      "listed_source": "Σελφ Σέρβις",
+      "published": "2024-11-25",
+      "region": "Ελλάδα",
+      "note": null
+    },
+    {
+      "claim": "Ο στιγμιαίος καφές κατέγραψε αύξηση τζίρου στα σούπερ μάρκετ κατά 4,7% στο οκτάμηνο του 2024.",
+      "value": 4.7,
+      "unit": "%",
+      "quote": "Στο στιγμιαίο καφέ, η Circana κατέγραψε αύξηση τζίρου στο σούπερ μάρκετ κατά 4,7% στο οκτάμηνο: 71,5 εκατ. ευρώ, έναντι 68,3 εκατ. ευρώ και αντίστοιχη άνοδο όγκου κατά 6,3% (1.894 τόνοι, έναντι 1.782), που αποκαλύπτει πτώση της μέσης τιμής.",
+      "url": "https://selfservice.gr/circana-oi-poliseis-kafe-sto-elliniko-souper-market/",
+      "title": "Circana: Οι πωλήσεις καφέ στο ελληνικό σούπερ μάρκετ",
+      "listed_source": "Σελφ Σέρβις",
+      "published": "2024-11-25",
+      "region": "Ελλάδα",
+      "note": null
+    }
+  ],
+  "search_trend": {
+    "keyword": "Καφές",
+    "country": "gr",
+    "source": "δείκτης αναζητήσεων μέσω treg (dataforseo.x.keywords-data-dataforseo-trends-explore-live)",
+    "tool": "treg.google.keywords.trends",
+    "method": "μέσος όρος του τελευταίου τετάρτου της περιόδου έναντι του πρώτου· η εποχικότητα δεν αφαιρείται",
+    "change": {
+      "change_pct": 400.0,
+      "first_avg": 2.0,
+      "last_avg": 10.0,
+      "from": "2025-11-16",
+      "to": "2026-11-08",
+      "points": 52
+    },
+    "note": null
+  },
+  "treg_calls": [
+    {
+      "tool": "treg.google.keywords.trends",
+      "cost_usd": 0.0012,
+      "ok": true,
+      "error": null,
+      "served_by": "dataforseo.x.keywords-data-dataforseo-trends-explore-live"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.007,
+      "ok": true,
+      "error": null,
+      "served_by": "exa.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.007,
+      "ok": true,
+      "error": null,
+      "served_by": "exa.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
+    },
+    {
+      "tool": "treg.web.search.news",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search.news"
+    },
+    {
+      "tool": "treg.web.search",
+      "cost_usd": 0.0,
+      "ok": true,
+      "error": null,
+      "served_by": "tinyfish.web.search"
     }
   ],
   "reason": null
