@@ -114,7 +114,7 @@ def record_reading(name: str, verdict: dict) -> list[tuple]:
     from ..vision.assessment import LEVEL_TO_SHELF
     items = []
     for sh in verdict["shelves"]:
-        shelf = LEVEL_TO_SHELF[sh["level"]]
+        shelf = sh.get("shelf") or LEVEL_TO_SHELF[sh["level"]]     # η πραγματική σανίδα, αν τη βρήκε το live.regroup
         for pos, it in enumerate(sh["items"], 1):
             box = it.get("box_2d") or (None, None, None, None)
             items.append((name, shelf, pos, it.get("sku"), it.get("label") or "", it.get("facings") or 0,
@@ -340,7 +340,9 @@ def _slots() -> list:
         select pl.sku, p.name, p.brand, p.category, pl.shelf, pl.level, pl.position, pl.facings, pl.depth,
                coalesce(s.qty, 0), coalesce(s.rev, 0), coalesce(s.margin, 0)
         from planogram pl join products p using (sku) left join s using (sku) order by pl.shelf, pl.position""")
-    return [decision_rules.Slot(sku, name, brand or "", category or "", shelf, level, position, facings, depth,
+    from ..identity import display_name
+    return [decision_rules.Slot(sku, display_name(name, brand), brand or "", category or "", shelf, level, position,
+                                facings, depth,
                                 float(qty) / DAYS, float(rev) / DAYS, float(margin) / DAYS)
             for sku, name, brand, category, shelf, level, position, facings, depth, qty, rev, margin in rows]
 
@@ -411,7 +413,8 @@ def _layout_stats() -> dict[str, dict]:
         slots = sorted(per_shelf[shelf])
         center = len(slots) % 2 == 1 and len(slots) > 1 and position == slots[len(slots) // 2]
         space, sales = 100 * facings / total_facings, 100 * rev / total_rev
-        stats[sku] = {"sku": sku, "name": name, "brand": brand, "category": category, "shelf": shelf, "level": level,
+        from ..identity import display_name
+        stats[sku] = {"sku": sku, "name": display_name(name, brand), "brand": brand, "category": category, "shelf": shelf, "level": level,
                       "position": position, "center": center, "facings": facings,
                       "rightmost": position == max(per_shelf[shelf]), "destination": sku in known,
                       "unit_share": round(100 * qty / total_qty, 1),

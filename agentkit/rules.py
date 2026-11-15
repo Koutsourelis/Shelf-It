@@ -116,6 +116,7 @@ def facing_transfer(slots: list[Slot], rules: dict) -> Suggestion | None:
 def eye_level_swap(slots: list[Slot], rules: dict) -> Suggestion | None:
     r = rules["K4"]
     known = {d.sku for d in destinations(slots, rules)}      # Κ7: ο προορισμός δεν διεκδικεί το ύψος των ματιών
+    known |= {s.sku for s in heavy(slots, rules)}            # Κ8: ούτε οι βαριές συσκευασίες
     eye = [s for s in slots if s.level == "eye"]
     rest = [s for s in slots if s.level != "eye" and s.sku not in known]
     if not eye or not rest:
@@ -242,6 +243,26 @@ def destination_corner(slots: list[Slot], rules: dict) -> Suggestion | None:
     return None
 
 
+# --- Κ8 ------------------------------------------------------------------------------------------------
+
+def pack_grams(name: str) -> float | None:
+    """Μέγεθος συσκευασίας από το όνομα, σε γραμμάρια ή ml: '1,5lt' → 1500, '500g' → 500, 'x20' → None."""
+    import re
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(kg|g|gr|ml|l|lt)\b", (name or "").lower())
+    if not m:
+        return None
+    value = float(m.group(1).replace(",", "."))
+    return value * 1000 if m.group(2) in ("kg", "l", "lt") else value
+
+
+def heavy(slots: list[Slot], rules: dict) -> list[Slot]:
+    """Βαριές ή ογκώδεις συσκευασίες (από min_grams και πάνω): μένουν στο κάτω ράφι όσο κι αν αποδίδουν."""
+    r = rules.get("K8")
+    if not r:
+        return []
+    return [s for s in slots if (pack_grams(s.name) or 0) >= r["min_grams"]]
+
+
 def _centre_out(ranked: list[Slot]) -> list[Slot]:
     """Ο πρώτος στο κέντρο, ο δεύτερος δεξιά του, ο τρίτος αριστερά του κ.ο.κ. (Κ5)."""
     out: list[Slot] = []
@@ -267,29 +288,53 @@ def target_layout(slots: list[Slot], rules: dict | None = None) -> list[dict]:
     share = unit_share(slots)
     known = destinations(slots, rules)[:size["bottom"]]
     ids = {d.sku for d in known}
+    bulky = [s for s in heavy(slots, rules) if s.sku not in ids]          # Κ8: δεν διεκδικούν ύψος ματιών ή πάνω ράφι
+    ids |= {s.sku for s in bulky}
     ranked = sorted((s for s in slots if s.sku not in ids), key=lambda s: -s.margin_per_facing)
     eye, ranked = ranked[:size["eye"]], ranked[size["eye"]:]
     top, low = ranked[:size["top"]], ranked[size["top"]:]
     eye, top = _centre_out(eye), _centre_out(top)
-    bottom = low[::-1] + known[::-1]                     # ο ισχυρότερος προορισμός τέρμα δεξιά
+    bulky.sort(key=lambda s: s.margin_per_facing)
+    bottom = low[::-1] + bulky + known[::-1]             # ο ισχυρότερος προορισμός τέρμα δεξιά
 
     name = lambda s: f"{s.sku} {s.name}"
     per = lambda group: ", ".join(f"{s.sku} {_eur(s.margin_per_facing)}" for s in
                                   sorted(group, key=lambda s: -s.margin_per_facing))
     pct = lambda s: f"{100 * share[s.sku]:.1f}".replace(".", ",") + "%"
+    units = lambda s: f"{s.units_day:.1f}".replace(".", ",")
+    # Ο λόγος για κάθε κωδικό χωριστά: η οθόνη τον δείχνει δίπλα στο βέλος «πήγαινέ το σε αυτό το ράφι».
+    reason = {s.sku: f"{_eur(s.margin_per_facing)} περιθώριο ανά πρόσοψη την ημέρα, από τα υψηλότερα του ραφιού· "
+                     "στο ύψος των ματιών το βλέπουν οι περισσότεροι πελάτες (Κ4)" for s in eye}
+    reason.update({s.sku: f"{_eur(s.margin_per_facing)} περιθώριο ανά πρόσοψη την ημέρα· το ύψος των ματιών το "
+                          "παίρνουν κωδικοί που αποδίδουν περισσότερο (Κ4)" for s in top})
+    reason.update({s.sku: f"{_eur(s.margin_per_facing)} περιθώριο ανά πρόσοψη την ημέρα, από τα χαμηλότερα του "
+                          "ραφιού· αφήνει την καλή θέση σε ό,τι αποδίδει περισσότερο (Κ4)" for s in low})
+    reason.update({d.sku: f"πουλάει πολύ: {units(d)} τεμάχια την ημέρα, το {pct(d)} του ραφιού· ο πελάτης το ψάχνει "
+                          "όπου κι αν είναι, άρα δεν χρειάζεται την καλή θέση (Κ7)" for d in known})
+    if bulky:
+        reason.update({s.sku: f"βαριά συσκευασία ({pack_grams(s.name) / 1000:g} κιλά ή λίτρα): στο κάτω ράφι σηκώνεται "
+                              f"πιο εύκολα και δεν πέφτει από ψηλά, όσο κι αν αποδίδει ({_eur(s.margin_per_facing)} ανά "
+                              "πρόσοψη την ημέρα) (Κ8)" for s in bulky})
+    role = {**{s.sku: "eye" for s in eye}, **{s.sku: "top" for s in top}, **{s.sku: "low" for s in low},
+            **{s.sku: "heavy" for s in bulky}, **{d.sku: "destination" for d in known}}
+    items = lambda group: [{"sku": s.sku, "name": s.name, "from_level": s.level, "why": reason[s.sku],
+                            "role": role[s.sku], "margin_per_facing": round(s.margin_per_facing, 2),
+                            "units_day": round(s.units_day, 1)} for s in group]
     out = []
     if top:
-        out.append({"level": "top", "order": [name(s) for s in top],
+        out.append({"level": "top", "order": [name(s) for s in top], "items": items(top),
                     "why": f"Οι επόμενοι σε περιθώριο ανά πρόσοψη την ημέρα: {per(top)}."})
-    out.append({"level": "eye", "order": [name(s) for s in eye],
+    out.append({"level": "eye", "order": [name(s) for s in eye], "items": items(eye),
                 "why": f"Το μεγαλύτερο περιθώριο ανά πρόσοψη την ημέρα, ο πρώτος στο κέντρο: {per(eye)} (Κ4, Κ5)."})
     why = []
     if known:
         why.append("Δεξιά " + ", ".join(f"{d.sku} με {pct(d)} των τεμαχίων του ραφιού" for d in known)
                    + ": ο πελάτης τους ψάχνει όπου κι αν είναι (Κ7).")
+    if bulky:
+        why.append("Οι βαριές συσκευασίες μένουν κάτω: " + ", ".join(s.sku for s in bulky) + " (Κ8).")
     if low:
         why.append(f"Αριστερά το χαμηλότερο περιθώριο ανά πρόσοψη: {per(low)}.")
-    out.append({"level": "bottom", "order": [name(s) for s in bottom], "why": " ".join(why)})
+    out.append({"level": "bottom", "order": [name(s) for s in bottom], "items": items(bottom), "why": " ".join(why)})
     return out
 
 

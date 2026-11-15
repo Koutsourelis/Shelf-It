@@ -129,6 +129,26 @@ class Destination(unittest.TestCase):
     def test_layout_is_empty_without_sales(self):
         self.assertEqual(rules.target_layout([slot("A", 2, "eye", 1, units=0), slot("B", 3, "bottom", 1, units=0)], R), [])
 
+    def test_heavy_packs_stay_on_the_bottom_shelf(self):
+        """Κ8: μια φιάλη 1,5 λίτρου δεν ανεβαίνει στο ύψος των ματιών, όσο περιθώριο κι αν αφήνει."""
+        from dataclasses import replace
+        self.assertEqual(rules.pack_grams("Cola 1,5lt"), 1500)
+        self.assertEqual(rules.pack_grams("Ελαιόλαδο 1L"), 1000)
+        self.assertEqual(rules.pack_grams("Καφές 500g"), 500)
+        self.assertIsNone(rules.pack_grams("Τσάι x20"))
+        shelf = self.shelf()
+        best = max((s for s in shelf if s.level == "bottom"), key=lambda s: s.margin_per_facing)
+        rich = replace(best, name="Cola 1,5lt", margin_day=best.margin_day * 50)      # by far the best margin on the shelf
+        shelf = [rich if s.sku == best.sku else s for s in shelf]
+        layout = {l["level"]: l for l in rules.target_layout(shelf, R)}
+        where = {i["sku"]: (lv, i) for lv, l in layout.items() for i in l["items"]}
+        self.assertEqual(where[rich.sku][0], "bottom")
+        self.assertEqual(where[rich.sku][1]["role"], "heavy")
+        self.assertIn("Κ8", where[rich.sku][1]["why"])
+        self.assertEqual(sum(len(l["order"]) for l in layout.values()), len(shelf))
+        without = {k: v for k, v in R.items() if k != "K8"}                            # the rule can be switched off
+        self.assertEqual({i["sku"]: l["level"] for l in rules.target_layout(shelf, without) for i in l["items"]}[rich.sku], "eye")
+
 
 class Evaluate(unittest.TestCase):
     def test_says_so_when_sales_are_missing(self):

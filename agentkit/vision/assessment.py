@@ -45,17 +45,25 @@ ASSESS_SCHEMA = {
                         "items": {
                             "type": "object",
                             "properties": {
-                                "label": {"type": "string", "description": "Τι γράφει η συσκευασία, όπως το διαβάζεις"},
+                                "label": {"type": "string",
+                                          "description": "Μάρκα, προϊόν και συσκευασία όπως γράφει η ετικέτα, π.χ. «Amstel Radler 330ml»"},
+                                "brand": {"type": "string",
+                                          "description": "Μόνο η μάρκα όπως είναι τυπωμένη· κενό αν δεν διαβάζεται"},
                                 "sku": {"anyOf": [{"type": "string"}, {"type": "null"}],
                                         "description": "Κωδικός του καταλόγου αν ταιριάζει με βεβαιότητα, αλλιώς null"},
                                 "facings": {"type": "integer", "description": "Πόσα τεμάχια φαίνονται δίπλα δίπλα"},
                                 "target_facings": {"type": "integer",
-                                                   "description": "Πόσες προσόψεις του αξίζουν σε αυτό το επίπεδο"},
+                                                   "description": "Πόσες προσόψεις θα είχε η ομάδα με το ράφι γεμάτο: όσες φαίνονται συν όσες χωράνε στο άδειο διάστημα που της ανήκει. Χωρίς κενό δίπλα της, ίσο με το facings"},
+                                "best_level": {"type": "string", "enum": list(LEVELS),
+                                               "description": "Το επίπεδο όπου πρέπει να στέκει με τους κανόνες· ίδιο με το τωρινό αν είναι καλά εκεί"},
+                                "move_why": {"type": "string",
+                                             "description": "Αν το best_level διαφέρει από το τωρινό: γιατί, σε μία πρόταση. Αλλιώς κενό"},
                                 "placement_ok": {"type": "boolean",
                                                  "description": "false αν το προϊόν δεν ταιριάζει στο επίπεδο που στέκει (κανόνες παρακάτω)"},
                                 "box_2d": BOX,
                             },
-                            "required": ["label", "sku", "facings", "target_facings", "placement_ok", "box_2d"],
+                            "required": ["label", "brand", "sku", "facings", "target_facings", "best_level", "move_why",
+                                         "placement_ok", "box_2d"],
                             "additionalProperties": False,
                         },
                     },
@@ -86,9 +94,22 @@ ASSESS_SCHEMA = {
                 "box_2d": BOX},
                 "required": ["sku", "product", "from_level", "to_level", "why", "box_2d"], "additionalProperties": False},
         },
+        "gaps": {
+            "type": "array",
+            "description": "Άδειος χώρος πάνω στο ράφι όπου χωράει τουλάχιστον ένα προϊόν: το ράφι δεν είναι γεμάτο εκεί.",
+            "items": {"type": "object", "properties": {
+                "level": {"type": "string", "enum": list(LEVELS)},
+                "sku": {"anyOf": [{"type": "string"}, {"type": "null"}],
+                        "description": "Ο κωδικός που ανήκει στο κενό, αν φαίνεται από την ετικέτα τιμής ή τη διπλανή ομάδα· αλλιώς null"},
+                "product": {"type": "string",
+                            "description": "Το προϊόν που ανήκει στο κενό, όπως το γράφεις στο label της ομάδας του· κενό αν δεν φαίνεται"},
+                "units": {"type": "integer", "description": "Πόσα τεμάχια χωράνε δίπλα δίπλα στο κενό"},
+                "box_2d": BOX},
+                "required": ["level", "sku", "product", "units", "box_2d"], "additionalProperties": False},
+        },
         "foreign": {
             "type": "array",
-            "description": "Συσκευασίες που δεν ανήκουν στον κατάλογο του τμήματος.",
+            "description": "Αντικείμενα που δεν είναι προϊόν αυτού του είδους ραφιού (π.χ. απορρυπαντικό ανάμεσα σε ποτά, κάτι που άφησε πελάτης). Άλλη μάρκα ή άλλο ποτό ΔΕΝ είναι ξένο.",
             "items": {"type": "object", "properties": {
                 "label": {"type": "string"}, "level": {"type": "string", "enum": list(LEVELS)}, "box_2d": BOX},
                 "required": ["label", "level", "box_2d"], "additionalProperties": False},
@@ -114,7 +135,7 @@ ASSESS_SCHEMA = {
         },
         "summary": {"type": "string", "description": "Δύο προτάσεις: τι βλέπεις και τι πρέπει να γίνει."},
     },
-    "required": ["shelf_ok", "occluded", "shelves", "missing", "misplaced", "foreign", "visual_issues",
+    "required": ["shelf_ok", "occluded", "shelves", "missing", "misplaced", "gaps", "foreign", "visual_issues",
                  "suggested_layout", "summary"],
     "additionalProperties": False,
 }
@@ -138,9 +159,12 @@ RULES = [
     "Ίδια μάρκα μαζί, κάθετα αν γίνεται· μην ανακατεύεις ανταγωνιστές στο ίδιο μπλοκ.",
     "Κάθε κωδικός θέλει τουλάχιστον δύο προσόψεις· ο ηγέτης της κατηγορίας περισσότερες.",
     "Οι ετικέτες κοιτάνε προς τα έξω και τα προϊόντα είναι τραβηγμένα στην άκρη του ραφιού.",
-    "Κενός χώρος στο ράφι δεν είναι από μόνος του λάθος: σημαίνει ότι υπάρχει χώρος. Αν λείπει κωδικός του "
-    "καταλόγου, το πρόβλημα είναι ότι λείπει ο κωδικός — όχι το κενό. Αν δεν λείπει τίποτα, ανέφερε τον κενό "
-    "χώρο μόνο στη σύνοψη.",
+    "Ράφι που δεν είναι γεμάτο θέλει γέμισμα. Κάθε άδειο διάστημα όπου χωράει προϊόν το γράφεις στο gaps, με το "
+    "προϊόν στο οποίο ανήκει (η ομάδα δίπλα του ή η ετικέτα τιμής από κάτω) και πόσα τεμάχια χωράνε. Αν το κενό είναι "
+    "η θέση κωδικού του καταλόγου που λείπει εντελώς, γράψε τον κωδικό και στο missing. Μην το γράφεις στο "
+    "visual_issues.",
+    "Ξένο (foreign) είναι μόνο ό,τι δεν πουλιέται σε τέτοιο ράφι. Ένα ποτό, ένας καφές ή μια μάρκα που δεν έχει ο "
+    "κατάλογος ΔΕΝ είναι ξένο και ΔΕΝ βγαίνει από το ράφι: το γράφεις στο items με sku null και το όνομά του.",
     "Στο misplaced βάλε ΜΟΝΟ προϊόντα σε επίπεδο που δεν βγάζει νόημα: πολύ βαρύ ή ογκώδες πάνω, ή προϊόν έξω "
     "από την κατηγορία του. Η καλύτερη θέση για περισσότερο κέρδος ΔΕΝ είναι misplaced· γι' αυτήν υπάρχει το "
     "suggested_layout.",
@@ -171,27 +195,49 @@ def user_prompt(catalog: list[dict], has_reference: bool) -> str:
         return (f"{ref}ΔΕΝ έχεις κατάλογο: το ράφι μπορεί να είναι άλλου τμήματος ή άγνωστο.\n\n"
                 "Διάβασε τη φωτογραφία και πες τι βλέπεις:\n"
                 "1. Για κάθε επίπεδο (top/eye/bottom) τις ομάδες ίδιων προϊόντων από αριστερά, με προσόψεις και "
-                "box_2d. Στο sku βάλε πάντα null και δώσε στο label τύπο προϊόντος (π.χ. «ελαιόλαδο», «ελιές»).\n"
+                "box_2d. Στο sku βάλε πάντα null. Στο label γράψε μάρκα, προϊόν και συσκευασία όπως τα διαβάζεις "
+                "(π.χ. «Coca-Cola Zero 1.5L», «Amstel Radler 330ml») και στο brand μόνο τη μάρκα· αν η μάρκα δεν "
+                "διαβάζεται, άφησε το brand κενό και γράψε στο label τον τύπο προϊόντος (π.χ. «ελαιόλαδο»). "
+                "Άλλη συσκευασία ή παραλλαγή της ίδιας μάρκας είναι ξεχωριστή ομάδα.\n"
+                "   ΓΕΜΙΣΜΑ: στο target_facings γράψε πόσες προσόψεις θα είχε η ομάδα γεμάτη. Κοίτα κάθε ομάδα: αν δίπλα "
+                "της υπάρχει άδειος χώρος ή μισοάδειο δισκάκι όπου φανερά λείπουν τεμάχιά της, αν έχει λιγότερα "
+                "τεμάχια από τις γειτονικές της ίδιας σειράς, ή αν έχει μείνει μία μόνο πρόσοψη, βάλε target_facings "
+                "μεγαλύτερο από το facings κατά όσα τεμάχια χωράνε στο κενό. Αλλιώς ίσο με το facings. Ένα κενό που "
+                "ανήκει σε ομάδα το γράφεις ΕΔΩ και όχι στο visual_issues.\n"
+                "   ΘΕΣΗ: στο best_level γράψε το επίπεδο όπου πρέπει να στέκει κάθε ομάδα με τους κανόνες παρακάτω, και στο "
+                "move_why τον λόγο όταν διαφέρει από το τωρινό, ονομάζοντας τον κανόνα· π.χ. «πασίγνωστη μάρκα που ο "
+                "πελάτης ψάχνει έτσι κι αλλιώς: κάτω, για να μείνει το ύψος των ματιών σε ό,τι θέλει προβολή» ή «βαριά "
+                "φιάλη 1.5L: κάτω». Δεν έχεις πωλήσεις ούτε περιθώρια: μη γράφεις αριθμούς, ποσοστά ή ποσά. Πρότεινε "
+                "αλλαγή μόνο όπου ο κανόνας είναι καθαρός· οι περισσότερες ομάδες μένουν εκεί που είναι.\n"
                 "2. Στο missing ΜΗΝ βάλεις τίποτα: χωρίς κατάλογο δεν ξέρουμε τι θα έπρεπε να υπάρχει.\n"
-                "3. Στο foreign ΜΗΝ βάλεις τίποτα: όλα είναι άγνωστα, όχι ξένα.\n"
-                "4. Στο misplaced μόνο ό,τι δεν βγάζει νόημα για τη διάταξη (π.χ. πολύ βαρύ πάνω).\n"
-                "5. Στο visual_issues τις παραβάσεις παρουσίασης και τα μεγάλα κενά.\n"
+                "3. Στο foreign ΜΗΝ βάλεις προϊόντα του ραφιού: όλα είναι άγνωστα, όχι ξένα.\n"
+                "4. Στο misplaced ό,τι πρέπει να αλλάξει επίπεδο με βάση τους κανόνες (π.χ. πολύ βαρύ πάνω, προϊόν "
+                "μακριά από την υπόλοιπη μάρκα ή κατηγορία του), με το όνομά του στο product όπως στο label.\n"
+                "5. Στο gaps κάθε άδειο διάστημα του ραφιού. Στο visual_issues μόνο τις παραβάσεις παρουσίασης.\n"
                 "6. Στο suggested_layout πώς θα στήσιμο το ράφι με κανόνες κατηγορίας, με βάση τα προϊόντα που "
                 "βλέπεις. Στη σύνοψη πες τι κατηγορία είναι το ράφι και ό,τι αξίζει να προσέξει ο υπεύθυνος.\n"
-                "7. shelf_ok = true αν δεν υπάρχει πραγματικό ελάττωμα παρουσίασης.\n\n"
+                "7. shelf_ok = true αν το ράφι είναι γεμάτο και δεν υπάρχει πραγματικό ελάττωμα παρουσίασης.\n\n"
                 "Κανόνες κατηγορίας:\n" + rules)
     return (
         f"{ref}Κατάλογος του τμήματος (κωδικός | προϊόν | μάρκα | κατηγορία):\n" + "\n".join(rows) + "\n\n"
         "Ο κατάλογος λέει ΠΟΙΑ προϊόντα πουλάμε, όχι σε ποια θέση πρέπει να είναι. Αξιολόγησε τη φωτογραφία:\n"
         "1. Για κάθε επίπεδο (top/eye/bottom) γράψε τις ομάδες ίδιων προϊόντων από αριστερά, με προσόψεις, το "
-        "box_2d τους και αν το επίπεδο τους ταιριάζει (placement_ok).\n"
+        "box_2d τους και αν το επίπεδο τους ταιριάζει (placement_ok). Στο brand γράψε τη μάρκα που διαβάζεις, και "
+        "για ό,τι δεν ταιριάζει σε κωδικό γράψε στο label μάρκα και προϊόν όπως στην ετικέτα. Για ομάδες με κωδικό βάλε "
+        "στο best_level το τωρινό επίπεδο και άφησε το move_why κενό, εκτός αν το προϊόν μπαίνει στο misplaced: τη "
+        "θέση τους τη βγάζει ο κώδικας από τις πωλήσεις. Για ομάδες χωρίς κωδικό δεν υπάρχουν πωλήσεις: γράψε στο "
+        "best_level το επίπεδο που τους ταιριάζει με τους κανόνες και στο move_why τον λόγο αν διαφέρει από το "
+        "τωρινό, χωρίς αριθμούς (π.χ. «βαριά φιάλη 1.5L: κάτω», «πασίγνωστη μάρκα που ο πελάτης ψάχνει έτσι κι "
+        "αλλιώς: κάτω»).\n"
         "2. Στο missing βάλε κωδικούς του καταλόγου που δεν φαίνονται καθόλου.\n"
         "3. Στο misplaced ό,τι είναι σε λάθος επίπεδο, με το επίπεδο που του ταιριάζει.\n"
-        "4. Στο foreign ό,τι δεν ανήκει στον κατάλογο. Στο visual_issues τις παραβάσεις παρουσίασης.\n"
+        "4. Στο gaps κάθε άδειο διάστημα του ραφιού. Στο foreign μόνο ό,τι δεν πουλιέται σε τέτοιο ράφι· προϊόν "
+        "εκτός καταλόγου μένει στο items με sku null. Στο visual_issues τις παραβάσεις παρουσίασης.\n"
         "5. Στο suggested_layout δώσε τη διάταξη που προτείνεις, ανά επίπεδο, με σειρά από αριστερά, και το γιατί.\n"
         "6. shelf_ok = true αν (α) δεν λείπει κανένας κωδικός, (β) δεν υπάρχει ξένο προϊόν, (γ) δεν υπάρχει "
-        "πραγματικό ελάττωμα παρουσίας και (δ) δεν υπάρχει προϊόν σε επίπεδο που δεν βγάζει νόημα. Κενός χώρος "
-        "και «θα ήταν καλύτερα αλλού για κέρδος» ΔΕΝ κάνουν το ράφι λάθος: τα λέει το suggested_layout.\n\n"
+        "πραγματικό ελάττωμα παρουσίας και (δ) δεν υπάρχει προϊόν σε επίπεδο που δεν βγάζει νόημα. Τα κενά του gaps "
+        "και το «θα ήταν καλύτερα αλλού για κέρδος» ΔΕΝ κάνουν το ράφι λάθος εδώ: αν ένα κενό σημαίνει έλλειψη το "
+        "κρίνει ο κώδικας με το πλανόγραμμα, και τη θέση τη λέει το suggested_layout.\n\n"
         "Κανόνες κατηγορίας:\n" + rules
     )
 
@@ -237,10 +283,12 @@ def normalize(raw: dict, known: set[str]) -> dict:
         for it in sh.get("items") or []:
             if not isinstance(it, dict):
                 continue
-            items.append({"label": str(it.get("label") or ""),
+            items.append({"label": str(it.get("label") or ""), "brand": str(it.get("brand") or "").strip(),
                           "sku": it.get("sku") if it.get("sku") in known else None,
                           "facings": max(_int(it.get("facings")), 0),
                           "target_facings": max(_int(it.get("target_facings")), 0),
+                          "best_level": it.get("best_level") if it.get("best_level") in LEVELS else level,
+                          "move_why": str(it.get("move_why") or "").strip(),
                           "placement_ok": bool(it.get("placement_ok", True)),
                           "box_2d": _clamp_box(it.get("box_2d"))})
         shelves.append({"level": level, "items": items})
@@ -255,6 +303,9 @@ def normalize(raw: dict, known: set[str]) -> dict:
                   "from_level": level(m.get("from_level")), "to_level": level(m.get("to_level")),
                   "why": str(m.get("why") or ""), "box_2d": _clamp_box(m.get("box_2d"))}
                  for m in raw.get("misplaced") or [] if isinstance(m, dict)]
+    gaps = [{"level": level(g.get("level")), "sku": g.get("sku") if g.get("sku") in known else None,
+             "product": str(g.get("product") or "").strip(), "units": max(_int(g.get("units")), 1),
+             "box_2d": _clamp_box(g.get("box_2d"))} for g in raw.get("gaps") or [] if isinstance(g, dict)]
     foreign = [{"label": str(f.get("label") or ""), "level": level(f.get("level")),
                 "box_2d": _clamp_box(f.get("box_2d"))} for f in raw.get("foreign") or [] if isinstance(f, dict)]
     visual = [{"level": level(v.get("level")), "type": str(v.get("type") or "other"), "detail": str(v.get("detail") or "")}
@@ -264,16 +315,21 @@ def normalize(raw: dict, known: set[str]) -> dict:
     # Το shelf_ok του μοντέλου δεν μπορεί να είναι true όταν το ίδιο δήλωσε πρόβλημα: το κρατάει ο κώδικας συνεπές.
     shelf_ok = bool(raw.get("shelf_ok")) and not (missing or misplaced or foreign or visual)
     return {"shelf_ok": shelf_ok, "occluded": bool(raw.get("occluded")), "shelves": shelves,
-            "missing": missing, "misplaced": misplaced, "foreign": foreign, "visual_issues": visual,
+            "missing": missing, "misplaced": misplaced, "gaps": gaps, "foreign": foreign, "visual_issues": visual,
             "suggested_layout": layout, "summary": str(raw.get("summary") or "")}
 
 
 def unknown_ratio(verdict: dict) -> float:
     """Πόσο μεγάλο μέρος του ραφιού δεν ταιριάζει με τον κατάλογο (0 = όλα γνωστά, 1 = κανένα)."""
     items = [i for sh in verdict.get("shelves") or [] for i in sh["items"]]
-    if not items:
+    # Το μοντέλο μερικές φορές γράφει ό,τι δεν ξέρει μόνο στο foreign και αφήνει το shelves άδειο. Χωρίς αυτά ένα
+    # ράφι ποτών μετρούσε ως «όλα γνωστά» και έβγαιναν 32 εργασίες «βγάλε από το ράφι».
+    listed = {i.get("label") for i in items}
+    extra = [f for f in verdict.get("foreign") or [] if f.get("label") not in listed]
+    total = len(items) + len(extra)
+    if not total:
         return 0.0
-    return sum(1 for i in items if not i.get("sku")) / len(items)
+    return (sum(1 for i in items if not i.get("sku")) + len(extra)) / total
 
 
 def _catalog() -> list[dict]:
@@ -318,7 +374,7 @@ async def assess_photo(path: Path, catalog: list[dict] | None = None) -> dict:
 
     ref = _reference()
     key = (str(path.resolve()), path.stat().st_mtime_ns, config.vision_provider(), config.vision_model(),
-           prompts.PROMPT_VERSION, str(ref), len(catalog) or "unknown")
+           prompts.PROMPT_VERSION, str(ref), config.SHELF_SET, len(catalog) or "unknown")
     if key in _cache:
         _cache.move_to_end(key)
         return _cache[key]

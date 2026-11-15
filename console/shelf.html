@@ -281,6 +281,48 @@
     line-height: 1.38;
   }
 
+  /* Suggestions in the layout panel: what to refill, what to move, and why */
+  .sug-head {
+    padding: 12px 16px 4px;
+    font-size: var(--fs-foot);
+    font-weight: 600;
+    color: var(--label-secondary);
+  }
+  .sug {
+    padding: 8px 16px 9px;
+    border-bottom: 1px solid var(--separator);
+    font-size: var(--fs-body);
+    line-height: 1.38;
+  }
+  .sug b { font-weight: 600; color: var(--label-primary); overflow-wrap: anywhere; }
+  .sug .to { font-weight: 600; white-space: nowrap; }
+  .sug.move .to { color: var(--sys-indigo); }
+  .sug.task .to { color: var(--sys-red); }
+  .sug.fill .to { color: var(--sys-orange); }
+  .sug p { margin: 3px 0 0; font-size: var(--fs-callout); color: var(--label-secondary); }
+  .sug small { display: block; margin-top: 3px; font-size: var(--fs-foot); color: var(--label-tertiary); }
+
+  /* Product list: what the camera read, with its Open Food Facts identity */
+  .prod-level {
+    padding: 10px 16px 4px;
+    font-size: var(--fs-foot);
+    font-weight: 600;
+    color: var(--label-secondary);
+  }
+  .prod-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--separator);
+    font-size: var(--fs-body);
+  }
+  .prod-row b { font-weight: 600; color: var(--label-primary); line-height: 1.36; overflow-wrap: anywhere; }
+  .prod-row .n { font-family: var(--font-mono); font-size: var(--fs-mono); color: var(--label-secondary); }
+  .prod-row small { grid-column: 1 / -1; font-size: var(--fs-foot); color: var(--label-tertiary); line-height: 1.38; }
+  .prod-row small a { color: var(--sys-blue); }
+  .prod-note { margin: 0; padding: 10px 16px; font-size: var(--fs-foot); color: var(--label-tertiary); line-height: 1.4; }
+
   /* Flat Event Log */
   .tl { list-style: none; margin: 0; padding: 0; }
   .tl li {
@@ -375,12 +417,17 @@
     <div class="insp-tabs-wrap">
       <div class="seg" role="tablist" aria-label="Προβολή λεπτομερειών">
         <button type="button" class="on" role="tab" aria-selected="true" data-insp="plan">Διάταξη</button>
+        <button type="button" role="tab" aria-selected="false" data-insp="products">Προϊόντα</button>
         <button type="button" role="tab" aria-selected="false" data-insp="timeline">Ιστορικό</button>
       </div>
     </div>
 
     <div id="panel-plan" class="insp-panel">
       <div id="plan"><div class="empty">Αναμονή πρώτης λήψης…</div></div>
+    </div>
+
+    <div id="panel-products" class="insp-panel" hidden>
+      <div id="products"><div class="empty">Αναμονή πρώτης λήψης…</div></div>
     </div>
 
     <div id="panel-timeline" class="insp-panel" hidden>
@@ -436,6 +483,7 @@ document.querySelectorAll("[data-insp]").forEach(btn => {
       b.setAttribute("aria-selected", String(on));
     });
     $("panel-plan").hidden = target !== "plan";
+    $("panel-products").hidden = target !== "products";
     $("panel-timeline").hidden = target !== "timeline";
   };
 });
@@ -455,6 +503,7 @@ const COLORS = {
   missing: "#FF3B30",
   misplaced: "#FF3B30",
   unknown: "#AF52DE",
+  seen: "#0A84FF",
   gap: "#FF3B30"
 };
 const KIND_LABEL = { restock: "Έλλειψη", relocate: "Θέση", remove: "Ξένο", tidy: "Τάξη" };
@@ -542,6 +591,11 @@ function draw() {
     ctx.strokeStyle = color;
     ctx.strokeRect(x, y, w, h);
     if (!text) return;
+    const room = Math.max(w, 64) - 10;                 // το όνομα κόβεται στο πλάτος του πλαισίου
+    if (ctx.measureText(text).width > room) {
+      while (text.length > 1 && ctx.measureText(text + "…").width > room) text = text.slice(0, -1);
+      text = text.trimEnd() + "…";
+    }
     const tw = ctx.measureText(text).width + 10;
     const ty = Math.max(y - 20, 0);
     ctx.fillStyle = color;
@@ -549,12 +603,89 @@ function draw() {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillText(text, x + 5, ty + 14);
   };
+  // Ομάδες χωρίς κωδικό με εύρημα (γέμισμα, αλλαγή επιπέδου, ξένο): ταιριάζουν με το εύρημα από το όνομα.
+  const flagged = {}, need = {};
+  (last.findings || []).forEach(x => {
+    if (!x.sku && ["misplaced", "unknown", "low"].includes(x.type) && !flagged[x.label]) flagged[x.label] = x.type;
+    if (x.type === "low") need[x.sku || x.label] = x.need;
+  });
   (last.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
     if (!it.box_2d) return;
-    const st = !it.sku ? "unknown" : (statusOf[it.sku] || (it.placement_ok === false ? "misplaced" : "ok"));
-    box(it.box_2d, COLORS[st], st === "ok" ? "" : (it.sku || "?"));
+    const name = it.name || it.label || "";
+    const st = it.sku ? (statusOf[it.sku] || (it.placement_ok === false ? "misplaced" : "ok"))
+      : (flagged[it.label] || (it.placement_ok === false ? "misplaced" : (last.unknown_shelf && name ? "seen" : "unknown")));
+    const more = st === "low" && need[it.sku || it.label] ? `+${need[it.sku || it.label]} · ` : "";   // πόσες προσόψεις λείπουν
+    box(it.box_2d, COLORS[st], more + (name || it.sku || "?"));
   }));
+  // Κενά του ραφιού που θέλουν γέμισμα: διακεκομμένο πλαίσιο πάνω στον άδειο χώρο.
+  (last.findings || []).forEach(x => {
+    if (x.type !== "gap" && x.type !== "missing") return;
+    const color = x.type === "gap" ? COLORS.low : COLORS.missing;      // το άδειο σημείο ενός κωδικού που λείπει: κόκκινο
+    (x.boxes || []).forEach((b, i) => {
+      const [gx, gy, gw, gh] = toPx(b, f);
+      ctx.save(); ctx.setLineDash([6, 4]); ctx.lineWidth = 2.5; ctx.strokeStyle = color;
+      ctx.fillStyle = x.type === "gap" ? "rgba(255,149,0,0.16)" : "rgba(255,59,48,0.16)";
+      ctx.fillRect(gx, gy, gw, gh); ctx.strokeRect(gx, gy, gw, gh); ctx.restore();
+      if (i === 0) box(b, color, x.type === "gap" ? `Γέμισε +${x.need}` : `Λείπει · ${x.label}`);
+    });
+  });
+  // Ένα βέλος για κάθε προϊόν που πρέπει να αλλάξει ράφι: κόκκινο = εργασία υπαλλήλου, indigo = πρόταση διάταξης.
+  const bands = levelBands();
+  (last.findings || []).forEach(x => {
+    if (x.type === "misplaced" && x.boxes && x.boxes[0]) moveArrow(x.boxes[0], x.to_level, COLORS.misplaced, bands, f);
+  });
+  (last.moves || []).forEach(m => { if (m.box) moveArrow(m.box, m.to_level, "#5856D6", bands, f); });
   (last.proposals || []).forEach(p => arrow(p, f));
+}
+
+const SHELF_EL = { top: "Πάνω ράφι", eye: "Ύψος ματιών", bottom: "Κάτω ράφι" };
+// Πού βρίσκεται κάθε επίπεδο στην εικόνα (0–1000), από τα πλαίσια των προϊόντων που στέκονται εκεί.
+function levelBands() {
+  const acc = {};
+  (last.shelves || []).forEach(sh => (sh.items || []).forEach(it => {
+    if (!it.box_2d) return;
+    const a = acc[sh.level] || (acc[sh.level] = { y0: 1000, y1: 0 });
+    a.y0 = Math.min(a.y0, it.box_2d[0]); a.y1 = Math.max(a.y1, it.box_2d[2]);
+  }));
+  const all = Object.values(acc);
+  if (!all.length) return acc;
+  const lo = Math.min(...all.map(a => a.y0)), hi = Math.max(...all.map(a => a.y1));
+  ["top", "eye", "bottom"].forEach((lv, i) => {        // επίπεδο χωρίς προϊόντα: το αντίστοιχο τρίτο του ραφιού
+    if (!acc[lv]) acc[lv] = { y0: lo + (hi - lo) * i / 3, y1: lo + (hi - lo) * (i + 1) / 3 };
+  });
+  return acc;
+}
+// Βέλος από το προϊόν προς το ράφι όπου πρέπει να πάει, με το όνομα του ραφιού στην άκρη.
+function moveArrow(b, toLevel, color, bands, f) {
+  const band = bands[toLevel];
+  if (!band) return;
+  const [x, y, w, h] = toPx(b, f);
+  const down = (band.y0 + band.y1) / 2 > (b[0] + b[2]) / 2;
+  const edge = down ? band.y0 + (band.y1 - band.y0) * 0.22 : band.y1 - (band.y1 - band.y0) * 0.22;
+  const cx = x + w / 2, y0 = down ? y + h : y, y1 = f.y + edge * f.h / 1000;
+  if (Math.abs(y1 - y0) < 14) return;
+  ctx.save();
+  ctx.setLineDash([6, 4]); ctx.lineWidth = 2.5; ctx.strokeStyle = color;
+  ctx.strokeRect(x - 3, y - 3, w + 6, h + 6);
+  ctx.setLineDash([]); ctx.lineCap = "round";
+  const line = (width, style) => {
+    ctx.lineWidth = width; ctx.strokeStyle = style;
+    ctx.beginPath(); ctx.moveTo(cx, y0); ctx.lineTo(cx, y1 - (down ? 10 : -10)); ctx.stroke();
+  };
+  line(7, "rgba(255,255,255,0.9)"); line(3.5, color);              // λευκό περίγραμμα: φαίνεται πάνω σε κάθε συσκευασία
+  const r = 12, dir = down ? 1 : -1;
+  ctx.beginPath(); ctx.moveTo(cx, y1); ctx.lineTo(cx - r * 0.75, y1 - dir * r); ctx.lineTo(cx + r * 0.75, y1 - dir * r); ctx.closePath();
+  ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.stroke();
+  ctx.fillStyle = color; ctx.fill();
+  // Η ετικέτα κάθεται πάνω στο ίδιο το προϊόν (στην άκρη απ' όπου φεύγει το βέλος): δύο ετικέτες δεν πέφτουν ποτέ
+  // η μία πάνω στην άλλη, ακόμη κι όταν πολλά βέλη καταλήγουν στο ίδιο ράφι.
+  const label = (down ? "↓ " : "↑ ") + (SHELF_EL[toLevel] || toLevel);
+  ctx.font = "600 11.5px -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
+  const tw = ctx.measureText(label).width + 12, ly = down ? y + h - 24 : y + 4;
+  const lx = Math.min(Math.max(cx - tw / 2, f.x), f.x + f.w - tw);
+  ctx.fillStyle = color; ctx.fillRect(lx, ly, tw, 20);
+  ctx.fillStyle = "#FFFFFF"; ctx.fillText(label, lx + 6, ly + 14);
+  ctx.restore();
 }
 
 function arrow(p, f) {
@@ -632,8 +763,67 @@ function propCard(p) {
     <p class="why">${esc(p.reason)}</p>
     <div class="num">${esc(p.numbers)}</div>
     <small>${esc(p.note)} Πηγή: ${esc(p.source)}.</small>
+    ${offLine(p.off)}
     ${talkerHtml}${actions}${formHtml}${evidHtml}
   </div>`;
+}
+
+const LEVEL_EL = { top: "Πάνω", eye: "Ύψος ματιών", bottom: "Κάτω" };
+function offLine(o) {
+  if (!o) return "";
+  const what = [o.brand, o.name, o.quantity].filter(Boolean).join(" · ");
+  const kind = o.status === "matched" ? "Open Food Facts" : "Συγκρίσιμο προϊόν (Open Food Facts)";
+  const link = /^https:\/\//.test(o.url || "") ? ` · <a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.barcode)}</a>` : "";
+  return `<small>${kind}: ${esc(what)}${link}</small>`;
+}
+// «Διάταξη»: τι θέλει γέμισμα, τι αλλάζει ράφι, και ο λόγος για το καθένα.
+function suggestionsHtml(d) {
+  const nameOf = {};
+  (d.shelves || []).forEach(sh => (sh.items || []).forEach(it => { if (it.sku) nameOf[it.sku] = it.name || it.label; }));
+  const label = x => nameOf[x.sku] || x.name || x.label || x.sku || "";
+  const fills = (d.findings || []).filter(x => x.type === "low" || x.type === "missing" || x.type === "gap");
+  const fillHtml = fills.map(x => {
+    const what = x.type === "missing" ? "Λείπει εντελώς από το ράφι"
+      : x.type === "gap" ? `Άδειος χώρος στο ράφι · ${x.need === 1 ? "χωράει 1 τεμάχιο" : "χωράνε " + x.need + " τεμάχια"}`
+      : `Φαίνονται ${x.seen ?? "λίγες"} από ${x.target ?? "τις"} προσόψεις · λείπουν ${x.need}`;
+    const why = x.type === "missing" ? (x.why || "Κωδικός του καταλόγου που δεν φαίνεται στη φωτογραφία.")
+      : x.type === "gap" ? "Το ράφι δεν είναι γεμάτο σε αυτό το σημείο· ό,τι δεν φαίνεται δεν πουλιέται."
+      : (x.sku ? "Λιγότερες προσόψεις από όσες έχει με το ράφι γεμάτο (πλανόγραμμα)· κάθε άδεια θέση είναι πώληση που χάνεται."
+               : "Το μοντέλο βλέπει κενό δίπλα στην ομάδα· χωρίς κωδικό καταλόγου δεν γίνεται παραγγελία.");
+    return `<div class="sug fill"><b>${esc(label(x) || "Κενό στο ράφι")}</b> <span class="to">· ${esc(SHELF_EL[x.level] || "")}</span>
+      <p>${esc(what)}</p><small>${esc(why)}</small></div>`;
+  }).join("");
+  const misplaced = (d.findings || []).filter(x => x.type === "misplaced");
+  const tasked = misplaced.map(x =>
+    `<div class="sug task"><b>${esc(label(x))}</b> <span class="to">→ ${esc(SHELF_EL[x.to_level] || x.to_level)}</span>
+      <p>${esc(x.why || "Δεν ταιριάζει στο επίπεδο που στέκει.")}</p><small>Εργασία υπαλλήλου.</small></div>`).join("");
+  const moves = (d.moves || []).map(m =>
+    `<div class="sug move"><b>${esc(m.name)}</b> <span class="to">→ ${esc(SHELF_EL[m.to_level] || m.to_level)}</span>
+      <p>${esc(m.why.charAt(0).toUpperCase() + m.why.slice(1))}.</p>
+      <small>${m.source === "rules" ? "Από τις πωλήσεις 28 ημερών, με κώδικα. Την αλλαγή την εγκρίνει ο υπεύθυνος."
+        : "Κρίση του μοντέλου με τους κανόνες κατηγορίας· δεν υπάρχουν στοιχεία πωλήσεων για αυτό το ράφι."}</small></div>`).join("");
+  return (fillHtml ? `<div class="sug-head">Θέλουν γέμισμα (${fills.length})</div>${fillHtml}` : "")
+    + (tasked || moves ? `<div class="sug-head">Αλλάζουν ράφι (${(d.moves || []).length + misplaced.length})</div>${tasked}${moves}` : "")
+    + (d.moves_more ? `<p class="prod-note">Οι ${(d.moves || []).length} σημαντικότερες αλλαγές. Άλλες ${d.moves_more} μικρότερες φαίνονται στη διάταξη ανά επίπεδο παρακάτω.</p>` : "");
+}
+
+function productsHtml(d) {
+  const shelves = (d.shelves || []).filter(sh => (sh.items || []).length);
+  if (!shelves.length) return `<div class="empty">Κανένα προϊόν στην τελευταία λήψη.</div>`;
+  const moves = {};
+  (d.moves || []).forEach(x => { moves[x.sku || x.label] = x; });
+  (d.findings || []).forEach(x => { if (x.type === "misplaced") moves[x.sku || x.label] = x; });
+  let n = 0, known = 0;
+  const rows = shelves.map(sh => `<div class="prod-level">${esc(LEVEL_EL[sh.level] || sh.level)}</div>` + sh.items.map(it => {
+    n += 1; if (it.off && it.off.status === "matched") known += 1;
+    const mv = moves[it.sku || it.label];
+    const move = mv ? `<small class="warn">Μετακίνηση: ${esc(LEVEL_EL[mv.to_level] || mv.to_level)}${mv.why ? " — " + esc(mv.why) : ""}</small>` : "";
+    const code = it.sku ? `<span class="mono">${esc(it.sku)}</span> · ` : "";
+    return `<div class="prod-row"><b>${code}${esc(it.name || it.label || "Δεν διαβάστηκε")}</b>
+      <span class="n">× ${it.facings}</span>${move}${offLine(it.off)}</div>`;
+  }).join("")).join("");
+  return `<p class="prod-note">${n} ομάδες προϊόντων · ${known} με barcode από το Open Food Facts (ODbL). `
+    + `Η αναζήτηση για προϊόντα εκτός καταλόγου τρέχει στο παρασκήνιο, λίγα ανά λήψη.</p>` + rows;
 }
 
 function setLight(cls, title, sub, right = "") {
@@ -680,7 +870,7 @@ function render(d) {
   window.ShelfSenseShell?.setTaskBadge(tasks.length);
 
   if (d.unknown_shelf) setLight("warn", "Ράφι εκτός καταλόγου",
-    "Αξιολόγηση διάταξης χωρίς αυτόματες παραγγελίες.");
+    "Τα προϊόντα αναγνωρίζονται από την ετικέτα· διάταξη από το μοντέλο, χωρίς αυτόματες παραγγελίες.");
   else if (d.status === "occluded") setLight("warn", "Περιορισμένη ορατότητα",
     "Αναμονή για καθαρή εικόνα ραφιού.");
   else if (d.status === "idle") setLight("", "Αναμονή πρώτης λήψης…", noCamera ? "Πάτα «Λήψη φωτογραφίας»." : "");
@@ -695,16 +885,18 @@ function render(d) {
     ? tasks.map(taskCard).join("")
     : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>Καμία εκκρεμής εργασία</div>`;
 
-  const planHtml = ((d.proposals || []).map(propCard).join(""))
+  const planHtml = suggestionsHtml(d) + ((d.proposals || []).map(propCard).join(""))
     + (d.summary ? `<p class="lay-summary">${esc(d.summary)}</p>` : "")
     + (d.suggested_layout || []).map(l => `<div class="lay"><b>${esc({top:"Πάνω",eye:"Μάτια",bottom:"Κάτω"}[l.level] || l.level)}</b>
         <span>${esc((l.order || []).join(" → "))}</span><small>${esc(l.why || "")}</small></div>`).join("");
   $("plan").innerHTML = planHtml || `<div class="empty">Καμία παρατήρηση διάταξης.</div>`;
+  $("products").innerHTML = productsHtml(d);
 
   $("timeline").innerHTML = (d.history || []).slice().reverse().map(h =>
     `<li><time>${hhmm(h.ts)}</time><span class="sdot ${KIND_DOT[h.kind] || ""}"></span><span>${esc(h.text)}</span></li>`
   ).join("") || `<li><time>—</time><span class="sdot"></span><span class="mut">Έλεγχος ανά ${interval}s.</span></li>`;
 
+  if (d.model) $("mode").textContent = (d.provider === "mock" ? "mock" : d.model) + (d.shelf_title ? " · ράφι: " + d.shelf_title : "");
   $("devinfo").textContent = `frame ${d.frame || "-"} · ${d.status} · ${d.seconds ?? "-"}s · επιβεβαίωση ${d.confirm || "-"} · ` +
     `${d.frames} frames / ${d.model_calls} κλήσεις μοντέλου` + (d.diff !== undefined ? ` · διαφορά ${d.diff}` : "") +
     (d.agent_run ? ` · agent ${d.agent_run}` : "") + "\n" + JSON.stringify(d.findings || [], null, 1).slice(0, 1500);
