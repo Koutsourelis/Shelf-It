@@ -38,12 +38,12 @@ window.TEAM = [
   {
     name: "Giannis Koutsourelis",
     role: "Real data and evidence",
-    built: "Web and news search through treg, market sources per category, the evidence pack per product, and the six decision rules with their papers.",
-    background: "Data, BI and Python, with a background in retail and category management.",
-    skills: ["Data", "BI", "Python", "Category management"],
-    linkedin: "",
+    built: "Made the agent's numbers defensible: market evidence through treg, the six decision rules with their sources, and product data from public statistics.",
+    background: "Business intelligence and CRM analyst in retail, working on customer and commercial analytics.",
+    skills: ["BI", "CRM analytics", "Python", "Retail"],
+    linkedin: "https://www.linkedin.com/in/koutsourelis/",
     github: "Koutsourelis",
-    photo: "",
+    photo: "team/giannis.jpg",
   },
   {
     name: "",
