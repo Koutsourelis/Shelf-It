@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ShelfSense · the shelf agent for supermarkets</title>
-<meta name="description" content="Point a phone at a supermarket shelf. ShelfSense finds the gaps, tells the shelf worker what to bring from the backroom, and orders what is missing.">
-<meta property="og:title" content="ShelfSense · the shelf agent for supermarkets">
+<title>Shelf-It · the shelf agent for supermarkets</title>
+<meta name="description" content="Point a phone at a supermarket shelf. Shelf-It finds the gaps, tells the shelf worker what to bring from the backroom, and orders what is missing.">
+<meta property="og:title" content="Shelf-It · the shelf agent for supermarkets">
 <meta property="og:description" content="Point a phone at a shelf. Get the gaps, the refill and the order, with a source behind every number.">
 <meta property="og:image" content="shelf-drinks.jpg">
 <meta name="theme-color" content="#0c2b22">
@@ -101,6 +101,60 @@
   .note { font-size: 0.8rem; color: var(--on-dark-soft); margin: 12px 0 0; }
   .built { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line-dark); font-size: 0.9rem; color: var(--on-dark-soft); }
   .built b { color: #fff; font-weight: 600; }
+
+  /* ---------- overlays on the shelf photos: lines, arrows, chips ---------- */
+  .ovl { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  .ovl .ln { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .ovl .ln.amber { stroke: var(--amber); }
+  .ovl .ln.mint { stroke: var(--mint); }
+  .ovl .ln.coral { stroke: #ff7a59; }
+  .shot.wait .ovl, .shot.wait .chip { opacity: 0; }
+  .shot.play .ovl .ln { animation: draw .8s ease-out var(--d, 0s) backwards; }
+  @keyframes draw { from { stroke-dashoffset: 1; opacity: 0; } 15% { opacity: 1; } to { stroke-dashoffset: 0; opacity: 1; } }
+  .scan { display: none; position: absolute; left: 0; right: 0; height: 18%; top: -18%; pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(167,243,208,0.28)); border-bottom: 2px solid var(--mint); }
+  .shot.play .scan { display: block; animation: scan 1.4s ease-in-out .05s forwards; }
+  @keyframes scan { from { top: -18%; } to { top: 100%; opacity: 0; } }
+  .chip { position: absolute; background: #fff; color: var(--ink); border-radius: 8px; padding: 7px 10px 7px 9px;
+    font: 600 0.78rem/1.25 var(--sans); box-shadow: 0 10px 24px -10px rgba(0,0,0,0.55); border-left: 4px solid var(--amber); max-width: 40%; }
+  .chip small { display: block; font-weight: 500; color: var(--soft); font-size: 0.7rem; }
+  .chip.mint { border-left-color: var(--green); }
+  .chip.coral { border-left-color: #ff7a59; }
+  .shot.play .chip { animation: rise .45s ease-out var(--d, 0s) backwards; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .box.move { border: 3px solid var(--mint); background: rgba(167,243,208,0.18); }
+  .box.move span { background: var(--mint); }
+  .box.swap { border: 3px dashed #ff7a59; background: rgba(255,122,89,0.14); }
+  .box.swap span { background: #ff7a59; color: #fff; }
+  @media (max-width: 560px) { .chip { font-size: 0.62rem; padding: 4px 6px; max-width: 46%; } .chip small { font-size: 0.56rem; } .ovl .ln { stroke-width: 5; } }
+  @media (prefers-reduced-motion: reduce) { .shot .ovl .ln, .shot .chip { animation: none; } .shot .scan { display: none; } }
+
+  /* ---------- second feature: moves ---------- */
+  .moves .wrap { display: grid; grid-template-columns: 1fr 1.1fr; gap: 56px; align-items: center; }
+  @media (max-width: 900px) { .moves .wrap { grid-template-columns: 1fr; gap: 32px; } }
+  .moves .facts { margin: 22px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  .moves .facts li { padding-left: 18px; position: relative; color: var(--on-dark); font-size: 0.96rem; }
+  .moves .facts li::before { content: ""; position: absolute; left: 0; top: .6em; width: 8px; height: 8px; border-radius: 2px; background: var(--mint); }
+
+  /* ---------- flow diagrams (how it works, architecture) ---------- */
+  .diagram { margin-top: 40px; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .diagram .v { display: none; }
+  @media (max-width: 700px) { .diagram .h { display: none; } .diagram .v { display: block; max-width: 420px; margin: 0 auto; } }
+  .dg text { font-family: var(--sans); fill: var(--ink); }
+  .dg .t { font: 700 15px var(--sans); }
+  .dg .s { font: 12px var(--sans); fill: var(--soft); }
+  .dg .m { font: 600 11px var(--mono); }
+  .dg .bx { fill: var(--card); stroke: var(--line); stroke-width: 1.5; }
+  .dg .bx.p { stroke: #e7b25a; } .dg .bx.md { stroke: #9aa8f0; } .dg .bx.c { stroke: #7cc8a6; } .dg .bx.core { fill: var(--night); stroke: var(--night); }
+  .dg .core-t { fill: #fff; } .dg .core-s { fill: var(--mint); }
+  .dg .wire { fill: none; stroke: #9aa39d; stroke-width: 2; stroke-dasharray: 6 6; animation: flow 1.1s linear infinite; }
+  .dg .wire.solid { stroke-dasharray: none; animation: none; }
+  @keyframes flow { to { stroke-dashoffset: -12; } }
+  .dg .dot { fill: var(--green); }
+  .dg .node { stroke-width: 3; animation: glow 7.5s ease-in-out infinite; animation-delay: var(--d, 0s); }
+  @keyframes glow { 0%, 22%, 100% { stroke-width: 3; } 6% { stroke-width: 10; } }
+  @media (prefers-reduced-motion: reduce) { .dg .wire, .dg .node { animation: none; } .dg .dot { display: none; } }
 
   /* ---------- problem ---------- */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 44px; }
@@ -212,7 +266,11 @@
   .team-strip small { font-size: 0.86rem; color: var(--soft); }
   .team-strip .tbd b { color: var(--soft); font-weight: 500; }
   .team-strip .tbd .avatar { background: var(--line); color: var(--soft); }
-  .team-more { display: inline-block; margin-top: 28px; font-weight: 600; color: var(--green); text-underline-offset: 3px; }
+  .team-more { display: inline-flex; align-items: center; gap: 10px; margin-top: 32px; padding: 15px 24px; border-radius: 10px;
+    background: var(--green); color: #fff; font: 700 1.02rem var(--sans); text-decoration: none;
+    box-shadow: 0 10px 24px -12px rgba(31,122,92,0.8); transition: transform .15s ease, background .15s ease; }
+  .team-more:hover { background: #17644a; transform: translateY(-1px); }
+  .team-more::after { content: "→"; font-size: 1.15rem; }
 
   /* ---------- links ---------- */
   .tree { max-width: 640px; margin-top: 32px; }
@@ -241,11 +299,12 @@
   <div class="wrap">
     <a class="brand" href="#top">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1F7A5C"/><path d="M7.5 10.5h17M7.5 16h17M7.5 21.5h17" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="21" cy="16" r="2.1" fill="#A7F3D0"/></svg>
-      ShelfSense
+      Shelf-It
     </a>
     <div class="links">
       <a href="#problem">Problem</a>
       <a href="#how">How it works</a>
+      <a href="#moves">Moves</a>
       <a href="#arch">Architecture</a>
       <a href="#inside">What works</a>
       <a href="#proof">Rules</a>
@@ -263,7 +322,7 @@
   <div class="wrap">
     <div>
       <h1>Find shelf gaps from one phone photo.</h1>
-      <p class="sub">ShelfSense is an agent for supermarket department managers. Take a photo of a shelf and it finds
+      <p class="sub">Shelf-It is an agent for supermarket department managers. Take a photo of a shelf and it finds
         missing and misplaced products, tells the shelf worker what to bring from the backroom, and orders what the
         backroom does not have. The model reads the shelf; every count, unit and euro is computed by code and logged.</p>
       <div class="btns">
@@ -314,9 +373,23 @@
         <div class="box gap" style="left:25.0%;top:33.8%;width:17.0%;height:11.2%;animation-delay:1.00s"><span>MISSING · MYTHOS 500ML</span></div>
         <div class="box gap" style="left:24.5%;top:48.9%;width:16.2%;height:8.4%;animation-delay:1.15s"><span>MISSING · MYTHOS 330ML</span></div>
         <div class="box gap" style="left:31.8%;top:73.8%;width:13.2%;height:22.0%;animation-delay:1.30s"><span>MISSING · ΛΟΥΞ COLA 1,5L</span></div>
+        <div class="scan" aria-hidden="true"></div>
+        <svg class="ovl" viewBox="0 0 1000 750" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <marker id="ah-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#f5a524"/></marker>
+            <marker id="ah-mint" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#a7f3d0"/></marker>
+          </defs>
+          <path class="ln amber" pathLength="1" style="--d:1.7s" marker-end="url(#ah-amber)" d="M420 296 C 500 296, 500 169, 570 169"/>
+          <path class="ln mint" pathLength="1" style="--d:1.95s" marker-end="url(#ah-mint)" d="M407 398 C 490 398, 500 364, 570 364"/>
+          <path class="ln amber" pathLength="1" style="--d:2.2s" marker-end="url(#ah-amber)" d="M450 636 C 520 636, 520 582, 570 582"/>
+        </svg>
+        <div class="chip" style="left:58%;top:18.5%;--d:2.3s">Order 1 case<small>Mythos 500ml · backroom empty</small></div>
+        <div class="chip mint" style="left:58%;top:44.5%;--d:2.55s">Bring 20 units<small>Mythos 330ml · from the backroom</small></div>
+        <div class="chip" style="left:58%;top:73.5%;--d:2.8s">Order 2 cases<small>Λουξ cola 1,5L · within the limit</small></div>
       </div>
       <figcaption class="note">Test shelf composed by code from real Greek product photos (sklavenitis.gr), not a photo of a
-        real store. Boxes come from the reading stored with this photo; the three gaps are in its planogram.</figcaption>
+        real store. Boxes come from the reading stored with this photo; the three gaps are in its planogram, and the units and
+        cases are what the refill code computes for them.</figcaption>
     </figure>
   </div>
   <div class="wrap">
@@ -351,6 +424,68 @@
   <div class="wrap">
     <h2>How it works</h2>
     <p class="intro">Five steps, from the shelf photo to the refill. The tag shows who does each step.</p>
+    <div class="diagram">
+      <svg class="h dg" viewBox="0 0 1000 220" role="img" aria-label="Five steps in a loop: snap, read, check, act, refill, then the next photo checks the fix.">
+      <defs><marker id="fa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9aa39d"/></marker></defs>
+      <path class="wire" d="M 900 74 C 900 14, 100 14, 100 72" marker-end="url(#fa)"/>
+      <text class="s" x="500" y="56" text-anchor="middle">the next photo checks the fix</text>
+      <path class="wire" d="M 142 110 H 254" marker-end="url(#fa)"/>
+      <path class="wire" d="M 342 110 H 454" marker-end="url(#fa)"/>
+      <path class="wire" d="M 542 110 H 654" marker-end="url(#fa)"/>
+      <path class="wire" d="M 742 110 H 854" marker-end="url(#fa)"/>
+      <circle class="dot" r="7"><animateMotion dur="7.5s" repeatCount="indefinite" path="M100 110 H900"/></circle>
+      <circle class="node" style="--d:0.0s" cx="100" cy="110" r="36" fill="#fff" stroke="#f5a524"/>
+      <text class="t" x="100" y="117" text-anchor="middle">1</text>
+      <text class="t" x="100" y="178" text-anchor="middle">Snap</text>
+      <text class="m" x="100" y="200" text-anchor="middle" fill="#f5a524">person</text>
+      <circle class="node" style="--d:1.5s" cx="300" cy="110" r="36" fill="#fff" stroke="#6f7fe0"/>
+      <text class="t" x="300" y="117" text-anchor="middle">2</text>
+      <text class="t" x="300" y="178" text-anchor="middle">Read</text>
+      <text class="m" x="300" y="200" text-anchor="middle" fill="#6f7fe0">model</text>
+      <circle class="node" style="--d:3.0s" cx="500" cy="110" r="36" fill="#fff" stroke="#6f7fe0"/>
+      <text class="t" x="500" y="117" text-anchor="middle">3</text>
+      <text class="t" x="500" y="178" text-anchor="middle">Check</text>
+      <text class="m" x="500" y="200" text-anchor="middle" fill="#6f7fe0">model + code</text>
+      <circle class="node" style="--d:4.5s" cx="700" cy="110" r="36" fill="#fff" stroke="#1f7a5c"/>
+      <text class="t" x="700" y="117" text-anchor="middle">4</text>
+      <text class="t" x="700" y="178" text-anchor="middle">Act</text>
+      <text class="m" x="700" y="200" text-anchor="middle" fill="#1f7a5c">code</text>
+      <circle class="node" style="--d:6.0s" cx="900" cy="110" r="36" fill="#fff" stroke="#f5a524"/>
+      <text class="t" x="900" y="117" text-anchor="middle">5</text>
+      <text class="t" x="900" y="178" text-anchor="middle">Refill</text>
+      <text class="m" x="900" y="200" text-anchor="middle" fill="#f5a524">person</text>
+      </svg>
+      <svg class="v dg" viewBox="0 0 340 640" role="img" aria-label="Five steps in a loop: snap, read, check, act, refill, then the next photo checks the fix.">
+      <defs><marker id="fv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9aa39d"/></marker></defs>
+      <path class="wire" d="M 84 586 C 330 600, 330 20, 86 32" marker-end="url(#fv)"/>
+      <text class="s" x="300" y="318" text-anchor="middle" transform="rotate(90 300 318)">the next photo checks the fix</text>
+      <path class="wire" d="M 50 102 V 139" marker-end="url(#fv)"/>
+      <path class="wire" d="M 50 227 V 264" marker-end="url(#fv)"/>
+      <path class="wire" d="M 50 352 V 389" marker-end="url(#fv)"/>
+      <path class="wire" d="M 50 477 V 514" marker-end="url(#fv)"/>
+      <circle class="dot" r="7"><animateMotion dur="7.5s" repeatCount="indefinite" path="M50 60 V560"/></circle>
+      <circle class="node" style="--d:0.0s" cx="50" cy="60" r="34" fill="#fff" stroke="#f5a524"/>
+      <text class="t" x="50" y="66" text-anchor="middle">1</text>
+      <text class="t" x="104" y="58">Snap</text>
+      <text class="m" x="104" y="78" fill="#f5a524">person</text>
+      <circle class="node" style="--d:1.5s" cx="50" cy="185" r="34" fill="#fff" stroke="#6f7fe0"/>
+      <text class="t" x="50" y="191" text-anchor="middle">2</text>
+      <text class="t" x="104" y="183">Read</text>
+      <text class="m" x="104" y="203" fill="#6f7fe0">model</text>
+      <circle class="node" style="--d:3.0s" cx="50" cy="310" r="34" fill="#fff" stroke="#6f7fe0"/>
+      <text class="t" x="50" y="316" text-anchor="middle">3</text>
+      <text class="t" x="104" y="308">Check</text>
+      <text class="m" x="104" y="328" fill="#6f7fe0">model + code</text>
+      <circle class="node" style="--d:4.5s" cx="50" cy="435" r="34" fill="#fff" stroke="#1f7a5c"/>
+      <text class="t" x="50" y="441" text-anchor="middle">4</text>
+      <text class="t" x="104" y="433">Act</text>
+      <text class="m" x="104" y="453" fill="#1f7a5c">code</text>
+      <circle class="node" style="--d:6.0s" cx="50" cy="560" r="34" fill="#fff" stroke="#f5a524"/>
+      <text class="t" x="50" y="566" text-anchor="middle">5</text>
+      <text class="t" x="104" y="558">Refill</text>
+      <text class="m" x="104" y="578" fill="#f5a524">person</text>
+      </svg>
+    </div>
     <ol class="steps">
       <li class="step">
         <h3>Snap <span class="tag t-person">person</span></h3>
@@ -381,10 +516,140 @@
   </div>
 </section>
 
+<section class="dark moves" id="moves">
+  <div class="wrap">
+    <div>
+      <h2>It also moves products to where they earn more.</h2>
+      <p class="intro">Besides refilling gaps, the agent checks the layout with rules K3–K8 and proposes moves. On the
+        same test shelf, rule K4 sends Βεργίνα Red 500ml to eye level and Άμστελ 330ml to its old place.</p>
+      <ul class="facts">
+        <li>€7.68 margin per facing a day for Βεργίνα Red, against €0.59 for Άμστελ 330ml.</li>
+        <li>No uplift percentage is claimed: the sources rank positions, they do not give a number for this shelf.</li>
+        <li>The manager accepts, rejects or corrects. An accepted move becomes a task for the shelf worker.</li>
+      </ul>
+    </div>
+    <figure style="margin:0">
+      <div class="shot">
+        <img src="shelf-move.jpg" width="1400" height="1050" loading="lazy" alt="The drinks test shelf, full. Βεργίνα Red bottles on the top shelf and Άμστελ cans at eye level are outlined, with arrows showing the two products swapping places.">
+        <div class="box move" style="left:42.2%;top:13.8%;width:6.6%;height:16.2%;animation-delay:.3s"><span>K4 · TO EYE LEVEL</span></div>
+        <div class="box swap" style="left:64.5%;top:48.9%;width:10.5%;height:8.2%;animation-delay:.5s"><span>SWAP</span></div>
+        <svg class="ovl" viewBox="0 0 1000 750" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <marker id="mh-mint" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#a7f3d0"/></marker>
+            <marker id="mh-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ff7a59"/></marker>
+          </defs>
+          <path class="ln mint" pathLength="1" style="--d:.9s" marker-end="url(#mh-mint)" d="M470 225 C 500 300, 620 300, 680 364"/>
+          <path class="ln coral" pathLength="1" style="--d:1.4s" marker-end="url(#mh-coral)" d="M650 434 C 560 470, 420 400, 445 230"/>
+        </svg>
+        <div class="chip mint" style="left:56%;top:76%;--d:1.9s">K4 · eye level<small>€7.68 vs €0.59 margin per facing a day</small></div>
+      </div>
+      <figcaption class="note">Same test shelf, full. The move and the two figures are the output of the rules code on
+        this shelf's synthetic sales and costs.</figcaption>
+    </figure>
+  </div>
+</section>
+
 <section id="arch">
   <div class="wrap">
     <h2>Architecture</h2>
     <p class="intro">One agent and a small set of tools. The model reads the shelf; code computes every number.</p>
+    <div class="diagram">
+<svg class="h dg" viewBox="0 0 1000 500" role="img" aria-label="Architecture: the phone sends a photo to the agent; the agent asks Gemini to read it, reads DuckDB, applies rules K1 to K8 and gathers evidence, then sends a task, a warehouse order and a shelf talker.">
+<defs><marker id="aa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9aa39d"/></marker></defs>
+<path id="w1" class="wire" d="M 190 245 H 390" marker-end="url(#aa)"/>
+<path id="w2" class="wire" d="M 470 178 V 104" marker-end="url(#aa)"/>
+<path id="w3" class="wire" d="M 530 104 V 178" marker-end="url(#aa)"/>
+<path id="w4" class="wire" d="M 455 292 C 455 340, 350 340, 350 386" marker-end="url(#aa)" marker-start="url(#aa)"/>
+<path id="w5" class="wire" d="M 545 292 C 545 340, 650 340, 650 386" marker-end="url(#aa)" marker-start="url(#aa)"/>
+<path id="w6" class="wire" d="M 607 205 C 650 205, 690 150, 735 104" marker-end="url(#aa)" marker-start="url(#aa)"/>
+<path id="w7" class="wire" d="M 607 230 C 690 230, 700 180, 786 180" marker-end="url(#aa)"/>
+<path id="w8" class="wire" d="M 607 248 C 690 248, 700 255, 786 255" marker-end="url(#aa)"/>
+<path id="w9" class="wire" d="M 607 266 C 690 266, 700 330, 786 330" marker-end="url(#aa)"/>
+<text class="s" x="290" y="236" text-anchor="middle">photo or frame</text>
+<text class="s" x="462" y="145" text-anchor="end">image</text>
+<text class="s" x="538" y="145" text-anchor="start">products, facings, gaps</text>
+<circle class="dot" r="6"><animateMotion dur="2.2s" begin="0s;0s+7.5s;0s+15s;0s+22.5s" repeatCount="1" fill="freeze"><mpath href="#w1"/></animateMotion></circle>
+<circle class="dot" r="6"><animateMotion dur="1.4s" begin="2.2s;2.2s+7.5s;2.2s+15s;2.2s+22.5s" repeatCount="1" fill="freeze"><mpath href="#w2"/></animateMotion></circle>
+<circle class="dot" r="6"><animateMotion dur="1.4s" begin="3.6s;3.6s+7.5s;3.6s+15s;3.6s+22.5s" repeatCount="1" fill="freeze"><mpath href="#w3"/></animateMotion></circle>
+<circle class="dot" r="6"><animateMotion dur="2.0s" begin="5.0s;5.0s+7.5s;5.0s+15s;5.0s+22.5s" repeatCount="1" fill="freeze"><mpath href="#w8"/></animateMotion></circle>
+<rect class="bx p" x="20" y="175" width="170" height="140" rx="10"/>
+<text class="t" x="34" y="201">Phone</text>
+<text class="s" x="34" y="221">/capture · one tap</text>
+<text class="s" x="34" y="239">/cam · every 5 s</text>
+<text class="s" x="34" y="257">Telegram photo</text>
+<rect class="bx md" x="395" y="20" width="210" height="84" rx="10"/>
+<text class="t" x="409" y="46">Gemini vision</text>
+<text class="s" x="409" y="66">reads the shelf</text>
+<text class="s" x="409" y="84">structured output</text>
+<rect class="bx c" x="650" y="20" width="210" height="84" rx="10"/>
+<text class="t" x="664" y="46">Evidence</text>
+<text class="s" x="664" y="66">treg web and news</text>
+<text class="s" x="664" y="84">Open Food Facts</text>
+<rect class="bx c" x="250" y="390" width="200" height="90" rx="10"/>
+<text class="t" x="264" y="416">DuckDB</text>
+<text class="s" x="264" y="436">catalogue · planogram</text>
+<text class="s" x="264" y="454">backroom · sales</text>
+<rect class="bx c" x="550" y="390" width="200" height="90" rx="10"/>
+<text class="t" x="564" y="416">Rules K1–K8</text>
+<text class="s" x="564" y="436">refill and layout</text>
+<text class="s" x="564" y="454">rules.json</text>
+<rect class="bx c" x="790" y="150" width="190" height="60" rx="10"/>
+<text class="t" x="804" y="176">Task · Telegram</text>
+<text class="s" x="804" y="196">crop, units, where from</text>
+<rect class="bx p" x="790" y="225" width="190" height="60" rx="10"/>
+<text class="t" x="804" y="251">Warehouse order</text>
+<text class="s" x="804" y="271">≤ 3 cases and ≤ €50: auto</text>
+<rect class="bx c" x="790" y="300" width="190" height="60" rx="10"/>
+<text class="t" x="804" y="326">Shelf talker</text>
+<text class="s" x="804" y="346">fal · printable sign</text>
+<rect class="bx core" x="395" y="180" width="210" height="112" rx="12"/>
+<text class="t core-t" x="500" y="222" text-anchor="middle">Shelf-It agent</text>
+<text class="s core-s" x="500" y="244" text-anchor="middle">FastAPI · tool loop</text>
+<text class="s core-s" x="500" y="264" text-anchor="middle">every figure → audit trail</text>
+</svg>
+<svg class="v dg" viewBox="0 0 340 660" role="img" aria-label="Architecture: the phone sends a photo to the agent; the agent asks Gemini to read it, reads DuckDB, applies rules K1 to K8 and gathers evidence, then sends a task, a warehouse order and a shelf talker.">
+<defs><marker id="ab" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9aa39d"/></marker></defs>
+<path id="v1" class="wire" d="M 170 82 V 116" marker-end="url(#ab)"/>
+<path id="v2" class="wire" d="M 90 192 V 226" marker-end="url(#ab)" marker-start="url(#ab)"/>
+<path id="v3" class="wire" d="M 250 192 V 226" marker-end="url(#ab)" marker-start="url(#ab)"/>
+<path id="v4" class="wire" d="M 170 192 V 350 H 162" marker-end="url(#ab)" marker-start="url(#ab)"/>
+<path id="v5" class="wire" d="M 170 192 V 350 H 178" marker-end="url(#ab)" marker-start="url(#ab)"/>
+<path id="v6" class="wire" d="M 20 155 H 8 V 466 H 16" marker-end="url(#ab)"/>
+<path id="v7" class="wire" d="M 8 466 V 536 H 16" marker-end="url(#ab)"/>
+<path id="v8" class="wire" d="M 8 536 V 606 H 16" marker-end="url(#ab)"/>
+<circle class="dot" r="6"><animateMotion dur="1.4s" begin="0s;7.5s;15s;22.5s" repeatCount="1" fill="freeze"><mpath href="#v1"/></animateMotion></circle>
+<circle class="dot" r="6"><animateMotion dur="2.6s" begin="2s;9.5s;17s;24.5s" repeatCount="1" fill="freeze"><mpath href="#v6"/></animateMotion></circle>
+<rect class="bx p" x="20" y="10" width="300" height="72" rx="10"/>
+<text class="t" x="32" y="34">Phone</text>
+<text class="s" x="32" y="53">/capture · /cam every 5 s · Telegram</text>
+<rect class="bx md" x="20" y="230" width="140" height="84" rx="10"/>
+<text class="t" x="32" y="254">Gemini vision</text>
+<text class="s" x="32" y="273">reads the shelf</text>
+<rect class="bx c" x="180" y="230" width="140" height="84" rx="10"/>
+<text class="t" x="192" y="254">DuckDB</text>
+<text class="s" x="192" y="273">catalogue, planogram</text>
+<text class="s" x="192" y="290">backroom, sales</text>
+<rect class="bx c" x="20" y="320" width="140" height="84" rx="10"/>
+<text class="t" x="32" y="344">Rules K1–K8</text>
+<text class="s" x="32" y="363">refill and layout</text>
+<rect class="bx c" x="180" y="320" width="140" height="84" rx="10"/>
+<text class="t" x="192" y="344">Evidence</text>
+<text class="s" x="192" y="363">treg · Open Food</text>
+<text class="s" x="192" y="380">Facts</text>
+<rect class="bx c" x="20" y="438" width="300" height="56" rx="10"/>
+<text class="t" x="32" y="462">Task · Telegram</text>
+<text class="s" x="32" y="481">crop, units, where from</text>
+<rect class="bx p" x="20" y="508" width="300" height="56" rx="10"/>
+<text class="t" x="32" y="532">Warehouse order</text>
+<text class="s" x="32" y="551">≤ 3 cases and ≤ €50: auto</text>
+<rect class="bx c" x="20" y="578" width="300" height="56" rx="10"/>
+<text class="t" x="32" y="602">Shelf talker</text>
+<text class="s" x="32" y="621">fal · printable sign</text>
+<rect class="bx core" x="20" y="120" width="300" height="72" rx="12"/>
+<text class="t core-t" x="170" y="150" text-anchor="middle">Shelf-It agent</text>
+<text class="s core-s" x="170" y="172" text-anchor="middle">FastAPI · tool loop · audit trail</text>
+</svg>
+    </div>
     <div class="arch">
       <div class="lane">
         <h3><span class="tag t-person">person</span> Capture</h3>
@@ -451,7 +716,7 @@
             <div><span>check_planogram</span>3 missing: D12, D22, D43</div>
             <div><span>replenishment_plan</span>D22: 20 units from backroom · K1, K2</div>
             <div><span>order_from_warehouse</span>D12, D43: 3 cases, within limit → placed</div>
-            <div><span>layout_suggestions</span>up to two moves · K3–K8</div>
+            <div><span>layout_suggestions</span>3 suggestions: K4, K5, K3</div>
           </div>
         </div>
       </div>
@@ -466,12 +731,12 @@
       suggestion shows its rule, its numbers and its source. If a figure is missing, the rule does not run.</p>
     <div class="rules-grid">
       <div class="label">
-        <div class="what">Move one facing from Mountain tea to Espresso capsules</div>
+        <div class="what">Move one facing from Άλφα alcohol-free 330ml to Βεργίνα Red 500ml</div>
         <dl>
           <dt>Rule</dt><dd>K3 · space against sales</dd>
-          <dt>Gain</dt><dd>+€1.97 a day</dd>
-          <dt>Loss</dt><dd>−€0.43 a day</dd>
-          <dt>Net</dt><dd class="plus">+€1.54 margin a day</dd>
+          <dt>Gain</dt><dd>+€1.10 a day</dd>
+          <dt>Loss</dt><dd>−€0.07 a day</dd>
+          <dt>Net</dt><dd class="plus">+€1.03 margin a day</dd>
           <dt>Source</dt><dd>Eisend 2014, space elasticity 0.17</dd>
           <dt>Sales</dt><dd>28 days, synthetic</dd>
         </dl>
@@ -552,7 +817,7 @@
     <h2>Team</h2>
     <p class="intro">Five people, two days.</p>
     <div class="team-strip" id="team-strip"></div>
-    <a class="team-more" href="team.html">What each person built</a>
+    <a class="team-more" href="team.html">See what each person built</a>
   </div>
 </section>
 
@@ -588,18 +853,20 @@ const PAGE = {
   if (PAGE.video) {
     const id = yt(PAGE.video);
     document.getElementById("video").innerHTML = id
-      ? `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0" title="ShelfSense demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+      ? `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0" title="Shelf-It demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
       : `<video controls playsinline preload="metadata" src="${esc(PAGE.video)}"></video>`;
     document.getElementById("demo").hidden = false;
   }
 
   // Draw the detection boxes when the photo scrolls into view. Without JS or with reduced motion they are simply shown.
-  const shot = document.querySelector(".shot");
-  if (shot && "IntersectionObserver" in window && matchMedia("(prefers-reduced-motion: no-preference)").matches) {
-    shot.classList.add("wait");
-    const play = () => { shot.classList.remove("wait"); shot.classList.add("play"); io.disconnect(); };
-    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) play(); }, { threshold: 0.3 });
-    io.observe(shot);
+  if ("IntersectionObserver" in window && matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+    document.querySelectorAll(".shot").forEach((shot) => {
+      shot.classList.add("wait");
+      const io = new IntersectionObserver((es) => {
+        if (es.some((e) => e.isIntersecting)) { shot.classList.remove("wait"); shot.classList.add("play"); io.disconnect(); }
+      }, { threshold: 0.3 });
+      io.observe(shot);
+    });
   }
 
   const team = window.TEAM || [];
