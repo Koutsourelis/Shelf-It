@@ -304,11 +304,13 @@ async def _assess(frame: Path) -> dict:
         STATE.model_calls += 1
         if unknown_ratio(verdict) < config.LIVE_UNKNOWN_RATIO:
             return verdict
-    # Κανένα σετ δεν έχει αυτά τα προϊόντα: το ράφι διαβάζεται ξανά χωρίς κατάλογο. Η πρώτη ανάγνωση δεν αρκεί: με
-    # κατάλογο μπροστά του το μοντέλο γράφει μόνο λίγες από τις ομάδες που δεν του ταιριάζουν (5 από ~40 σε δοκιμή).
-    verdict = await assess_photo(frame, catalog=[])
+    # Κανένα σετ δεν έχει αυτά τα προϊόντα: το ράφι διαβάζεται ξανά χωρίς κατάλογο (με fallback στο 1ο verdict αν αργήσει το δίκτυο).
+    try:
+        verdict = await assess_photo(frame, catalog=[])
+        STATE.model_calls += 1
+    except Exception as e:
+        events.emit("system", "log", text=f"Ανάγνωση εκτός καταλόγου (χρήση 1ης ανάγνωσης): {type(e).__name__}: {e}")
     verdict["unknown_shelf"] = True
-    STATE.model_calls += 1
     return verdict
 
 
@@ -409,7 +411,12 @@ def _save(data: bytes) -> Path:
     return path
 
 
-async def process_frame(data: bytes, force: bool = False, single: bool = False) -> dict:
+async def process_frame(
+    data: bytes,
+    force: bool = False,
+    single: bool = False,
+    from_telegram: bool = False,
+) -> dict:
     """Ένα frame από τη σελίδα του ραφιού. Επιστρέφει ό,τι χρειάζεται η σελίδα για να ζωγραφίσει.
 
     single: σκόπιμη φωτογραφία από το κινητό (/capture). Διαβάζεται πάντα και μετράει ως επιβεβαιωμένη μόνη της.
@@ -471,9 +478,22 @@ async def process_frame(data: bytes, force: bool = False, single: bool = False) 
         STATE.recent.extend([sig] * ((STATE.recent.maxlen or 1) if single else 1))
         confirmed = len(STATE.recent) == STATE.recent.maxlen and len(set(STATE.recent)) == 1
         acted = False
+        notified_tg = False
         if confirmed and sig != STATE.reported_sig:
-            await _act(frame, found, sig)
+            changed_act = await _act(frame, found, sig)
             acted = True
+            notified_tg = bool(changed_act.get("new") or changed_act.get("resolved"))
+        if (force or single) and not from_telegram and not notified_tg:
+            try:
+                from . import telegram
+                await telegram.notify_shelf_change(
+                    {"new": [], "resolved": []},
+                    frame,
+                    force_snapshot=True,
+                    summary=verdict.get("summary") or "",
+                )
+            except Exception as e:
+                events.emit("system", "log", text=f"Telegram: {e}")
         STATE.last = {
             "status": "acted" if acted else ("confirmed" if confirmed else "pending"),
             "frame": frame.name, "seconds": seconds, "findings": found,

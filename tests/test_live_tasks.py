@@ -32,9 +32,10 @@ class LiveTasksTest(unittest.TestCase):
     def setUp(self):
         self._saved = {k: getattr(config, k) for k in (
             "LLM_PROVIDER", "VISION_PROVIDER", "DB_PATH", "LIVE_START_AGENT", "AUTO_ORDER", "AUTO_ORDER_MAX_CASES",
-            "AUTO_ORDER_MAX_EUR", "LIVE_CONFIRM_FRAMES")}
+            "AUTO_ORDER_MAX_EUR", "LIVE_CONFIRM_FRAMES", "TELEGRAM_BOT_TOKEN")}
         self._tmp = tempfile.TemporaryDirectory()
         config.DB_PATH = Path(self._tmp.name) / "test.duckdb"
+        config.TELEGRAM_BOT_TOKEN = ""
         demo_data.build()
         config.LLM_PROVIDER, config.VISION_PROVIDER = "mock", "mock"
         config.LIVE_START_AGENT, config.AUTO_ORDER = False, True

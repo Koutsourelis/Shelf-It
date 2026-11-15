@@ -16,6 +16,7 @@ from . import config, events
 _API = "https://api.telegram.org/bot{token}/{method}"
 _FILE_API = "https://api.telegram.org/file/bot{token}/{file_path}"
 _client: httpx.AsyncClient | None = None
+_client_loop: asyncio.AbstractEventLoop | None = None
 _chat_scenario: dict[str, str] = {}
 _CB_MAP: dict[str, tuple[str, str]] = {}
 
@@ -86,23 +87,27 @@ def _markup(buttons: list[tuple[str, str]] | None = None,
     return {"inline_keyboard": [[{"text": t, "callback_data": d} for t, d in row] for row in grid if row]}
 
 
-async def _call(method: str, **payload) -> dict:
-    global _client
-    if _client is None:
+def _http() -> httpx.AsyncClient:
+    """Επιστρέφει AsyncClient δεμένο στο τρέχον event loop (αποφεύγει 'Event loop is closed')."""
+    global _client, _client_loop
+    loop = asyncio.get_running_loop()
+    if _client is None or _client.is_closed or _client_loop is not loop:
         _client = httpx.AsyncClient(timeout=40)
-    r = await _client.post(_API.format(token=config.TELEGRAM_BOT_TOKEN, method=method), json=payload)
+        _client_loop = loop
+    return _client
+
+
+async def _call(method: str, **payload) -> dict:
+    r = await _http().post(_API.format(token=config.TELEGRAM_BOT_TOKEN, method=method), json=payload)
     return r.json()
 
 
 async def _download_file(file_id: str) -> bytes:
-    global _client
-    if _client is None:
-        _client = httpx.AsyncClient(timeout=40)
     info = await _call("getFile", file_id=file_id)
     fp = (info.get("result") or {}).get("file_path")
     if not fp:
         raise RuntimeError("Αδυναμία ανάκτησης αρχείου από το Telegram")
-    r = await _client.get(_FILE_API.format(token=config.TELEGRAM_BOT_TOKEN, file_path=fp))
+    r = await _http().get(_FILE_API.format(token=config.TELEGRAM_BOT_TOKEN, file_path=fp))
     r.raise_for_status()
     return r.content
 
@@ -118,9 +123,6 @@ async def send(chat_id: str, text: str, buttons: list[tuple[str, str]] | None = 
 
 async def send_photo(chat_id: str, photo: Path | bytes, caption: str = "",
                      rows: list[list[tuple[str, str]]] | None = None) -> dict:
-    global _client
-    if _client is None:
-        _client = httpx.AsyncClient(timeout=40)
     raw = photo.read_bytes() if isinstance(photo, Path) else photo
     name = photo.name if isinstance(photo, Path) else "shelf.jpg"
     data: dict[str, str] = {"chat_id": str(chat_id)}
@@ -129,7 +131,7 @@ async def send_photo(chat_id: str, photo: Path | bytes, caption: str = "",
     rm = _markup(rows=rows)
     if rm:
         data["reply_markup"] = json.dumps(rm, ensure_ascii=False)
-    r = await _client.post(
+    r = await _http().post(
         _API.format(token=config.TELEGRAM_BOT_TOKEN, method="sendPhoto"),
         data=data,
         files={"photo": (name, raw, "image/jpeg")},
@@ -194,34 +196,54 @@ def _task_rows(task_list: list[dict]) -> list[list[tuple[str, str]]]:
     return rows
 
 
-async def notify_shelf_change(changed: dict, frame: Path | None = None) -> None:
-    """Ειδοποιεί στο Telegram όταν η κάμερα ανοίγει ή κλείνει εργασίες ραφιού."""
+async def notify_shelf_change(
+    changed: dict,
+    frame: Path | None = None,
+    *,
+    force_snapshot: bool = False,
+    summary: str = "",
+) -> None:
+    """Ειδοποιεί στο Telegram όταν η κάμερα ανοίγει/κλείνει εργασίες ή σε κάθε χειροκίνητη λήψη (force_snapshot)."""
     if not config.TELEGRAM_BOT_TOKEN or not subscribers():
         return
     from . import tasks
+    new_list = changed.get("new") or []
+    res_list = changed.get("resolved") or []
+    if not new_list and not res_list and not force_snapshot:
+        return
+
+    open_now = tasks.open_tasks()
     lines: list[str] = []
-    for t in changed.get("new") or []:
+    for t in new_list:
         order = t.get("order") or {}
         ord_txt = f" · Παραγγελία {order['order_no']} ({order['eur']:.2f} €)" if order.get("order_no") else ""
         lines.append(f"{t['priority']}. {t['text']}{ord_txt}")
         if t.get("needs_approval"):
             lines.append(f"   — Αναμένει έγκριση παραγγελίας ({t['needs_approval']['why']})")
-    for t in changed.get("resolved") or []:
+    for t in res_list:
         lines.append(f"✓ Αποκαταστάθηκε: {t['text']}")
 
-    open_now = tasks.open_tasks()
+    # Αν πρόκειται για χειροκίνητο έλεγχο εικόνας (χωρίς reset) όπου οι ίδιες εργασίες ήταν ήδη ανοιχτές, δείξ' τες!
+    if not lines and open_now:
+        for t in open_now:
+            who = f" ({t['claimed_by']})" if t.get("claimed_by") else ""
+            lines.append(f"{t['priority']}. {t['text']}{who}")
+    elif not lines and summary:
+        lines.append(summary)
+
     head = f"Shelf-it · {len(open_now)} εκκρεμείς εργασίες" if open_now else "Shelf-it · Το ράφι είναι σωστό ✓"
     caption = head + ("\n\n" + "\n".join(lines) if lines else "")
     rows = _task_rows(open_now)
 
     photo_path: Path | None = None
-    if changed.get("new"):
-        first_img = str((changed["new"][0] or {}).get("image") or "")
+    source_tasks = new_list or (open_now if force_snapshot else [])
+    if source_tasks:
+        first_img = str((source_tasks[0] or {}).get("image") or "")
         rel_img = first_img.removeprefix("/files/").lstrip("/")
         if rel_img and (config.WORKSPACE / rel_img).is_file():
             photo_path = config.WORKSPACE / rel_img
-        elif frame and frame.is_file():
-            photo_path = frame
+    if photo_path is None and frame and frame.is_file():
+        photo_path = frame
 
     await broadcast(caption, rows=rows or None, photo=photo_path)
 
@@ -354,8 +376,15 @@ async def _handle_callback(cq: dict) -> None:
 async def _handle_photo(chat_id: str, file_id: str) -> None:
     from . import live, tasks
     await send(chat_id, "Διαβάζω τη φωτογραφία του ραφιού…")
-    raw = await _download_file(file_id)
-    res = await live.process_frame(raw, force=True, single=True)
+    try:
+        raw = await _download_file(file_id)
+        res = await live.process_frame(raw, force=True, single=True, from_telegram=True)
+    except Exception as e:
+        await send(chat_id, f"Καθυστέρηση ή σφάλμα ανάγνωσης εικόνας ({type(e).__name__})· δοκίμασε ξανά.")
+        return
+    if res.get("status") == "dark":
+        await send(chat_id, "Η φωτογραφία είναι πολύ σκοτεινή· δοκίμασε ξανά με καλύτερο φωτισμό.")
+        return
     if res.get("status") == "occluded":
         await send(chat_id, "Κάτι κρύβει το ράφι στη φωτογραφία· δοκίμασε ξανά καθαρή λήψη.")
         return

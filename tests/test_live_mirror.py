@@ -7,9 +7,12 @@ from agentkit.server import app
 
 class TestLiveMobileMirror(unittest.TestCase):
     def setUp(self) -> None:
+        self._orig_tg = config.TELEGRAM_BOT_TOKEN
+        config.TELEGRAM_BOT_TOKEN = ""
         live.STATE.reset()
 
     def tearDown(self) -> None:
+        config.TELEGRAM_BOT_TOKEN = self._orig_tg
         live.STATE.reset()
 
     def test_cam_page_and_preview_relay(self) -> None:

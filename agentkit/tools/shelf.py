@@ -53,7 +53,7 @@ def find_photo(photo: str) -> Path:
     if key in ("latest", "after", "previous", "before", ""):
         shots = sorted(
             (f for d in (config.WORKSPACE / "live", UPLOADS) if d.is_dir() for f in d.iterdir()
-             if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")),
+             if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp") and not f.name.startswith("corrected_")),
             key=lambda f: (photo_timestamp(f), f.stat().st_mtime, f.name),
         )
         if not shots:
@@ -143,8 +143,14 @@ async def read_shelf(ctx, photo: str) -> str:
             asyncio.create_task(live.ensure_corrected(live_copy, verdict, found, moves))
         else:
             await live.ensure_corrected(live_copy, verdict, found, moves)
-        if changes.get("new") or changes.get("resolved"):
+        is_console_run = bool(getattr(ctx, "run_id", "")) and getattr(getattr(ctx, "scenario", None), "name", "") != "live"
+        if is_console_run:
+            await telegram.notify_shelf_change(
+                changes, live_copy, force_snapshot=True, summary=verdict.get("summary") or ""
+            )
+        elif changes.get("new") or changes.get("resolved"):
             await telegram.notify_shelf_change(changes, live_copy)
+        if changes.get("new") or changes.get("resolved"):
             _ev.emit("system", "live_report", frame=name, open=len(tasks.open_tasks()),
                      new=len(changes["new"]), resolved=len(changes["resolved"]))
     except Exception:

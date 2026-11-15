@@ -21,7 +21,9 @@ class TestProposalFeedbackAndTalker(unittest.TestCase):
         self._orig_runs = config.RUNS_DIR
         self._orig_rec = rec_store.DB_PATH
         self._orig_st = st.STATE_DIR
+        self._orig_tg = config.TELEGRAM_BOT_TOKEN
 
+        config.TELEGRAM_BOT_TOKEN = ""
         config.DB_PATH = self.tmp / "demo.duckdb"
         config.WORKSPACE = self.tmp / "workspace"
         config.RUNS_DIR = self.tmp / "runs"
@@ -40,6 +42,7 @@ class TestProposalFeedbackAndTalker(unittest.TestCase):
         config.RUNS_DIR = self._orig_runs
         rec_store.DB_PATH = self._orig_rec
         st.STATE_DIR = self._orig_st
+        config.TELEGRAM_BOT_TOKEN = self._orig_tg
 
     def test_propose_move_registers_recommendation_and_builds_talker(self) -> None:
         scen = get_scenario("shelf")

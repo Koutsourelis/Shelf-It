@@ -161,6 +161,39 @@ class TestTelegramIntegration(unittest.TestCase):
         self.assertTrue(png_bytes.startswith(b"\x89PNG"))
         self.assertIn("Ταμπελάκι ραφιού", cap)
 
+    def test_every_manual_image_notifies_telegram_without_reset(self) -> None:
+        telegram._remember_chat("8208481294")
+        sample_before = (config.SHELF_DIR / "photos" / "sample_before.png").read_bytes()
+        sample_after = (config.SHELF_DIR / "photos" / "sample_after.jpeg").read_bytes()
+
+        with patch.object(config, "LIVE_START_AGENT", False), \
+             patch.object(config, "LIVE_CONFIRM_FRAMES", 1):
+            # 1st manual image (issues) -> sends photo #1
+            vision.set_mock_assessment("sample_before")
+            asyncio.run(live.process_frame(sample_before, force=True, single=True))
+            self.assertEqual(len(self.sent_photos), 1)
+            self.assertIn("εκκρεμείς εργασίες", self.sent_photos[-1][2])
+
+            # 2nd manual image with IDENTICAL issues & NO reset -> still sends photo #2!
+            asyncio.run(live.process_frame(sample_before, force=True, single=True))
+            self.assertEqual(len(self.sent_photos), 2)
+            self.assertIn("εκκρεμείς εργασίες", self.sent_photos[-1][2])
+
+            # Continuous background camera tick (force=False, single=False) -> does NOT spam!
+            asyncio.run(live.process_frame(sample_before, force=False, single=False))
+            self.assertEqual(len(self.sent_photos), 2)
+
+            # 3rd manual image (clean shelf) -> sends photo #3 ("Το ράφι είναι σωστό ✓")
+            vision.set_mock_assessment("sample_after")
+            asyncio.run(live.process_frame(sample_after, force=True, single=True))
+            self.assertEqual(len(self.sent_photos), 3)
+            self.assertIn("Το ράφι είναι σωστό", self.sent_photos[-1][2])
+
+            # 4th manual image (clean shelf again, NO reset) -> still sends photo #4!
+            asyncio.run(live.process_frame(sample_after, force=True, single=True))
+            self.assertEqual(len(self.sent_photos), 4)
+            self.assertIn("Το ράφι είναι σωστό", self.sent_photos[-1][2])
+
 
 if __name__ == "__main__":
     unittest.main()
