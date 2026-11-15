@@ -18,6 +18,12 @@
 Μετά την αξιολόγηση: **8 ομάδες** παρουσιάζουν **3 λεπτά + 2 λεπτά ερωτήσεις** στο αμφιθέατρο, και **4** περνούν στον
 τελικό της Δευτέρας. Η επιτροπή έχει τεχνικό, growth και ερευνητικό υπόβαθρο. Κριτές: https://hackathon.polymath42.com/judging
 
+**Επιτροπή κριτών (επίσημη λίστα):** Lars Rasmussen (συνιδρυτής Google Maps, Panathēnea), Anastasios Andronidis (Tools
+for Humanity), Socrates Charisis και Kostas Kopanidis (Quintessential), Dimi Panagiotopoulos (fal), Georgios
+Kontogiannis (Wonderful), Abed Hamami (διοργανωτής), Guy Krief (Big Pi Ventures), Markos Fragkiadakis (Leonidas),
+Orestis Meikopoulos (Τράπεζα Πειραιώς). Θα ρωτήσουν πώς δουλεύει, τι χτίστηκε στο hackathon, ποιον βοηθά και πού μπορεί
+να πάει.
+
 ## Τα σημαντικά με μια ματιά
 
 - **Έπαθλα (επιβεβαιωμένα): 5.000 / 2.500 / 1.000 €**, χορηγία της **Quintessential**. Άρα η Quintessential είναι ο
