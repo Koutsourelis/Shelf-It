@@ -38,7 +38,7 @@ window.TEAM = [
   {
     name: "Giannis Koutsourelis",
     role: "Business, retail and data",
-    built: "Brought the business side: the idea, insight from working in retail, and keeping the team organised. Made the agent's numbers defensible with market evidence through treg, sourced decision rules and public data.",
+    built: "Brought the business side: the idea, insight from working in retail, and keeping the team organised. Made the agent's numbers defensible with market evidence through treg, sourced decision rules and product data from Open Food Facts.",
     background: "BSc in Economics. Business intelligence and CRM analyst in retail, working on customer and commercial analytics.",
     skills: ["BI", "CRM analytics", "Python", "Retail"],
     linkedin: "https://www.linkedin.com/in/koutsourelis/",

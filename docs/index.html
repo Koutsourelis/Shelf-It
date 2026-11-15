@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shelf-it · the shelf agent for supermarkets</title>
-<meta name="description" content="Point a phone at a supermarket shelf. Shelf-it finds the gaps, tells the shelf worker what to bring from the backroom, and orders what is missing.">
-<meta property="og:title" content="Shelf-it · the shelf agent for supermarkets">
+<title>ShelfSense · the shelf agent for supermarkets</title>
+<meta name="description" content="Point a phone at a supermarket shelf. ShelfSense finds the gaps, tells the shelf worker what to bring from the backroom, and orders what is missing.">
+<meta property="og:title" content="ShelfSense · the shelf agent for supermarkets">
 <meta property="og:description" content="Point a phone at a shelf. Get the gaps, the refill and the order, with a source behind every number.">
-<meta property="og:image" content="shelf.jpg">
+<meta property="og:image" content="shelf-drinks.jpg">
 <meta name="theme-color" content="#0c2b22">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231F7A5C'/%3E%3Cpath d='M7.5 10.5h17M7.5 16h17M7.5 21.5h17' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='21' cy='16' r='2.1' fill='%23A7F3D0'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -241,7 +241,7 @@
   <div class="wrap">
     <a class="brand" href="#top">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1F7A5C"/><path d="M7.5 10.5h17M7.5 16h17M7.5 21.5h17" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="21" cy="16" r="2.1" fill="#A7F3D0"/></svg>
-      Shelf-it
+      ShelfSense
     </a>
     <div class="links">
       <a href="#problem">Problem</a>
@@ -263,9 +263,9 @@
   <div class="wrap">
     <div>
       <h1>Find shelf gaps from one phone photo.</h1>
-      <p class="sub">Shelf-it is an agent for supermarket department managers. Take a photo of a shelf and it finds
+      <p class="sub">ShelfSense is an agent for supermarket department managers. Take a photo of a shelf and it finds
         missing and misplaced products, tells the shelf worker what to bring from the backroom, and orders what the
-        backroom does not have. Every number it shows is computed by code and logged with its source.</p>
+        backroom does not have. The model reads the shelf; every count, unit and euro is computed by code and logged.</p>
       <div class="btns">
         <a class="btn solid" href="#how">How it works</a>
         <a class="btn ghost" href="#links">Code and demo</a>
@@ -275,26 +275,52 @@
 
     <figure style="margin:0">
       <div class="shot">
-        <img src="shelf.jpg" width="1400" height="1045" alt="A coffee shelf with three rows of products. The agent draws a box around each product and marks the empty space on each row.">
-        <!-- boxes: % of the photo -->
-        <div class="box" style="left:6%;top:6%;width:18.5%;height:23.8%;animation-delay:.2s"><span>C01 · 2/2</span></div>
-        <div class="box" style="left:25%;top:6%;width:27%;height:23.8%;animation-delay:.25s"><span>C02 · 3/3</span></div>
-        <div class="box" style="left:52.7%;top:6%;width:18%;height:23.8%;animation-delay:.3s"><span>C03 · 2/2</span></div>
-        <div class="box gap" style="left:71.5%;top:6%;width:25%;height:23.8%;animation-delay:.8s"><span>EMPTY</span></div>
-        <div class="box" style="left:6%;top:34.5%;width:18%;height:25%;animation-delay:.35s"><span>C04 · 2/2</span></div>
-        <div class="box" style="left:25%;top:34.5%;width:18.3%;height:25%;animation-delay:.4s"><span>C05 · 2/2</span></div>
-        <div class="box" style="left:44%;top:34.5%;width:17.8%;height:25%;animation-delay:.45s"><span>C06 · 2/2</span></div>
-        <div class="box gap" style="left:62.5%;top:34.5%;width:34%;height:25%;animation-delay:.9s"><span>EMPTY · EYE LEVEL</span></div>
-        <div class="box" style="left:6%;top:64.6%;width:18.5%;height:25.5%;animation-delay:.5s"><span>C07 · 2/2</span></div>
-        <div class="box" style="left:25%;top:64.6%;width:18%;height:25.5%;animation-delay:.55s"><span>C08 · 2/2</span></div>
-        <div class="box" style="left:44%;top:64.6%;width:27%;height:25.5%;animation-delay:.6s"><span>C09 · 3/3</span></div>
-        <div class="box gap" style="left:71.5%;top:64.6%;width:25%;height:25.5%;animation-delay:1s"><span>EMPTY</span></div>
+        <img src="shelf-drinks.jpg" width="1400" height="1050" alt="A supermarket shelf of Greek beers and soft drinks on five shelves. The agent outlines every product and marks three empty slots.">
+        <!-- boxes: box_2d from data/shelf/sets/drinks/photos/drinks_real_gaps.reading.json (0-1000 → %) -->
+        <div class="box" style="left:9.3%;top:14.0%;width:14.0%;height:15.6%;animation-delay:0.15s"></div>
+        <div class="box" style="left:23.3%;top:14.0%;width:12.7%;height:15.6%;animation-delay:0.17s"></div>
+        <div class="box" style="left:36.0%;top:14.0%;width:6.7%;height:15.8%;animation-delay:0.19s"></div>
+        <div class="box" style="left:42.8%;top:14.0%;width:6.7%;height:15.8%;animation-delay:0.21s"></div>
+        <div class="box" style="left:49.7%;top:14.0%;width:10.8%;height:15.8%;animation-delay:0.23s"></div>
+        <div class="box" style="left:60.8%;top:13.8%;width:6.9%;height:16.2%;animation-delay:0.25s"></div>
+        <div class="box" style="left:68.2%;top:17.8%;width:11.3%;height:12.2%;animation-delay:0.27s"></div>
+        <div class="box" style="left:79.8%;top:17.8%;width:11.9%;height:12.4%;animation-delay:0.29s"></div>
+        <div class="box" style="left:8.8%;top:33.8%;width:16.2%;height:10.9%;animation-delay:0.31s"></div>
+        <div class="box" style="left:42.0%;top:34.0%;width:10.0%;height:11.1%;animation-delay:0.33s"></div>
+        <div class="box" style="left:52.5%;top:34.0%;width:10.2%;height:11.1%;animation-delay:0.35s"></div>
+        <div class="box" style="left:63.3%;top:34.0%;width:10.4%;height:11.3%;animation-delay:0.37s"></div>
+        <div class="box" style="left:74.2%;top:34.2%;width:10.1%;height:11.4%;animation-delay:0.39s"></div>
+        <div class="box" style="left:84.8%;top:34.4%;width:6.9%;height:11.2%;animation-delay:0.41s"></div>
+        <div class="box" style="left:8.3%;top:48.9%;width:16.2%;height:8.0%;animation-delay:0.43s"></div>
+        <div class="box" style="left:40.7%;top:49.3%;width:12.8%;height:8.0%;animation-delay:0.45s"></div>
+        <div class="box" style="left:53.8%;top:49.6%;width:10.2%;height:8.0%;animation-delay:0.47s"></div>
+        <div class="box" style="left:64.5%;top:49.8%;width:10.3%;height:8.0%;animation-delay:0.49s"></div>
+        <div class="box" style="left:75.2%;top:49.8%;width:10.1%;height:8.2%;animation-delay:0.51s"></div>
+        <div class="box" style="left:85.7%;top:50.0%;width:6.6%;height:8.0%;animation-delay:0.53s"></div>
+        <div class="box" style="left:8.0%;top:60.9%;width:16.3%;height:8.2%;animation-delay:0.55s"></div>
+        <div class="box" style="left:24.5%;top:61.3%;width:12.8%;height:8.3%;animation-delay:0.57s"></div>
+        <div class="box" style="left:37.5%;top:61.6%;width:10.0%;height:8.2%;animation-delay:0.59s"></div>
+        <div class="box" style="left:47.7%;top:61.8%;width:7.3%;height:8.2%;animation-delay:0.61s"></div>
+        <div class="box" style="left:55.3%;top:62.0%;width:10.4%;height:8.2%;animation-delay:0.63s"></div>
+        <div class="box" style="left:66.0%;top:62.2%;width:9.2%;height:8.2%;animation-delay:0.65s"></div>
+        <div class="box" style="left:75.5%;top:62.2%;width:9.2%;height:8.2%;animation-delay:0.67s"></div>
+        <div class="box" style="left:85.0%;top:62.4%;width:7.5%;height:8.3%;animation-delay:0.69s"></div>
+        <div class="box" style="left:7.3%;top:73.3%;width:12.2%;height:20.9%;animation-delay:0.71s"></div>
+        <div class="box" style="left:19.5%;top:73.8%;width:12.3%;height:21.1%;animation-delay:0.73s"></div>
+        <div class="box" style="left:45.0%;top:74.7%;width:13.3%;height:21.1%;animation-delay:0.75s"></div>
+        <div class="box" style="left:58.7%;top:74.9%;width:13.8%;height:21.3%;animation-delay:0.77s"></div>
+        <div class="box" style="left:73.0%;top:75.3%;width:9.3%;height:21.1%;animation-delay:0.79s"></div>
+        <div class="box" style="left:82.8%;top:75.6%;width:9.5%;height:21.1%;animation-delay:0.81s"></div>
+        <div class="box gap" style="left:25.0%;top:33.8%;width:17.0%;height:11.2%;animation-delay:1.00s"><span>MISSING · MYTHOS 500ML</span></div>
+        <div class="box gap" style="left:24.5%;top:48.9%;width:16.2%;height:8.4%;animation-delay:1.15s"><span>MISSING · MYTHOS 330ML</span></div>
+        <div class="box gap" style="left:31.8%;top:73.8%;width:13.2%;height:22.0%;animation-delay:1.30s"><span>MISSING · ΛΟΥΞ COLA 1,5L</span></div>
       </div>
-      <figcaption class="note">Illustration of the agent's output. The shelf image and brands are made up for the demo.</figcaption>
+      <figcaption class="note">Test shelf composed by code from real Greek product photos (sklavenitis.gr), not a photo of a
+        real store. Boxes come from the reading stored with this photo; the three gaps are in its planogram.</figcaption>
     </figure>
   </div>
   <div class="wrap">
-    <p class="built"><b>Built with</b> Gemini, treg, fal, Telegram, FastAPI and DuckDB.</p>
+    <p class="built"><b>Built with</b> Gemini, treg, fal, Telegram, FastAPI, DuckDB and Open Food Facts.</p>
   </div>
 </header>
 
@@ -314,9 +340,10 @@
     <div class="stats">
       <div class="stat"><div class="n">8.3%</div><p>of products are missing from the shelf at any given moment, on average.</p></div>
       <div class="stat"><div class="n">40%</div><p>of those sales are lost to the store: 31% of shoppers buy elsewhere, 9% buy nothing.</p></div>
-      <div class="stat"><div class="n">1 in 4</div><p>gaps are products the store already has in the backroom.</p></div>
+      <div class="stat"><div class="n">1 in 4</div><p>gaps are products the store already has, just not on the shelf.</p></div>
     </div>
-    <p class="cite">Source: Gruen, Corsten &amp; Bharadwaj (2002), 52 studies across 29 countries.</p>
+    <p class="cite">Source: Gruen, Corsten &amp; Bharadwaj (2002): 52 studies in 29 countries; the 8.3% average comes
+      from the 40 that measured it.</p>
   </div>
 </section>
 
@@ -327,19 +354,19 @@
     <ol class="steps">
       <li class="step">
         <h3>Snap <span class="tag t-person">person</span></h3>
-        <p>One tap on the phone, or a live camera that sends a frame every second.</p>
+        <p>One tap on the phone, or a phone left on the shelf as a live camera, checked every 5 seconds.</p>
       </li>
       <li class="step">
         <h3>Read <span class="tag t-model">model</span></h3>
         <p>Gemini turns the photo into a table: shelf, position, product, facings, box.</p>
       </li>
       <li class="step">
-        <h3>Check <span class="tag t-code">code</span></h3>
-        <p>Code compares the table with the planogram: missing, short, or on the wrong shelf.</p>
+        <h3>Check <span class="tag t-model">model + code</span></h3>
+        <p>The shelf is checked against the planogram: missing, short, or on the wrong shelf.</p>
       </li>
       <li class="step">
         <h3>Act <span class="tag t-code">code</span></h3>
-        <p>A task for the shelf worker, a Telegram alert, and an order to the warehouse.</p>
+        <p>A task for the shelf worker, a Telegram alert, and an order to the central warehouse.</p>
       </li>
       <li class="step">
         <h3>Refill <span class="tag t-person">person</span></h3>
@@ -347,9 +374,9 @@
       </li>
     </ol>
     <div class="split">
-      <p><b>The model reads.</b> It looks at the photo and writes the sentences.</p>
-      <p><b>Code decides.</b> Every count, ranking and euro amount is computed and logged.</p>
-      <p><b>People approve.</b> Orders above the limit wait for a yes on the phone.</p>
+      <p><b>The model reads.</b> It reads the shelf and writes the sentences.</p>
+      <p><b>Code computes.</b> Every count, unit, case and euro is computed by code and logged.</p>
+      <p><b>People approve.</b> Orders above the limit wait for a yes, in the console or on Telegram.</p>
     </div>
   </div>
 </section>
@@ -357,29 +384,30 @@
 <section id="arch">
   <div class="wrap">
     <h2>Architecture</h2>
-    <p class="intro">One agent and a small set of tools. The model only reads the photo; code does the rest.</p>
+    <p class="intro">One agent and a small set of tools. The model reads the shelf; code computes every number.</p>
     <div class="arch">
       <div class="lane">
         <h3><span class="tag t-person">person</span> Capture</h3>
         <div class="node p"><b>One-tap scan</b>Phone camera page <code>/capture</code></div>
-        <div class="node p"><b>Live camera</b>One frame a second <code>/cam</code></div>
+        <div class="node p"><b>Live camera</b>Checked every 5 seconds <code>/cam</code></div>
       </div>
       <div class="lane">
         <h3><span class="tag t-model">model</span> Read</h3>
-        <div class="node m"><b>Gemini vision</b>Photo in, table out: shelf, position, product, facings, box</div>
-        <div class="node m"><b>Unknown shelf</b>A photo with no catalogue still gets gaps and obvious errors</div>
+        <div class="node m"><b>Gemini vision</b>Photo in: products, shelf, facings, boxes, and what looks missing or misplaced</div>
+        <div class="node m"><b>Unknown shelf</b>A photo outside the catalogue still gets gaps and products that do not belong</div>
       </div>
       <div class="lane">
         <h3><span class="tag t-code">code</span> Decide</h3>
         <div class="node c"><b>Planogram check</b>Missing, short, wrong shelf, wrong order</div>
-        <div class="node c"><b>Rules K1–K6</b>Ranking, refill, layout <code>rules.json</code></div>
+        <div class="node c"><b>Rules K1–K8</b>Refill and layout <code>rules.json</code></div>
         <div class="node c"><b>Evidence pack</b>Market sources per product <code>treg</code></div>
+        <div class="node c"><b>Product identity</b>Barcode, pack size, category <code>Open Food Facts</code></div>
       </div>
       <div class="lane">
         <h3><span class="tag t-code">code</span> Act</h3>
         <div class="node c"><b>Task for the worker</b>Crop of the spot, units, where from <code>/tasks · Telegram</code></div>
         <div class="node p"><b>Warehouse order</b>Up to 3 cases or €50 on its own; above that a person approves</div>
-        <div class="node c"><b>Shelf talker</b>Printable sign for an accepted layout change <code>fal</code></div>
+        <div class="node c"><b>Shelf talker</b>Printable sign once name and price are confirmed <code>fal</code></div>
       </div>
     </div>
     <p class="after-arch">Every tool call and every figure is written to an audit trail shown in the console.</p>
@@ -389,40 +417,41 @@
 <section id="inside">
   <div class="wrap">
     <h2>What works today</h2>
-    <p class="intro">Tested end to end with Gemini on generated and real shelf photos, and offline with a built-in mock model.</p>
+    <p class="intro">Tested with Gemini on generated and real shelf photos, and offline with a built-in mock model.</p>
     <div class="works">
       <ul class="feat-list">
         <li><h3>Tasks a shelf worker can act on</h3><p>Each gap becomes a task with a crop of the spot, the number of
-          units and where to get them. Tasks are ranked by the sales each gap is losing.</p><code>/tasks · Telegram</code></li>
-        <li><h3>Live camera loop</h3><p>A phone on the shelf streams one frame a second; the model checks it every few
-          seconds.</p><code>/cam · Gemini</code></li>
+          units and where to get them. Missing products come first, then short facings, then misplaced ones.</p><code>/tasks · Telegram</code></li>
+        <li><h3>Live camera loop</h3><p>A phone on the shelf sends a frame every 5 seconds. A task closes only when a
+          later frame shows the shelf fixed.</p><code>/cam · Gemini</code></li>
         <li><h3>Orders with limits</h3><p>Up to 3 cases or €50 it orders on its own. Anything bigger waits for a person
           to approve.</p><code>warehouse portal · approvals</code></li>
         <li><h3>Evidence per product</h3><p>Searches Greek trade and financial press. A claim is kept only if its quote
-          appears word for word, with a date.</p><code>treg web and news search</code></li>
-        <li><h3>Shelf talkers</h3><p>When a layout change is accepted, it makes a printable sign for the shelf edge.</p><code>fal image generation</code></li>
+          appears word for word in the source, and a number only if the source is dated.</p><code>treg web and news search</code></li>
+        <li><h3>Shelf talkers</h3><p>When the manager accepts a layout change and confirms name and price, it makes a
+          printable sign for the shelf edge.</p><code>fal image generation</code></li>
         <li><h3>Runs without an API key</h3><p>A built-in offline model replays the whole flow, so the demo does not
           depend on venue Wi-Fi.</p><code>mock provider · replay</code></li>
       </ul>
       <div class="examples">
         <div>
-          <p class="ex-cap">Example task</p>
+          <p class="ex-cap">Example task, from the shelf above</p>
           <div class="task" aria-label="Example task">
-            <div class="hd"><span class="dot" aria-hidden="true"></span>Refill · eye level, coffee</div>
-            <div class="row"><span class="k">Product</span><span class="v">Espresso capsules ×10</span></div>
-            <div class="row"><span class="k">On shelf</span><span class="v">1 of 3 facings</span></div>
-            <div class="row"><span class="k">Bring</span><span class="v">12 units · backroom</span></div>
-            <div class="row"><span class="k">Why first</span><span class="v">Highest lost sales</span></div>
+            <div class="hd"><span class="dot" aria-hidden="true"></span>Refill · eye level, beer</div>
+            <div class="row"><span class="k">Product</span><span class="v">Mythos lager can 330ml</span></div>
+            <div class="row"><span class="k">On shelf</span><span class="v">0 of 5 facings</span></div>
+            <div class="row"><span class="k">Bring</span><span class="v">20 units · backroom</span></div>
+            <div class="row"><span class="k">Why first</span><span class="v">Missing product</span></div>
           </div>
         </div>
         <div>
-          <p class="ex-cap">Example audit trail</p>
+          <p class="ex-cap">Example audit trail, same shelf</p>
           <div class="log" aria-label="Example audit trail">
-            <div><span>read_shelf</span>9 products, 3 empty spaces</div>
-            <div><span>check_planogram</span>findings per product</div>
-            <div><span>replenishment_plan</span>units from backroom · K1, K2</div>
-            <div><span>order_from_warehouse</span>within limit → placed</div>
-            <div><span>layout_suggestions</span>K3 · +€1.54 / day</div>
+            <div><span>read_shelf</span>34 products on 5 shelves</div>
+            <div><span>check_planogram</span>3 missing: D12, D22, D43</div>
+            <div><span>replenishment_plan</span>D22: 20 units from backroom · K1, K2</div>
+            <div><span>order_from_warehouse</span>D12, D43: 3 cases, within limit → placed</div>
+            <div><span>layout_suggestions</span>up to two moves · K3–K8</div>
           </div>
         </div>
       </div>
@@ -432,9 +461,9 @@
 
 <section class="dark" id="proof">
   <div class="wrap">
-    <h2>Six rules decide what to suggest</h2>
-    <p class="intro">Each rule comes from published retail research. A suggestion shows its rule, its numbers and its
-      source. If a figure is missing, the rule does not run.</p>
+    <h2>Eight rules decide what to suggest</h2>
+    <p class="intro">Six come from published retail research and two are team rules from merchandising practice. A
+      suggestion shows its rule, its numbers and its source. If a figure is missing, the rule does not run.</p>
     <div class="rules-grid">
       <div class="label">
         <div class="what">Move one facing from Mountain tea to Espresso capsules</div>
@@ -444,6 +473,7 @@
           <dt>Loss</dt><dd>−€0.43 a day</dd>
           <dt>Net</dt><dd class="plus">+€1.54 margin a day</dd>
           <dt>Source</dt><dd>Eisend 2014, space elasticity 0.17</dd>
+          <dt>Sales</dt><dd>28 days, synthetic</dd>
         </dl>
       </div>
       <ol class="rules">
@@ -453,6 +483,8 @@
         <li><span class="k">K4</span><span><b>Which height.</b> <span>Best margin per facing at eye level</span></span><small>Drèze et al. 1994; Chandon et al. 2009</small></li>
         <li><span class="k">K5</span><span><b>Left or right.</b> <span>Target product in the centre</span></span><small>Atalay et al. 2012</small></li>
         <li><span class="k">K6</span><span><b>Private label.</b> <span>Next to the category leader</span></span><small>Sayman et al. 2002</small></li>
+        <li><span class="k">K7</span><span><b>Destination products.</b> <span>What shoppers look for anyway goes bottom right, not at eye level</span></span><small>Team rule</small></li>
+        <li><span class="k">K8</span><span><b>Heavy packs.</b> <span>1 kg or 1 litre and over on the bottom shelf</span></span><small>Team rule</small></li>
       </ol>
     </div>
   </div>
@@ -461,24 +493,25 @@
 <section id="data">
   <div class="wrap">
     <h2>What is real and what is synthetic</h2>
-    <p class="intro">Market evidence, research figures and one shelf photo are real. Anything only a retailer would
-      have is made up for the demo.</p>
+    <p class="intro">Market evidence, research figures, product data and the drinks prices are real. Anything only a
+      retailer would have is made up for the demo.</p>
     <div class="data-grid">
       <div class="data-col">
         <h3><span class="tag t-code">real</span> Used as is</h3>
         <ul>
-          <li><b>One supermarket shelf photo</b><span>Traditional Greek products. Product names and shelf-label prices in the second demo catalogue are read from it</span></li>
+          <li><b>Product identity</b><span>Name, brand, pack size and barcode from Open Food Facts</span></li>
+          <li><b>Shelf prices, drinks set</b><span>37 Greek products, prices from sklavenitis.gr on 15 Nov 2026</span></li>
           <li><b>Market evidence per category</b><span>IELKA, Self Service, Naftemporiki and other trade press, searched through treg</span></li>
           <li><b>How shoppers react to gaps</b><span>52 studies in 29 countries (Gruen et al. 2002)</span></li>
-          <li><b>The six rules</b><span>Peer-reviewed retail research, 1994–2014</span></li>
+          <li><b>Rules K1–K6</b><span>Peer-reviewed retail research, 1994–2014</span></li>
         </ul>
       </div>
       <div class="data-col">
         <h3><span class="tag t-person">synthetic</span> Made up for the demo</h3>
         <ul>
           <li><b>Sales, purchase cost and backroom stock</b><span>Generated. A retailer would plug in its own</span></li>
-          <li><b>Planograms</b><span>Written by the team. The second one copies the layout in the real photo</span></li>
-          <li><b>Coffee shelf image, products and prices</b><span>Generated, no real store, chain or brand</span></li>
+          <li><b>Planograms and rules K7–K8</b><span>Written by the team</span></li>
+          <li><b>Shelf images</b><span>The coffee shelf is generated. The drinks shelf is composed by code from real product photos, not taken in a store</span></li>
           <li><b>Central warehouse</b><span>A simulated ordering portal</span></li>
         </ul>
       </div>
@@ -517,7 +550,7 @@
 <section id="team">
   <div class="wrap">
     <h2>Team</h2>
-    <p class="intro">Five roles, one per stage of the agent.</p>
+    <p class="intro">Five people, two days.</p>
     <div class="team-strip" id="team-strip"></div>
     <a class="team-more" href="team.html">What each person built</a>
   </div>
@@ -555,7 +588,7 @@ const PAGE = {
   if (PAGE.video) {
     const id = yt(PAGE.video);
     document.getElementById("video").innerHTML = id
-      ? `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0" title="Shelf-it demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+      ? `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0" title="ShelfSense demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
       : `<video controls playsinline preload="metadata" src="${esc(PAGE.video)}"></video>`;
     document.getElementById("demo").hidden = false;
   }
