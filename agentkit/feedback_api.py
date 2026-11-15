@@ -77,19 +77,12 @@ def _local_talker_art(theme: str) -> bytes:
     return buf.getvalue()
 
 
-@router.post("/{recommendation_id}/talker")
-async def create_talker(recommendation_id: str, request: Request):
-    """Δημιουργεί εκτυπώσιμο PNG ταμπελάκι για πρόταση με επιβεβαιωμένο όνομα & τιμή (fal αν υπάρχει FAL_KEY, αλλιώς τοπικά)."""
+async def build_talker_for_recommendation(recommendation_id: str, theme: str = "fresh") -> dict:
+    """Δημιουργεί PNG ταμπελάκι (fal αν υπάρχει FAL_KEY, αλλιώς τοπικά μέσω Pillow) και ενημερώνει το proposal."""
     import os
     from . import config, shelf_talker as st, tasks
-    try:
-        body = json.loads(await request.body() or b"{}") if await request.body() else {}
-    except (ValueError, UnicodeDecodeError):
-        raise HTTPException(422, "request body must be valid JSON")
-    theme = (body.get("theme") or "fresh") if isinstance(body, dict) else "fresh"
     if theme not in st.THEMES:
         theme = "fresh"
-
     try:
         conf, missing, summary = await asyncio.to_thread(st.confirmed_inputs, recommendation_id)
     except st.TalkerError as e:
@@ -117,3 +110,15 @@ async def create_talker(recommendation_id: str, request: Request):
         return {"status": "generated", "source": "local", "file": rel, "price_text": p_txt}
 
     return await asyncio.to_thread(_build_local)
+
+
+@router.post("/{recommendation_id}/talker")
+async def create_talker(recommendation_id: str, request: Request):
+    """Δημιουργεί εκτυπώσιμο PNG ταμπελάκι για πρόταση με επιβεβαιωμένο όνομα & τιμή (fal αν υπάρχει FAL_KEY, αλλιώς τοπικά)."""
+    raw = await request.body()
+    try:
+        body = json.loads(raw or b"{}") if raw else {}
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(422, "request body must be valid JSON")
+    theme = (body.get("theme") or "fresh") if isinstance(body, dict) else "fresh"
+    return await build_talker_for_recommendation(recommendation_id, theme)

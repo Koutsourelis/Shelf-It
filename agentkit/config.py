@@ -86,8 +86,10 @@ BROWSER_HEADLESS = _env("BROWSER_HEADLESS", "1") == "1"
 
 # --- Κανάλια -----------------------------------------------------------
 TELEGRAM_BOT_TOKEN = _env("TELEGRAM_BOT_TOKEN")
+# Προαιρετικό προεπιλεγμένο chat id (ή λίστα με κόμμα) για ειδοποιήσεις από την εκκίνηση.
+TELEGRAM_CHAT_ID = _env("TELEGRAM_CHAT_ID")
 # Κενό = δέχεται όλους. Αλλιώς λίστα chat id χωρισμένη με κόμμα.
-TELEGRAM_ALLOWED_CHATS = {c for c in _env("TELEGRAM_ALLOWED_CHATS").split(",") if c}
+TELEGRAM_ALLOWED_CHATS = {c.strip() for c in _env("TELEGRAM_ALLOWED_CHATS").split(",") if c.strip()}
 
 SMTP_HOST = _env("SMTP_HOST")
 SMTP_PORT = int(_env("SMTP_PORT", "587"))

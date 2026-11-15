@@ -138,11 +138,14 @@ async def _notify(text: str) -> None:
 
 async def _act(frame: Path, found: list[dict], sig: tuple) -> dict:
     """Η γρήγορη διαδρομή: εργασίες και παραγγελίες σε κώδικα. Ο agent είναι προαιρετικός."""
-    from . import agent
+    from . import agent, telegram
     changed = await asyncio.to_thread(tasks.sync, found, frame)
     STATE.reported_sig = sig
     if changed["new"] or changed["resolved"]:
-        await _notify(_notify_text(changed))
+        try:
+            await telegram.notify_shelf_change(changed, frame)
+        except Exception as e:
+            events.emit("system", "log", text=f"Telegram: {e}")
     events.emit("system", "live_report", frame=frame.name, open=len(tasks.open_tasks()),
                 new=len(changed["new"]), resolved=len(changed["resolved"]))
 
@@ -177,9 +180,10 @@ def _save(data: bytes) -> Path:
     LIVE_DIR.mkdir(parents=True, exist_ok=True)
     path = LIVE_DIR / f"frame_{time.strftime('%H%M%S')}_{STATE.frames:04d}.jpg"
     path.write_bytes(data)
-    old = sorted(LIVE_DIR.glob("frame_*.jpg"))
+    old = sorted(LIVE_DIR.glob("frame_*.jpg"), key=lambda p: p.stat().st_mtime)
     for p in old[:-KEEP_FRAMES]:
-        p.unlink(missing_ok=True)
+        if p != path:
+            p.unlink(missing_ok=True)
     return path
 
 

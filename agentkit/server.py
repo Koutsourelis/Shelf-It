@@ -174,6 +174,11 @@ async def demo(action: str):
     elif action == "check_now":
         started = await watchers.check_once(telegram.default_notifier)
         text = f"Έλεγχος τώρα: ξεκίνησαν {len(started)} εκτελέσεις."
+    elif action == "test_telegram":
+        res = await telegram.send_test_ping()
+        if not res["ok"]:
+            raise HTTPException(400, res["text"])
+        text = res["text"]
     else:
         raise HTTPException(404, "Άγνωστη ενέργεια")
     events.emit("system", "demo", text=text)
@@ -256,6 +261,7 @@ async def live_status():
 @app.post("/api/live/reset")
 async def live_reset():
     live.STATE.reset()
+    portal.orders.clear()
     return {"ok": True}
 
 
@@ -325,18 +331,34 @@ async def photo(name: str):
 
 @app.get("/api/links")
 async def links():
-    return {"tasks": _phone_url("/tasks"), "capture": _phone_url("/capture"), "shelf": _phone_url("/shelf"),
-            "host": config.HOST}
+    return {
+        "tasks": _phone_url("/tasks"),
+        "capture": _phone_url("/capture"),
+        "shelf": _phone_url("/shelf"),
+        "telegram": {
+            "enabled": bool(config.TELEGRAM_BOT_TOKEN),
+            "username": telegram.bot_username,
+            "url": telegram.bot_url(),
+            "subscribers": len(telegram.subscribers()),
+        },
+        "host": config.HOST,
+    }
 
 
 @app.get("/qr.svg")
 async def qr(path: str = "/tasks"):
-    """QR για το κινητό. Το path μένει μέσα στον server (όχι εξωτερικές διευθύνσεις)."""
-    if not path.startswith("/") or path.startswith("//"):
+    """QR για το κινητό (σελίδες αυτού του server ή το συνδεδεμένο Telegram bot)."""
+    if path == "telegram":
+        target = telegram.bot_url()
+        if not target:
+            raise HTTPException(404, "Δεν είναι ενεργό το Telegram bot")
+    elif path.startswith("/") and not path.startswith("//"):
+        target = _phone_url(path)["url"]
+    else:
         raise HTTPException(400, "Μόνο σελίδες αυτού του server")
     import qrcode
     import qrcode.image.svg
-    img = qrcode.make(_phone_url(path)["url"], image_factory=qrcode.image.svg.SvgPathImage, box_size=12, border=2)
+    img = qrcode.make(target, image_factory=qrcode.image.svg.SvgPathImage, box_size=12, border=2)
     buf = io.BytesIO()
     img.save(buf)
     return Response(buf.getvalue(), media_type="image/svg+xml", headers={"Cache-Control": "no-store"})
@@ -384,7 +406,9 @@ async def system():
         "agent": {"provider": config.LLM_PROVIDER, "scenarios": list(SCENARIOS), "tools": sorted(REGISTRY),
                   "runs": len(agent.RUNS)},
         "phone": {"url": phone["url"], "reachable": phone["reachable"], "host": config.HOST,
-                  "public_url": config.PUBLIC_URL or None, "telegram": bool(config.TELEGRAM_BOT_TOKEN)},
+                  "public_url": config.PUBLIC_URL or None, "telegram": bool(config.TELEGRAM_BOT_TOKEN),
+                  "telegram_bot": f"@{telegram.bot_username}" if telegram.bot_username else None,
+                  "telegram_subscribers": len(telegram.subscribers())},
         "data": {"eval_cases": eval_cases, "last_eval": evals[-1].name if evals else None},
         "checks": [
             check(config.vision_provider() != "mock", f"Μοντέλο όρασης: {config.vision_model()}",

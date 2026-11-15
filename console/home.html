@@ -283,6 +283,7 @@
         <div class="seg" role="tablist" aria-label="Επιλογή σελίδας κινητού">
           <button type="button" class="on" role="tab" aria-selected="true" data-qr="/tasks">Εργασίες</button>
           <button type="button" role="tab" aria-selected="false" data-qr="/capture">Σάρωση</button>
+          <button type="button" role="tab" aria-selected="false" data-qr="telegram" id="tgQrTab" hidden>Telegram</button>
         </div>
 
         <div class="qr-well">
@@ -331,7 +332,13 @@
   window.ShelfSenseShell?.setTaskBadge(st.open);
 
   let activePath = "/tasks";
-  const urlFor = p => (p === "/capture" ? links.capture : links.tasks);
+  if (links.telegram && links.telegram.url) {
+    document.getElementById("tgQrTab").hidden = false;
+  }
+  const urlFor = p => {
+    if (p === "telegram" && links.telegram?.url) return { url: links.telegram.url, reachable: true };
+    return p === "/capture" ? links.capture : links.tasks;
+  };
 
   function updateQr(path) {
     activePath = path;

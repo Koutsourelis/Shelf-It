@@ -479,10 +479,15 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
 
     source = f"{SOURCES[rule]}· πωλήσεις {DAYS} ημερών"
     rec_id = _register_proposal_recommendation(getattr(ctx, "run_id", "") or "live", kind, rule, reason, featured, other)
-    await asyncio.to_thread(tasks.add_proposal, {
+    prop = await asyncio.to_thread(tasks.add_proposal, {
         "kind": kind, "rule": rule, "text": text, "numbers": numbers, "reason": reason, "source": source, "note": note,
         "recommendation_id": rec_id, "featured_sku": featured["sku"], "featured_name": featured["name"],
         "unit_price": featured["unit_price"], "a": _side(a, boxes), "b": _side(b, boxes)})
+    try:
+        from .. import telegram
+        await telegram.notify_proposal(prop)
+    except Exception:
+        pass
     return (f"Καταχωρήθηκε και φαίνεται στην οθόνη του υπεύθυνου ({rec_id}): {text}.\nΑριθμός: {numbers}.\nΠηγή: {source}.\n{note} "
             "Την αλλαγή στο πλανόγραμμα την εγκρίνει ο category manager.")
 
