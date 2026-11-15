@@ -23,7 +23,7 @@ window.TEAM = [
     skills: ["Software Development", "AI Tools & API Integration", "Reverse Engineering"],
     linkedin: "www.linkedin.com/in/anastasios-ntoukas-7614872bb",
     github: "https://github.com/itsTasos",
-    photo: "",
+    photo: "team/profpic.jpg",
   },
   {
     name: "",
