@@ -89,6 +89,8 @@ TREG_TOKEN=
 python -m agentkit.server
 ```
 
+**Phone camera on the same Wi-Fi (no tunnel):** with `HOST=0.0.0.0` in `.env`, the server also listens on HTTPS (port `8443`, `HTTPS_PORT` to change, `0` to switch off) with a certificate it creates for the laptop's address (`agentkit/tls.py`, stored under `state/tls/`, never committed). The live camera page `/cam` needs it: phone browsers give a page the camera only over HTTPS. The QR code for the live camera points there, and `/cam` opened over plain HTTP moves to it by itself. The certificate is self-signed, so the phone shows a warning once: choose "Advanced", then "Proceed". Needs the `openssl` program.
+
 **With automatic HTTPS tunnel for mobile cameras (4G/5G or isolated guest Wi-Fi):**
 ```bash
 python scripts/run_tunnel.py
@@ -104,7 +106,7 @@ Open **`http://localhost:8000`**.
 | Route | Purpose |
 |---|---|
 | `/` | Home overview, live shelf status, and mobile pairing QR codes (`Tasks`, `Live Cam`, `Photo`, `Telegram`) |
-| `/shelf` | Department stage: live webcam or wireless mobile mirror, AR bounding boxes & swap arrows, tasks, K3–K7 proposals, shelf talkers, and timeline (`/shelf?dev=1` enables test controls) |
+| `/shelf` | Department stage: latest analysed shelf photo (uploaded file, phone or Telegram) or wireless mobile mirror, AR bounding boxes & swap arrows, tasks, K3–K7 proposals, shelf talkers, and timeline (`/shelf?dev=1` enables test controls) |
 | `/cam` | Continuous mobile viewfinder (`getUserMedia` + Wake Lock): streams 1 FPS preview to `/shelf` and runs diff-gated Gemini scans hands-free |
 | `/capture` | Single-photo mobile scanner (`<input capture>`): works over plain HTTP without camera stream permissions |
 | `/tasks` | Store worker queue: prioritized tasks with cropped shelf photos; tasks auto-resolve on rescan |
@@ -116,7 +118,7 @@ Open **`http://localhost:8000`**.
 ## Architecture & Decision Rules
 
 ```text
-Phone (/cam, /capture, Telegram) or Aisle Webcam (/shelf)
+Phone (/cam, /capture, Telegram) or photo file (/shelf)
   │
   ├─► Live Fast Path (agentkit/live.py + agentkit/tasks.py)
   │     1. Luminance & 64×48 pixel-diff gate (skips unchanged / covered frames)

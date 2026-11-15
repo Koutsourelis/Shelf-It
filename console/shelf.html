@@ -90,7 +90,7 @@
     aspect-ratio: 16 / 9;
     box-shadow: var(--surface-shadow);
   }
-  .stage video, .stage canvas, .stage img {
+  .stage canvas, .stage img {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -109,7 +109,7 @@
     font-size: var(--fs-body);
     line-height: 1.5;
   }
-  .stage .hint[hidden], .stage img[hidden], .stage video[hidden] { display: none !important; }
+  .stage .hint[hidden], .stage img[hidden] { display: none !important; }
   .stage .hint a { color: #64D2FF; }
   .stage .hint code { background: rgba(255, 255, 255, 0.12); color: #F5F5F7; }
 
@@ -438,21 +438,20 @@
       <span class="light-ico" id="lightIco" aria-hidden="true"></span>
       <div class="light-main">
         <span id="lightPrev" hidden>Προηγούμενο αποτέλεσμα:</span>
-        <b id="lightTitle">Εκκίνηση κάμερας…</b>
+        <b id="lightTitle">Φόρτωση…</b>
         <span id="lightSub"></span>
       </div>
       <div class="right" id="lightRight"></div>
     </div>
 
     <div class="stage" id="stage">
-      <video id="video" autoplay playsinline muted></video>
       <img id="still" alt="Εικόνα ραφιού" hidden>
       <canvas id="overlay"></canvas>
       <div class="stage-badge" id="stageBadge" hidden></div>
       <div class="stage-bar" id="stageBar" role="tablist" aria-label="Προβολή εικόνας ραφιού" hidden>
         <button type="button" data-sview="corrected" class="on">Διορθωμένο ράφι</button>
         <button type="button" data-sview="ar">Αρχική λήψη (AR)</button>
-        <button type="button" data-sview="live" id="sviewLiveBtn" hidden>Ζωντανή κάμερα</button>
+        <button type="button" data-sview="live" id="sviewLiveBtn" hidden>Κάμερα κινητού</button>
       </div>
       <div class="scan" id="scan"></div>
       <div class="hint" id="hint" hidden></div>
@@ -461,15 +460,13 @@
     <div class="bar">
       <button id="now" type="button">Έλεγχος τώρα</button>
       <button id="pickPhotoBtn" type="button" class="ghost">Από αρχείο…</button>
-      <button id="pause" class="ghost">Παύση</button>
-      <button id="mirrorBtn" class="ghost">Κάμερα κινητού</button>
+      <button id="pause" class="ghost" title="Παύση ή συνέχεια της κάμερας κινητού (/cam)">Παύση</button>
       <button id="ref" class="ghost" title="Αποθήκευση τρέχοντος frame ως εικόνας αναφοράς">Ορισμός αναφοράς</button>
       <span class="bar-state" id="barState"></span>
       <span class="count" id="count" aria-hidden="true"></span>
     </div>
 
     <div class="devbar">
-      <select id="cam" class="btn ghost" aria-label="Επιλογή κάμερας"></select>
       <button class="ghost" id="file">Από αρχείο…</button>
       <button class="ghost" data-mock="sample_before">Mock: Έλλειψη</button>
       <button class="ghost" data-mock="sample_after">Mock: Σωστό</button>
@@ -563,9 +560,10 @@ document.querySelectorAll("[data-insp]").forEach(btn => {
   };
 });
 
-const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
-let interval = 30, countdown = 0, paused = false, last = null, sending = false, usingFile = false;
-let mirrorMode = new URLSearchParams(location.search).has("mirror"), manualLocal = false;
+// Η οθόνη δεν ανοίγει κάμερα του υπολογιστή. Δείχνει την τελευταία φωτογραφία που αναλύθηκε: από αρχείο, από το
+// κινητό (/cam, /capture) ή από το Telegram. Ζωντανή εικόνα υπάρχει μόνο όταν τη στέλνει το κινητό από το /cam.
+const overlay = $("overlay"), ctx = overlay.getContext("2d");
+let paused = false, last = null, sending = false, usingFile = false;
 let lastPreviewTs = 0, prevBlobUrl = null, previewPolling = false, lastShownFrame = "";
 let stageView = "auto", userPickedViewForFrame = "", lastCorrectedShown = "", activeStillUrl = "";
 
@@ -588,21 +586,6 @@ const KIND_DOT = {
 
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const hhmm = ts => new Date(ts * 1000).toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-async function openCamera(deviceId) {
-  if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-  const v = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } };
-  video.srcObject = await navigator.mediaDevices.getUserMedia({ video: v });
-  await video.play();
-  const devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
-  $("cam").innerHTML = devices.map((d, i) => `<option value="${d.deviceId}">${esc(d.label || "Κάμερα " + (i + 1))}</option>`).join("");
-}
-function snapshot() {
-  const c = document.createElement("canvas");
-  c.width = video.videoWidth; c.height = video.videoHeight;
-  c.getContext("2d").drawImage(video, 0, 0);
-  return new Promise(res => c.toBlob(res, "image/jpeg", 0.88));
-}
 
 const S = window.ShelfSenseShell;
 const devLog = (label, err) => {
@@ -645,16 +628,10 @@ async function send(blob, force = false) {
     S.announce("Ο έλεγχος του ραφιού απέτυχε.", true);
   } finally { sending = false; $("scan").classList.remove("on"); syncNow(); }
 }
-async function scan(force = false) {
-  if (usingFile) return;
-  if (video.videoWidth) await send(await snapshot(), force);
-}
-
 function frameRect() {
   const W = overlay.clientWidth, H = overlay.clientHeight;
-  const useStill = usingFile || mirrorMode || !$("still").hidden;
-  const el = useStill ? $("still") : video;
-  const vw = (useStill ? el.naturalWidth : el.videoWidth) || 16, vh = (useStill ? el.naturalHeight : el.videoHeight) || 9;
+  const el = $("still");
+  const vw = el.naturalWidth || 16, vh = el.naturalHeight || 9;
   const s = Math.min(W / vw, H / vh), w = vw * s, h = vh * s;
   return { x: (W - w) / 2, y: (H - h) / 2, w, h };
 }
@@ -979,7 +956,7 @@ function assessment(d, status) {
   if (d.unknown_shelf) return ["warning", "Ράφι εκτός καταλόγου", "Αξιολόγηση διάταξης χωρίς αυτόματες παραγγελίες."];
   if (status === "dark") return ["warning", "Πολύ σκοτεινή εικόνα", "Η λήψη δεν μέτρησε. Έλεγξε ότι η κάμερα δεν είναι καλυμμένη."];
   if (status === "occluded") return ["warning", "Περιορισμένη ορατότητα", "Η λήψη δεν μέτρησε. Καθάρισε το πλάνο και ξαναδοκίμασε."];
-  if (status === "idle") return ["idle", "Αναμονή πρώτης λήψης", "Ο έλεγχος ξεκινά αυτόματα."];
+  if (status === "idle") return ["idle", "Αναμονή πρώτης λήψης", "Επίλεξε φωτογραφία «Από αρχείο…» ή στείλε μία από το κινητό."];
   if (tasks.length) return ["warning", `${tasks.length} ${tasks.length === 1 ? "εκκρεμής εργασία" : "εκκρεμείς εργασίες"}`,
     "Στάλθηκαν στον υπάλληλο" + orderNote(d.orders)];
   if (status === "pending") return ["pending", "Αναμονή επιβεβαίωσης", `Χρειάζεται ίδιο αποτέλεσμα σε επόμενη λήψη (${d.confirm || "-"}).`];
@@ -1000,7 +977,7 @@ function setStillSrc(url) {
 
 function syncStageImage(d) {
   const bar = $("stageBar"), badge = $("stageBadge");
-  const hasLive = Boolean((video.srcObject && video.videoWidth > 0) || lastPreviewTs > 0);
+  const hasLive = lastPreviewTs > 0;          // ζωντανή εικόνα υπάρχει μόνο αν τη στέλνει το κινητό
   $("sviewLiveBtn").hidden = !hasLive;
 
   if (!d || !d.frame) {
@@ -1037,11 +1014,7 @@ function syncStageImage(d) {
       badge.hidden = true;
     }
   } else {
-    // stageView === "live"
-    if (video.srcObject && video.videoWidth > 0 && !mirrorMode) {
-      $("still").hidden = true;
-      activeStillUrl = "";
-    }
+    // stageView === "live": η εικόνα έρχεται από το polling του preview του κινητού
     if (d.correcting) {
       badge.hidden = false;
       badge.className = "stage-badge loading";
@@ -1117,7 +1090,7 @@ function render(d) {
 
   $("timeline").innerHTML = (d.history || []).slice().reverse().map(h =>
     `<li><time>${hhmm(h.ts)}</time><span class="sdot ${KIND_DOT[h.kind] || ""}"></span><span>${esc(h.text)}</span></li>`
-  ).join("") || `<li><time>—</time><span class="sdot"></span><span class="mut">Έλεγχος ανά ${interval}s.</span></li>`;
+  ).join("") || `<li><time>—</time><span class="sdot"></span><span class="mut">Καμία λήψη ακόμη.</span></li>`;
 
   if (d.model) $("mode").textContent = (d.provider === "mock" ? "mock" : d.model) + (d.shelf_title ? " · ράφι: " + d.shelf_title : "");
   const base = `frame ${d.frame || "-"} · ${d.status} · ${d.seconds ?? "-"}s · επιβεβαίωση ${d.confirm || "-"} · ` +
@@ -1131,36 +1104,20 @@ async function refreshStatus() {
   render(data);
 }
 
-function setMirror(on, isManual = false) {
-  mirrorMode = on;
-  if (isManual) manualLocal = !on;
-  $("mirrorBtn").textContent = on ? "Τοπική κάμερα" : "Κάμερα κινητού";
-  $("now").hidden = false;
-  $("pause").hidden = false;
-  if (on) {
-    if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
-    if (last && (last.corrected_frame || last.frame)) {
-      syncStageImage(last);
-    } else if (!$("still").getAttribute("src")) {
-      $("hint").hidden = false;
-      $("hint").innerHTML = `<div>Αναμονή ζωντανής εικόνας από το κινητό (<code>/cam</code> ή <code>/capture</code>) ή επίλεξε <button type="button" class="tinted" style="margin-top:8px" onclick="document.getElementById('fileInput').click()">Φωτογραφία από αρχείο…</button></div>`;
-    }
-  } else {
-    stageView = "live";
-    activeStillUrl = "";
-    $("still").hidden = true;
-    usingFile = false;
-    openCamera().then(() => { $("hint").hidden = true; countdown = 2; syncStageImage(last); }).catch(() => {});
-  }
-  draw();
+const PICK_HINT = `<button type="button" class="tinted" style="margin-top:10px" onclick="document.getElementById('fileInput').click()">Επιλογή φωτογραφίας ραφιού…</button>`;
+// Πριν από την πρώτη λήψη: τι να κάνει ο χρήστης για να δει ράφι στην οθόνη.
+function showWaiting() {
+  if (last && (last.corrected_frame || last.frame)) { syncStageImage(last); return; }
+  if ($("still").getAttribute("src")) return;
+  $("hint").hidden = false;
+  $("hint").innerHTML = `<div><strong>Δεν υπάρχει ακόμη φωτογραφία ραφιού.</strong><br>Στείλε μία από το κινητό (<code>/cam</code>, <code>/capture</code> ή Telegram) ή επίλεξε εικόνα:<br>${PICK_HINT}</div>`;
 }
 
 $("still").addEventListener("load", draw);
 
-// Poll mobile live preview stream (auto-switches to mirror if phone opens /cam, unless user forced local camera)
+// Poll mobile live preview stream: appears on its own when a phone opens /cam
 setInterval(async () => {
   if (previewPolling || usingFile || document.hidden) return;
-  if (!mirrorMode && manualLocal) return;
   previewPolling = true;
   try {
     const r = await fetch(`/api/shelf/preview.jpg?since=${lastPreviewTs}`);
@@ -1169,7 +1126,6 @@ setInterval(async () => {
       const blob = await r.blob();
       if (ts > lastPreviewTs && blob.size > 0) {
         lastPreviewTs = ts;
-        if (!mirrorMode) setMirror(true, false);
         $("sviewLiveBtn").hidden = false;
         // Ενημέρωσε την εικόνα του stage μόνο αν βλέπουμε τη ζωντανή κάμερα (όχι πάνω από το Διορθωμένο ράφι!)
         if (stageView === "live" || (!last?.frame && !last?.corrected_frame)) {
@@ -1188,12 +1144,11 @@ setInterval(async () => {
   finally { previewPolling = false; }
 }, 950);
 
+// Δεν υπάρχει αυτόματος έλεγχος από αυτή την οθόνη: εδώ φαίνεται μόνο από πού ήρθε η εικόνα.
 setInterval(() => {
-  if (mirrorMode) { $("count").textContent = lastPreviewTs ? "ζωντανά από κινητό" : "αναμονή κινητού"; return; }
-  if (paused || usingFile) { $("count").textContent = paused ? "σε παύση" : (usingFile ? "αρχείο εικόνας" : ""); return; }
-  countdown -= 1;
-  $("count").textContent = sending ? "ανάλυση…" : `${Math.max(countdown, 0)}s`;
-  if (countdown <= 0) { countdown = interval; scan(); }
+  const phone = lastPreviewTs > 0 && Date.now() / 1000 - lastPreviewTs < 20;
+  $("count").textContent = sending ? "ανάλυση…" : paused ? "κινητό σε παύση"
+    : usingFile ? "αρχείο εικόνας" : phone ? "ζωντανά από κινητό" : (last && last.frame ? "τελευταία φωτογραφία" : "");
 }, 1000);
 
 const sseStart = Date.now() / 1000 - 2;
@@ -1208,59 +1163,43 @@ new EventSource("/api/events").onmessage = m => {
   }
 };
 
-$("mirrorBtn").onclick = () => setMirror(!mirrorMode, true);
+// «Παύση» και «Έλεγχος τώρα» τηλεχειρίζονται την κάμερα του κινητού (/cam). Χωρίς κινητό, ο έλεγχος γίνεται με
+// φωτογραφία «Από αρχείο…».
 $("pause").onclick = async () => {
-  if (mirrorMode) {
-    try {
-      const { data } = await S.api("/api/shelf/remote_trigger?mode=toggle_pause", { method: "POST" });
-      paused = !!data.paused;
-      $("pause").textContent = paused ? "Συνέχεια" : "Παύση";
-      $("pause").setAttribute("aria-pressed", String(paused));
-      setBarState("info", paused ? "Η κάμερα κινητού τέθηκε σε παύση" : "Η κάμερα κινητού συνεχίζει");
-    } catch (e) { setBarState("error", "Αδυναμία επικοινωνίας με το κινητό", S.errorCopy(e)); }
-    return;
-  }
-  paused = !paused;
-  $("pause").textContent = paused ? "Συνέχεια" : "Παύση";
-  $("pause").setAttribute("aria-pressed", String(paused));
-  S.announce(paused ? "Ο αυτόματος έλεγχος σε παύση." : "Ο αυτόματος έλεγχος συνεχίζεται.");
+  try {
+    const { data } = await S.api("/api/shelf/remote_trigger?mode=toggle_pause", { method: "POST" });
+    paused = !!data.paused;
+    $("pause").textContent = paused ? "Συνέχεια" : "Παύση";
+    $("pause").setAttribute("aria-pressed", String(paused));
+    setBarState("info", paused ? "Η κάμερα κινητού τέθηκε σε παύση" : "Η κάμερα κινητού συνεχίζει");
+  } catch (e) { setBarState("error", "Αδυναμία επικοινωνίας με το κινητό", S.errorCopy(e)); }
 };
 $("now").onclick = async () => {
   if (sending) return;
-  if (mirrorMode) {
-    const restore = S.busy($("now"), "Λήψη από κινητό…");
-    setBarState("loading", "Εντολή λήψης στη σταθερή κάμερα κινητού…");
-    try {
-      await S.api("/api/shelf/remote_trigger?mode=live", { method: "POST" });
-      setBarState("info", "Η κάμερα κινητού έστειλε νέα λήψη", "Αναμονή αποτελέσματος Gemini…");
-      await refreshStatus().catch(() => {});
-    } catch (e) {
-      devLog("remote_trigger", e);
-      setBarState("warning", "Δεν βρέθηκε ενεργή κάμερα κινητού", "Άνοιξε το /cam στο κινητό ή επίλεξε εικόνα «Από αρχείο…».");
-    } finally { restore(); }
-    return;
-  }
-  if (!usingFile && !video.videoWidth) {
-    setBarState("warning", "Δεν υπάρχει ενεργή κάμερα", isDev ? "Χρησιμοποίησε «Από αρχείο…»." : "Άνοιξε τις Δοκιμές για φόρτωση αρχείου.");
-    return;
-  }
-  setBarState("");
-  usingFile = false; $("still").hidden = true; scan(true); countdown = interval;
+  const restore = S.busy($("now"), "Λήψη από κινητό…");
+  setBarState("loading", "Εντολή λήψης στη σταθερή κάμερα κινητού…");
+  try {
+    await S.api("/api/shelf/remote_trigger?mode=live", { method: "POST" });
+    usingFile = false;                       // η επόμενη εικόνα της οθόνης είναι του κινητού, όχι το αρχείο
+    setBarState("info", "Η κάμερα κινητού έστειλε νέα λήψη", "Αναμονή αποτελέσματος Gemini…");
+    await refreshStatus().catch(() => {});
+  } catch (e) {
+    devLog("remote_trigger", e);
+    setBarState("warning", "Δεν βρέθηκε ενεργή κάμερα κινητού", "Άνοιξε το /cam στο κινητό ή επίλεξε εικόνα «Από αρχείο…».");
+  } finally { restore(); }
 };
 $("ref").onclick = async () => {
   const btn = $("ref");
   if (btn.disabled) return;
   let blob = null;
-  if (video.videoWidth) {
-    blob = await snapshot();
-  } else if (!$("still").hidden && $("still").naturalWidth) {
+  if (!$("still").hidden && $("still").naturalWidth) {
     const c = document.createElement("canvas");
     c.width = $("still").naturalWidth; c.height = $("still").naturalHeight;
     c.getContext("2d").drawImage($("still"), 0, 0);
     blob = await new Promise(res => c.toBlob(res, "image/jpeg", 0.9));
   }
   if (!blob) {
-    setBarState("warning", "Δεν υπάρχει ενεργή κάμερα", "Η αναφορά χρειάζεται εικόνα από την κάμερα.");
+    setBarState("warning", "Δεν υπάρχει φωτογραφία στην οθόνη", "Η αναφορά χρειάζεται φωτογραφία του σωστού ραφιού.");
     return;
   }
   const restore = S.busy(btn, "Αποθήκευση…");
@@ -1277,10 +1216,6 @@ $("ref").onclick = async () => {
     S.announce("Η εικόνα αναφοράς δεν αποθηκεύτηκε.", true);
   }
 };
-$("cam").onchange = e => openCamera(e.target.value).then(() => setBarState("")).catch(err => {
-  devLog("camera", err);
-  setBarState("error", "Η κάμερα δεν άνοιξε", cameraCopy(err));
-});
 $("file").onclick = () => $("fileInput").click();
 $("pickPhotoBtn").onclick = () => $("fileInput").click();
 $("fileInput").onchange = e => {
@@ -1313,8 +1248,20 @@ $("reset").onclick = async () => {
 };
 document.querySelectorAll("[data-mock]").forEach(b => b.onclick = async () => {
   if (await devAction(b, "Φόρτωση…", "/api/live/mock/" + b.dataset.mock, "Η δοκιμαστική κατάσταση ορίστηκε")) {
-    if (!video.videoWidth) { setBarState("info", "Η δοκιμαστική κατάσταση ορίστηκε", "Χωρίς κάμερα: φόρτωσε εικόνα «Από αρχείο…» για έλεγχο."); return; }
-    usingFile = false; $("still").hidden = true; scan(true);
+    // Η δοκιμαστική φωτογραφία του ενεργού σετ περνά από τον ίδιο έλεγχο με ένα αρχείο του χρήστη.
+    try {
+      const r = await fetch("/photo/" + encodeURIComponent(b.dataset.mock));
+      if (!r.ok) throw new Error("sample photo " + r.status);
+      const blob = await r.blob();
+      usingFile = true; userPickedViewForFrame = ""; stageView = "ar";
+      const url = URL.createObjectURL(blob);
+      activeStillUrl = url;
+      $("still").src = url; $("still").hidden = false; $("hint").hidden = true;
+      send(blob, true);
+    } catch (e) {
+      devLog("mock", e);
+      setBarState("info", "Η δοκιμαστική κατάσταση ορίστηκε", "Φόρτωσε εικόνα «Από αρχείο…» για έλεγχο.");
+    }
   }
 });
 document.addEventListener("click", async e => {
@@ -1448,65 +1395,22 @@ document.addEventListener("submit", async e => {
     render(data);
   } catch { if (last) render(last); }
 });
-function cameraCopy(e) {
-  const n = e && e.name;
-  if (!navigator.mediaDevices) return "Η κάμερα ανοίγει μόνο από localhost ή HTTPS.";
-  if (n === "NotAllowedError" || n === "SecurityError") return "Δεν δόθηκε άδεια για την κάμερα.";
-  if (n === "NotFoundError" || n === "OverconstrainedError") return "Δεν βρέθηκε κάμερα σε αυτή τη συσκευή.";
-  if (n === "NotReadableError") return "Η κάμερα χρησιμοποιείται από άλλη εφαρμογή.";
-  return "Η κάμερα δεν ξεκίνησε.";
-}
 window.addEventListener("resize", draw);
-video.addEventListener("loadedmetadata", draw);
-
-function isVideoDark() {
-  if (!video.videoWidth || !video.videoHeight) return true;
-  const c = document.createElement("canvas");
-  c.width = 16; c.height = 12;
-  const g = c.getContext("2d");
-  g.drawImage(video, 0, 0, 16, 12);
-  const d = g.getImageData(0, 0, 16, 12).data;
-  let sum = 0, mx = 0;
-  for (let i = 0; i < d.length; i += 4) {
-    const y = (d[i] + d[i + 1] + d[i + 2]) / 3;
-    sum += y; if (y > mx) mx = y;
-  }
-  return (sum / (d.length / 4)) < 7 && mx < 22;
-}
-
 (async () => {
-  setLight("loading", "Εκκίνηση κάμερας…", "");
+  setLight("loading", "Φόρτωση…", "");
   try {
     const { data: s } = await S.api("/api/live/status");
-    interval = s.interval; render(s);
+    render(s);
     $("mode").textContent = (s.provider === "mock" ? "mock" : s.model) + (s.shelf_title ? " · ράφι: " + s.shelf_title : "");
   } catch (e) {
     devLog("status", e);
     setLight("error", "Δεν υπάρχει σύνδεση με τον διακομιστή", "Έλεγξε ότι τρέχει ο server και ανανέωσε τη σελίδα.");
     $("mode").textContent = "εκτός σύνδεσης";
+    return;
   }
-  if (mirrorMode) { setMirror(true, false); return; }
-  try {
-    await openCamera();
-    await new Promise(r => setTimeout(r, 450));
-    if (isVideoDark()) {
-      setMirror(true, false);
-      return;
-    }
-    $("hint").hidden = true;
-    countdown = 2;
-  } catch (e) {
-    devLog("camera", e);
-    setMirror(true, false);
-    if (last && (last.corrected_frame || last.frame)) {
-      // Υπάρχει ήδη επεξεργασμένη φωτογραφία (π.χ. από Κονσόλα / αρχείο / κινητό): εμφάνισέ την αμέσως αντί για σφάλμα κάμερας!
-      syncStageImage(last);
-    } else {
-      $("hint").hidden = false;
-      $("hint").innerHTML = `<div><strong>${esc(cameraCopy(e))}</strong><br>Άνοιξε το <code>/cam</code> στο κινητό ή επίλεξε κατευθείαν εικόνα:<br><button type="button" class="tinted" style="margin-top:10px" onclick="document.getElementById('fileInput').click()">Επιλογή φωτογραφίας ραφιού…</button></div>`;
-      setLight("idle", "Έτοιμο για έλεγχο ραφιού", "Επίλεξε φωτογραφία «Από αρχείο…» ή άνοιξε το /cam στο κινητό.");
-    }
-  }
+  showWaiting();
+  if (!(last && last.frame))
+    setLight("idle", "Έτοιμο για έλεγχο ραφιού", "Επίλεξε φωτογραφία «Από αρχείο…» ή στείλε μία από το κινητό.");
 })();
 </script>
 </body>

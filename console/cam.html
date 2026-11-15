@@ -535,8 +535,29 @@ window.addEventListener("resize", drawBoxes);
     $("hint").hidden = true;
     countdown = 1;
   } catch (e) {
+    // Ο browser του κινητού δίνει ζωντανή κάμερα μόνο σε HTTPS. Αν ο server ακούει και σε HTTPS (agentkit/tls.py),
+    // η σελίδα περνά μόνη της εκεί· αλλιώς εξηγεί τι χρειάζεται.
+    const insecure = !window.isSecureContext;
+    let secure = "";
+    if (insecure) {
+      try {
+        const links = await (await fetch("/api/links")).json();
+        if (links.cam && /^https:\/\//.test(links.cam.url)) secure = links.cam.url;
+      } catch {}
+    }
     $("hint").hidden = false;
-    $("hint").innerHTML = `<div>Η συνεχής ζωντανή κάμερα απαιτεί σύνδεση <b>HTTPS</b> (<code>python scripts/run_tunnel.py</code>).<br><br><a href="/capture">Μετάβαση σε λήψη μίας φωτογραφίας →</a></div>`;
+    if (secure) {
+      $("hint").innerHTML = `<div>Η ζωντανή κάμερα θέλει ασφαλή σύνδεση. Μετάβαση σε <b>HTTPS</b>…<br><br>` +
+        `Στην προειδοποίηση πιστοποιητικού πάτα «Σύνθετες» και μετά «Μετάβαση».<br><br>` +
+        `<a href="${secure}">Άνοιγμα της κάμερας σε HTTPS →</a></div>`;
+      setTimeout(() => location.replace(secure), 1200);
+    } else if (insecure) {
+      $("hint").innerHTML = `<div>Η συνεχής ζωντανή κάμερα απαιτεί σύνδεση <b>HTTPS</b>. Ξεκίνα τον server με <code>HOST=0.0.0.0</code> (ανοίγει και θύρα HTTPS) ή με <code>python scripts/run_tunnel.py</code>.<br><br><a href="/capture">Μετάβαση σε λήψη μίας φωτογραφίας →</a></div>`;
+    } else {
+      const denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
+      $("hint").innerHTML = `<div>${denied ? "Δεν δόθηκε άδεια για την κάμερα. Επίτρεψέ την στις ρυθμίσεις της σελίδας και ανανέωσε."
+        : "Η κάμερα δεν ξεκίνησε. Κλείσε άλλες εφαρμογές που τη χρησιμοποιούν και ανανέωσε."}<br><br><a href="/capture">Μετάβαση σε λήψη μίας φωτογραφίας →</a></div>`;
+    }
   }
 })();
 </script>

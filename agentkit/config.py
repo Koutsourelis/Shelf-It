@@ -140,6 +140,9 @@ _BROWSE_HOST = (lan_ip() or "localhost") if HOST in ("0.0.0.0", "::") else HOST
 BASE_URL = _env("BASE_URL", f"http://{_BROWSE_HOST}:{PORT}")
 # Διεύθυνση για το κινητό αν μπαίνει από tunnel (π.χ. https://xxxx.trycloudflare.com). Κενό = η IP του laptop.
 PUBLIC_URL = _env("PUBLIC_URL")
+# Δεύτερη θύρα με HTTPS για τη ζωντανή κάμερα του κινητού (/cam) στο ίδιο Wi-Fi, με πιστοποιητικό που φτιάχνει ο
+# server (agentkit/tls.py). Ισχύει με HOST=0.0.0.0 και χωρίς PUBLIC_URL. 0 = χωρίς τοπικό HTTPS.
+HTTPS_PORT = int(_env("HTTPS_PORT", "8443"))
 
 # --- Φάκελοι -----------------------------------------------------------
 DATA_DIR = ROOT / "data"

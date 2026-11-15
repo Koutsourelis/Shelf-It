@@ -4,7 +4,7 @@
 
 Σελίδες:
     /          αρχική: κάρτες για κάθε σελίδα και QR για το κινητό
-    /shelf     οθόνη ραφιού: live κάμερα, φανάρι, εργασίες, χρονολόγιο      (console/shelf.html)
+    /shelf     οθόνη ραφιού: τελευταία φωτογραφία, φανάρι, εργασίες, χρονολόγιο   (console/shelf.html)
     /tasks     κινητό υπαλλήλου: εργασίες με φωτογραφία                     (console/tasks.html)
     /portal    κεντρική αποθήκη (προσομοίωση)
     /dev       για εμάς και τους κριτές: agent, εργαλεία, ίχνος ελέγχου, ρυθμίσεις, mock  (console/index.html)
@@ -276,7 +276,9 @@ async def evidence(sku: str, audience: str = "", refresh: bool = False):
 
 @app.get("/shelf")
 async def shelf_page():
-    """Οθόνη ραφιού: η κάμερα στέλνει frame κάθε LIVE_INTERVAL_SECONDS, φανάρι, εργασίες, χρονολόγιο."""
+    """Οθόνη ραφιού: η τελευταία φωτογραφία που αναλύθηκε (αρχείο, κινητό, Telegram), φανάρι, εργασίες, χρονολόγιο.
+
+    Η σελίδα δεν ανοίγει κάμερα του υπολογιστή· ζωντανή εικόνα στέλνει μόνο το κινητό από το /cam."""
     return _page("shelf.html")
 
 
@@ -459,12 +461,22 @@ async def set_reference(file: UploadFile | None = None):
     return {"ok": True, "reference": config.VISION_REFERENCE}
 
 
+HTTPS: dict | None = None           # {"ip", "port", ...} όταν ο server ακούει και σε HTTPS (agentkit/tls.py)
+SECURE_PAGES = ("/cam",)            # σελίδες που ανοίγουν ζωντανή κάμερα: ο browser του κινητού τις θέλει σε HTTPS
+
+
 def _phone_url(path: str) -> dict:
-    """Η διεύθυνση που ανοίγει το κινητό. Με HOST=127.0.0.1 ο server δεν φαίνεται από το δίκτυο."""
+    """Η διεύθυνση που ανοίγει το κινητό. Με HOST=127.0.0.1 ο server δεν φαίνεται από το δίκτυο.
+
+    Οι σελίδες με ζωντανή κάμερα παίρνουν τη διεύθυνση HTTPS, όταν υπάρχει· οι υπόλοιπες μένουν σε HTTP, για να μη
+    βλέπει ο υπάλληλος προειδοποίηση πιστοποιητικού στις εργασίες.
+    """
     if config.PUBLIC_URL:
         return {"url": config.PUBLIC_URL.rstrip("/") + path, "reachable": True}
     ip = config.lan_ip()
     reachable = config.HOST not in ("127.0.0.1", "localhost") and bool(ip)
+    if HTTPS and path.split("?")[0] in SECURE_PAGES:
+        return {"url": f"https://{HTTPS['ip']}:{HTTPS['port']}{path}", "reachable": reachable, "self_signed": True}
     return {"url": f"http://{ip or config.HOST}:{config.PORT}{path}", "reachable": reachable}
 
 
@@ -593,12 +605,39 @@ async def portal_orders():
 def main():
     phone = _phone_url("/tasks")
     print(f"\n  Αρχική:    {config.BASE_URL}\n"
-          f"  Ράφι:      {config.BASE_URL}/shelf   (κάμερα, frame κάθε {config.LIVE_INTERVAL_SECONDS}s)\n"
+          f"  Ράφι:      {config.BASE_URL}/shelf   (φωτογραφία από αρχείο ή από το κινητό)\n"
           f"  Κινητό:    {phone['url']}" + ("" if phone["reachable"] else "   (θέλει HOST=0.0.0.0 στο .env)") + "\n"
           f"  Αποθήκη:   {config.BASE_URL}/portal/orders\n"
           f"  Dev:       {config.BASE_URL}/dev\n"
-          f"  Μοντέλο:   agent {config.LLM_PROVIDER} · όραση {config.vision_provider()}\n")
-    uvicorn.run(app, host=config.HOST, port=config.PORT, log_level="warning")
+          f"  Μοντέλο:   agent {config.LLM_PROVIDER} · όραση {config.vision_provider()}")
+    global HTTPS
+    from . import tls
+    HTTPS = tls.prepare()
+    if HTTPS:
+        print(f"  Κάμερα κινητού: {_phone_url('/cam')['url']}   (HTTPS με δικό μας πιστοποιητικό: στην "
+              "προειδοποίηση του browser πάτα «Σύνθετες» και μετά «Μετάβαση»)")
+    print()
+    try:
+        asyncio.run(_serve())
+    except KeyboardInterrupt:
+        pass
+
+
+async def _serve() -> None:
+    """Ο ίδιος server σε HTTP και, αν ετοιμάστηκε πιστοποιητικό, σε HTTPS. Μία διεργασία, μία κατάσταση.
+
+    Οι εργασίες παρασκηνίου (watchers, Telegram, υπενθυμίσεις) ξεκινούν μόνο από τον πρώτο· αλλιώς θα έτρεχαν δύο φορές.
+    """
+    servers = [uvicorn.Server(uvicorn.Config(app, host=config.HOST, port=config.PORT, log_level="warning"))]
+    if HTTPS:
+        servers.append(uvicorn.Server(uvicorn.Config(
+            app, host=config.HOST, port=HTTPS["port"], log_level="warning", lifespan="off",
+            ssl_certfile=str(HTTPS["cert"]), ssl_keyfile=str(HTTPS["key"]))))
+    running = [asyncio.create_task(s.serve()) for s in servers]
+    await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
+    for s in servers:                   # όταν σταματήσει ο ένας (Ctrl+C), σταματά και ο άλλος
+        s.should_exit = True
+    await asyncio.gather(*running, return_exceptions=True)
 
 
 if __name__ == "__main__":
