@@ -85,9 +85,14 @@ async def read_shelf(ctx, photo: str) -> str:
 
     ctx.audit("extract", source=name, values={
         (i[3] or f"άγνωστο: {i[4]}"): f"επίπεδο {i[1]}, {i[5]} προσόψεις, {'σωστά' if True else ''}" for i in items})
-    rows = [(i[1], i[3] or "-", i[4], i[5]) for i in items]
+    from .. import off
+    from .products import short_identity
+    cache = off.load_cache()             # ταυτότητα από το Open Food Facts, αποθηκευμένη (scripts/fetch_off.py)
+    rows = [(i[1], i[3] or "-", i[4], i[5], short_identity(i[3], cache)) for i in items]
     lines = [f"Φωτογραφία {name}: {len(items)} ομάδες προϊόντων.",
-             _table(["επίπεδο", "κωδικός", "ετικέτα", "προσόψεις"], rows)]
+             _table(["επίπεδο", "κωδικός", "ετικέτα", "προσόψεις", "Open Food Facts"], rows)]
+    if cache:
+        lines.append("Ταυτότητα: Open Food Facts (ODbL). «≈» = συγκρίσιμο προϊόν άλλης μάρκας, όχι το ίδιο.")
     if verdict["missing"]:
         lines.append("Λείπουν: " + ", ".join(m["product"] or str(m["sku"]) for m in verdict["missing"]))
     if verdict["misplaced"]:
@@ -379,6 +384,11 @@ async def layout_suggestions(ctx) -> str:
     out += skipped
     out.append(f"\nΟι πωλήσεις είναι {DAYS} ημερών. Η θέση (Κ4, Κ5, Κ7, Κ6) έχει προτεραιότητα έναντι των προσόψεων (Κ3). "
                "Αλλαγή πλανογράμματος αποφασίζει ο category manager. Αρχείο: workspace/suggestions.json")
+    from .. import market
+    if market.load_model():
+        out.append(f"Πωλήσεις ανά κωδικό: {market.HBS_SOURCE} (ποσότητα ανά νοικοκυριό) × υποθέσεις του market.json "
+                   "(νοικοκυριά, μερίδιο καταστήματος, μερίδιο ραφιού). Ίσο μοίρασμα μέσα στην κατηγορία· το "
+                   "πραγματικό μοίρασμα το έχουν μόνο οι πωλήσεις του λιανέμπορου.")
     return "\n".join(out)
 
 

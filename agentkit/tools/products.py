@@ -26,6 +26,20 @@ def describe(res: dict, where: str) -> str:
     return "\n".join(lines)
 
 
+def short_identity(sku: str | None, cache: dict | None = None) -> str:
+    """One cell for the read_shelf table, from the saved lookups only (no network, the camera calls this too).
+    'matched' → 'barcode · brand name qty'; 'similar' → '≈ comparable product'; otherwise '-'."""
+    res = (off.load_cache() if cache is None else cache).get(sku or "")
+    m = (res or {}).get("match")
+    if not m or res.get("status") not in ("matched", "similar"):
+        return "-"
+    brand = m["brand"].split(",")[0]
+    if off.norm(m["name"]).startswith(off.norm(brand)):      # 'xenia xenia έξτρα…' → 'xenia έξτρα…'
+        brand = ""
+    text = " ".join(x for x in (brand, m["name"], m["quantity"]) if x)[:60]
+    return f"{m['barcode']} · {text}" if res["status"] == "matched" else f"≈ {text} ({m['barcode']})"
+
+
 @tool(
     "product_identity",
     "Ποιο ακριβώς προϊόν είναι ένας κωδικός ή μια ετικέτα: barcode, μάρκα, συσκευασία, κατηγορία, από το Open Food "

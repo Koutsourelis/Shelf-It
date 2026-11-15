@@ -1,0 +1,21 @@
+{
+  "_about": "How many units of each product this shelf sells a day, from official Greek household purchases (ELSTAT, Household Budget Survey 2025, table 2.00, data/shelf/elstat_hbs_2025.csv). Used by scripts/calibrate_sales.py. Every number not from ELSTAT is an assumption and says so.",
+  "households": 2000,
+  "households_source": "assumption: households that shop at a mid-sized neighbourhood supermarket",
+  "store_share": 0.3,
+  "store_share_source": "assumption: share of those households' purchases of the category made in this store",
+  "days_per_month": 30.4,
+  "split": "equal grams across the products of a category on the shelf, unless catalog.csv has a sales_weight column",
+  "categories": {
+    "Ελαιόλαδο": {"coicop": ["0115101"], "shelf_share": 0.25, "grams_per_ml": 0.916,
+                  "shelf_share_source": "assumption: 1L bottles on this shelf vs all olive oil the store sells (tins, other aisles)"},
+    "Ελιές": {"coicop": ["0117904"], "shelf_share": 0.5, "shelf_share_source": "assumption: jars here vs the deli counter"},
+    "Μέλι": {"coicop": ["0118301"], "shelf_share": 0.3, "shelf_share_source": "assumption: ELSTAT groups honey with molasses and glucose"},
+    "Ζυμαρικά": {"coicop": ["0111501"], "shelf_share": 0.1, "shelf_share_source": "assumption: traditional pasta here vs the pasta aisle"},
+    "Δημητριακά": {"coicop": ["0111101"], "shelf_share": 0.5, "shelf_share_source": "assumption: ELSTAT item includes bulgur"},
+    "Μπαχαρικά": {"coicop": ["0119401"], "shelf_share": 0.03, "shelf_share_source": "assumption: one pack of bay leaves vs every spice the store sells"},
+    "Αλλαντικά": {"coicop": ["0112301", "0112302"], "shelf_share": 0.03, "shelf_share_source": "assumption: packed village sausages here vs the chilled cabinet"},
+    "Ταχίνι": null,
+    "_no_elstat_item": "Ταχίνι: ELSTAT has no separate item. daily_units in catalog.csv is an assumption of the same order as olives and honey, and is marked as such"
+  }
+}
