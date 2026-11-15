@@ -238,7 +238,7 @@ def _crop(frame: Path, boxes: list, task_id: str) -> str | None:
 
 # --- Συγχρονισμός με ό,τι βλέπει η κάμερα -------------------------------------------
 
-def sync(findings: list[dict], frame: Path) -> dict:
+def sync(findings: list[dict], frame: Path, auto_order: bool = True) -> dict:
     """Ευρήματα του frame → εργασίες. Νέες δημιουργούνται, λυμένες κλείνουν. Επιστρέφει τι άλλαξε."""
     stock = _stock()
     seen, new = set(), []
@@ -262,7 +262,7 @@ def sync(findings: list[dict], frame: Path) -> dict:
         }
         TASKS[task_id] = task
         log("task", task["text"], task=task_id, task_kind=task["kind"])
-        if numbers and numbers["to_order"]:
+        if auto_order and numbers and numbers["to_order"]:
             _auto_order(task)
         new.append(task)
 

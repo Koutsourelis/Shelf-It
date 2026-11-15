@@ -107,7 +107,8 @@ class RunRequest(BaseModel):
 async def create_run(req: RunRequest):
     if not req.goal.strip():
         raise HTTPException(400, "Κενός στόχος")
-    return {"run_id": agent.start_run(req.goal.strip(), req.scenario, source="console")}
+    return {"run_id": agent.start_run(req.goal.strip(), req.scenario, source="console",
+                                      notifier=telegram.default_notifier())}
 
 
 @app.get("/api/runs")
@@ -209,11 +210,56 @@ async def shelf_photo(file: UploadFile):
     if not data or len(data) > 25_000_000:
         raise HTTPException(400, "Κενό ή πολύ μεγάλο αρχείο (όριο 25 MB)")
     watchers.PHOTO_DIR.mkdir(parents=True, exist_ok=True)
-    name = f"shelf_{time.strftime('%H%M%S')}{ext}"
+    name = f"shelf_{time.strftime('%H%M%S')}_{int((time.time() % 1) * 1000):03d}{ext}"
     (watchers.PHOTO_DIR / name).write_bytes(data)
     watchers.mark_seen(name)
     run_id = agent.start_run(watchers.photo_goal(name), "shelf", source="camera", notifier=telegram.default_notifier())
+    live.STATE.last_console_run = run_id
     return {"ok": True, "photo": name, "run_id": run_id}
+
+
+@app.post("/api/shelf/photos_batch")
+async def shelf_photos_batch(files: list[UploadFile]):
+    """Ανεβάζει 1 ή περισσότερες φωτογραφίες από την Κονσόλα (/dev), τις ταξινομεί αυτόματα κατά EXIF χρόνο λήψης
+    (χωρίς να απαιτείται 'before'/'after' στο όνομα!) και τρέχει διαδοχικά Πριν -> Μετά."""
+    from .tools.shelf import photo_timestamp
+    if not files:
+        raise HTTPException(400, "Δεν επιλέχθηκαν φωτογραφίες")
+    watchers.PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+    saved: list[Path] = []
+    for idx, f in enumerate(files[:4]):
+        ext = Path(f.filename or ".jpg").suffix.lower()
+        if ext not in watchers.PHOTO_TYPES:
+            ext = ".jpg"
+        data = await f.read()
+        if not data or len(data) > 25_000_000:
+            continue
+        name = f"upload_{time.strftime('%H%M%S')}_{idx + 1}{ext}"
+        p = watchers.PHOTO_DIR / name
+        p.write_bytes(data)
+        watchers.mark_seen(name)
+        saved.append(p)
+    if not saved:
+        raise HTTPException(400, "Καμία έγκυρη φωτογραφία")
+    saved.sort(key=lambda p: (photo_timestamp(p), p.stat().st_mtime, p.name))
+
+    first = saved[0]
+    first_run = agent.start_run(watchers.photo_goal(first.name), "shelf", source="console",
+                                notifier=telegram.default_notifier())
+    if len(saved) > 1:
+        async def _chain_rest(initial_id: str, remaining: list[Path]) -> None:
+            curr = initial_id
+            for nxt in remaining:
+                t = agent._tasks.get(curr)
+                if t:
+                    try:
+                        await asyncio.wait_for(asyncio.shield(t), timeout=240)
+                    except Exception:
+                        pass
+                curr = agent.start_run(watchers.photo_goal(nxt.name), "shelf", source="console",
+                                       notifier=telegram.default_notifier())
+        asyncio.create_task(_chain_rest(first_run, saved[1:]))
+    return {"ok": True, "photos": [p.name for p in saved], "run_id": first_run}
 
 
 @app.get("/api/evidence/{sku}")
@@ -261,13 +307,70 @@ async def shelf_frame(file: UploadFile, force: bool = False, single: bool = Fals
 
 @app.post("/api/shelf/preview")
 async def shelf_preview(file: UploadFile):
-    """Ελαφρύ live frame από το /cam κινητού μόνο στη μνήμη (RAM), για ζωντανό mirror στο /shelf χωρίς κλήση LLM."""
+    """Ελαφρύ live frame από το /cam κινητού μόνο στη μνήμη (RAM), για ζωντανό mirror στο /shelf & /dev χωρίς κλήση LLM."""
     data = await file.read()
     if not data or len(data) > 4_000_000:
         raise HTTPException(400, "Άκυρο preview frame")
     live.STATE.preview_jpeg = data
     live.STATE.preview_ts = time.time()
-    return {"ok": True, "ts": live.STATE.preview_ts}
+    snap = live.STATE.remote_snap
+    live.STATE.remote_snap = None
+    return {"ok": True, "ts": live.STATE.preview_ts, "snap": snap, "paused": live.STATE.remote_paused}
+
+
+@app.get("/api/shelf/remote_state")
+async def shelf_remote_state():
+    """Heartbeat για το /cam κινητού όταν είναι σε παύση, ώστε το laptop να μπορεί να το ξυπνήσει ή να ζητήσει λήψη."""
+    snap = live.STATE.remote_snap
+    live.STATE.remote_snap = None
+    return {
+        "snap": snap,
+        "paused": live.STATE.remote_paused,
+        "mobile_online": bool(live.STATE.preview_jpeg and (time.time() - live.STATE.preview_ts < 20.0)),
+    }
+
+
+@app.post("/api/shelf/remote_trigger")
+async def shelf_remote_trigger(mode: str = "live"):
+    """Τηλεχειρισμός της σταθερής κάμερας κινητού (/cam) από το laptop (/shelf ή /dev)."""
+    if mode == "toggle_pause":
+        live.STATE.remote_paused = not live.STATE.remote_paused
+        return {"ok": True, "paused": live.STATE.remote_paused}
+
+    fresh = bool(live.STATE.preview_jpeg and (time.time() - live.STATE.preview_ts < 25.0))
+    if not fresh:
+        raise HTTPException(409, "Δεν βρέθηκε ενεργή κάμερα κινητού (/cam). Άνοιξε πρώτα το /cam στο κινητό.")
+
+    if mode == "console":
+        prev_run = live.STATE.last_console_run
+        live.STATE.remote_snap = "console"
+        for _ in range(18):
+            await asyncio.sleep(0.1)
+            if live.STATE.remote_snap is None and live.STATE.last_console_run != prev_run and live.STATE.last_console_run:
+                return {"ok": True, "run_id": live.STATE.last_console_run, "source": "mobile_highres"}
+        # Fallback: χρησιμοποίησε αμέσως το πιο πρόσφατο frame του κινητού από τη RAM
+        live.STATE.remote_snap = None
+        watchers.PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+        name = f"shelf_{time.strftime('%H%M%S')}_cam.jpg"
+        (watchers.PHOTO_DIR / name).write_bytes(live.STATE.preview_jpeg or b"")
+        watchers.mark_seen(name)
+        run_id = agent.start_run(watchers.photo_goal(name), "shelf", source="camera", notifier=telegram.default_notifier())
+        live.STATE.last_console_run = run_id
+        return {"ok": True, "run_id": run_id, "photo": name, "source": "mobile_preview"}
+
+    # mode == "live": εντολή στο /cam να στείλει αμέσως full-res frame στο Gemini
+    before_frames = live.STATE.frames
+    live.STATE.remote_snap = "live"
+    for _ in range(16):
+        await asyncio.sleep(0.1)
+        if live.STATE.remote_snap is None:
+            return {"ok": True, "triggered": True, "source": "mobile_highres"}
+    # Fallback αν το κινητό δεν πρόλαβε να τραβήξει high-res (π.χ. ήταν σε /capture): αναλύουμε το τελευταίο frame
+    live.STATE.remote_snap = None
+    if live.STATE.preview_jpeg and live.STATE.frames == before_frames:
+        res = await live.process_frame(live.STATE.preview_jpeg, force=True, single=True)
+        return {"ok": True, "triggered": True, "source": "mobile_preview", "status": res.get("status")}
+    return {"ok": True, "triggered": True}
 
 
 @app.get("/api/shelf/preview.jpg")

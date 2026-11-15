@@ -49,6 +49,9 @@ class LiveState:
         self.busy = False
         self.preview_jpeg: bytes | None = None       # ελαφρύ live frame κινητού (/cam -> /shelf mirror, RAM-only)
         self.preview_ts: float = 0.0
+        self.remote_snap: str | None = None          # απομακρυσμένη εντολή λήψης από το laptop ("live" | "console")
+        self.remote_paused: bool = False             # απομακρυσμένη παύση του /cam από το laptop
+        self.last_console_run: str | None = None
         tasks.reset()
 
 

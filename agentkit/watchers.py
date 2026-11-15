@@ -18,6 +18,14 @@ _baseline_done = False
 
 
 def photo_goal(name: str) -> str:
+    try:
+        from .tools.data import run_sql
+        _, prev = run_sql("select photo, compliance_pct from shelf_checks order by checked_at desc limit 1")
+        if prev and prev[0][0] != name:
+            return (f"Νέα φωτογραφία ραφιού: workspace/photos/{name}. Υπάρχει προηγούμενος έλεγχος ({prev[0][0]}, "
+                    f"{prev[0][1]}%)· επανέλεγξε το ράφι, σύγκρινε πριν και μετά βάσει της σειράς λήψης και κάνε ό,τι χρειάζεται.")
+    except Exception:
+        pass
     return f"Νέα φωτογραφία ραφιού: workspace/photos/{name}. Έλεγξε το ράφι και κάνε ό,τι χρειάζεται."
 
 
@@ -27,10 +35,12 @@ def mark_seen(name: str) -> None:
 
 
 def new_photo():
-    """Η πιο πρόσφατη φωτογραφία που δεν έχει ελεγχθεί. Όσες υπήρχαν πριν ξεκινήσει ο server αγνοούνται."""
+    """Η πιο πρόσφατη φωτογραφία που δεν έχει ελεγχθεί (ταξινομημένη κατά EXIF χρόνο λήψης / st_mtime)."""
     global _baseline_done
+    from .tools.shelf import photo_timestamp
     PHOTO_DIR.mkdir(parents=True, exist_ok=True)
-    photos = sorted((p for p in PHOTO_DIR.iterdir() if p.suffix.lower() in PHOTO_TYPES), key=lambda p: p.stat().st_mtime)
+    photos = sorted((p for p in PHOTO_DIR.iterdir() if p.suffix.lower() in PHOTO_TYPES),
+                    key=lambda p: (photo_timestamp(p), p.stat().st_mtime, p.name))
     if not _baseline_done:
         _baseline_done = True
         _seen.update(f"photo:{p.name}" for p in photos)

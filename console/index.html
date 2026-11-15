@@ -384,8 +384,13 @@
     <div id="sdesc" class="mut" style="font-size:12px;margin-top:5px;line-height:1.4"></div>
 
     <h2>Στόχος</h2>
-    <textarea id="goalInput" placeholder="Γράψε τι θέλεις να ελέγξει ο agent…" aria-label="Στόχος"></textarea>
+    <textarea id="goalInput" placeholder="Γράψε τι θέλεις να ελέγξει ο agent (ή ανέβασε κατευθείαν φωτό παρακάτω χωρίς κείμενο)…" aria-label="Στόχος"></textarea>
     <button class="primary" id="go">Ανάθεση στον agent</button>
+    <div class="grid2" style="margin-top:6px">
+      <button type="button" class="ghost" id="uploadPhotosBtn" title="Ανεβάζει 1 ή 2+ φωτογραφίες (ταξινομούνται αυτόματα χρονικά Πριν → Μετά)">Ανέβασμα φωτό</button>
+      <button type="button" class="ghost" id="remoteCamBtn" title="Τραβάει φωτογραφία από τη σταθερή κάμερα κινητού (/cam) και ξεκινά έλεγχο">Λήψη από κινητό</button>
+    </div>
+    <input id="consolePhotoInput" type="file" accept="image/*" multiple hidden>
     <div id="examples"></div>
 
     <h2>Χειριστήρια demo</h2>
@@ -406,7 +411,12 @@
 
   <section id="center">
     <details id="shelfshot" hidden>
-      <summary><b>Τελευταία φωτογραφία ραφιού</b><span class="mono mut" id="shotMeta"></span><a href="/shelf">Άνοιγμα στο Ράφι</a></summary>
+      <summary>
+        <b id="shotTitle">Τελευταία φωτογραφία ραφιού</b>
+        <span class="mono mut" id="shotMeta"></span>
+        <button type="button" class="ghost" id="liveFeedBtn" style="min-height:22px;padding:0 8px;font-size:11.5px;margin-left:auto" hidden>Ζωντανή ροή</button>
+        <a href="/shelf" style="margin-left:8px">Άνοιγμα στο Ράφι</a>
+      </summary>
       <div id="shotBody">
         <div id="shotStage"><img id="shotImg" alt="Η τελευταία φωτογραφία ραφιού που αναλύθηκε"><canvas id="shotOverlay"></canvas></div>
         <div id="shotSum"></div>
@@ -521,6 +531,37 @@ $("go").onclick = async () => {
   catch (e) { toast("Αποτυχία: " + e.message); }
 };
 $("goalInput").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("go").click(); });
+
+$("uploadPhotosBtn").onclick = () => $("consolePhotoInput").click();
+$("consolePhotoInput").onchange = async e => {
+  const files = [...(e.target.files || [])];
+  if (!files.length) return;
+  const btn = $("uploadPhotosBtn");
+  btn.disabled = true; btn.textContent = "Αποστολή…";
+  try {
+    const fd = new FormData();
+    files.forEach(f => fd.append("files", f, f.name));
+    const r = await fetch("/api/shelf/photos_batch", { method: "POST", body: fd });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.statusText);
+    selected = d.run_id;
+    toast(files.length > 1 ? `Ξεκίνησε αυτόματος έλεγχος Πριν → Μετά (${files.length} φωτό)` : "Ξεκίνησε αυτόματος έλεγχος φωτογραφίας");
+  } catch (err) { toast("Αποτυχία: " + err.message); }
+  finally { btn.disabled = false; btn.textContent = "Ανέβασμα φωτό"; e.target.value = ""; }
+};
+
+$("remoteCamBtn").onclick = async () => {
+  const btn = $("remoteCamBtn");
+  btn.disabled = true; btn.textContent = "Λήψη…";
+  try {
+    const r = await fetch("/api/shelf/remote_trigger?mode=console", { method: "POST" });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.statusText);
+    if (d.run_id) selected = d.run_id;
+    toast("Ελήφθη εικόνα από το κινητό · ξεκίνησε ο έλεγχος");
+  } catch (err) { toast(err.message); }
+  finally { btn.disabled = false; btn.textContent = "Λήψη από κινητό"; }
+};
 document.querySelectorAll("[data-demo]").forEach(b => b.onclick = async () => {
   try { toast((await api("/api/demo/" + b.dataset.demo, {})).text); } catch (e) { toast("Αποτυχία: " + e.message); }
 });
@@ -581,6 +622,7 @@ const SHOT_COLORS = { ok: "#34C759", low: "#FF9500", missing: "#FF3B30", misplac
 const SHELF_EL = { top: "πάνω ράφι", eye: "ύψος ματιών", bottom: "κάτω ράφι" };
 let shotFrame = null, shotData = null, shotTimer = null;
 function scheduleShot() { clearTimeout(shotTimer); shotTimer = setTimeout(() => refreshShot(true), 250); }
+let devLiveFeed = false, devPreviewTs = 0, devBlobUrl = null, devPolling = false;
 async function refreshShot(announce) {
   let d;
   try { d = await api("/api/live/status"); } catch (e) { return; }
@@ -589,7 +631,7 @@ async function refreshShot(announce) {
   const box = $("shelfshot");
   if (d.frame !== shotFrame) {
     shotFrame = d.frame;
-    $("shotImg").src = "/files/live/" + encodeURIComponent(d.frame);
+    if (!devLiveFeed) $("shotImg").src = "/files/live/" + encodeURIComponent(d.frame);
     box.hidden = false; box.open = true;
     if (announce) {
       toast("Νέα φωτογραφία ραφιού");
@@ -639,6 +681,44 @@ function drawShot() {
 $("shotImg").addEventListener("load", drawShot);
 $("shelfshot").addEventListener("toggle", drawShot);
 window.addEventListener("resize", drawShot);
+
+// Live mobile camera feed inside /dev console when phone has /cam open
+$("liveFeedBtn").onclick = e => {
+  e.preventDefault(); e.stopPropagation();
+  devLiveFeed = !devLiveFeed;
+  $("liveFeedBtn").textContent = devLiveFeed ? "Στατική ανάλυση" : "Ζωντανή ροή";
+  $("shotTitle").textContent = devLiveFeed ? "Ζωντανή κάμερα κινητού" : "Τελευταία φωτογραφία ραφιού";
+  if (!devLiveFeed && shotFrame) { $("shotImg").src = "/files/live/" + encodeURIComponent(shotFrame); }
+};
+setInterval(async () => {
+  if (devPolling || document.hidden) return;
+  devPolling = true;
+  try {
+    const r = await fetch(`/api/shelf/preview.jpg?since=${devPreviewTs}`);
+    if (r.status === 200) {
+      const ts = parseFloat(r.headers.get("X-Preview-Ts") || "0");
+      const blob = await r.blob();
+      if (ts > devPreviewTs && blob.size > 0) {
+        devPreviewTs = ts;
+        $("liveFeedBtn").hidden = false;
+        if ($("shelfshot").hidden) {
+          // If no static frame has been analyzed yet, auto-open live feed from mounted phone!
+          devLiveFeed = true;
+          $("liveFeedBtn").textContent = "Στατική ανάλυση";
+          $("shotTitle").textContent = "Ζωντανή κάμερα κινητού";
+          $("shelfshot").hidden = false; $("shelfshot").open = true;
+        }
+        if (devLiveFeed) {
+          const next = URL.createObjectURL(blob), prev = devBlobUrl;
+          devBlobUrl = next;
+          $("shotImg").src = next;
+          if (prev) setTimeout(() => URL.revokeObjectURL(prev), 300);
+        }
+      }
+    }
+  } catch {}
+  finally { devPolling = false; }
+}, 1100);
 
 let pending = false;
 function scheduleRender() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; renderRun(); }); }

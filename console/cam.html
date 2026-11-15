@@ -458,15 +458,48 @@ async function sendFrame(force = false) {
   }
 }
 
-// Lightweight 1 FPS RAM preview relay so laptop /shelf mirrors live phone camera smoothly
+async function sendConsolePhoto() {
+  if (!video.videoWidth) return;
+  $("vfStage").classList.add("scanning");
+  $("hudDot").className = "sdot blue";
+  $("hudText").textContent = "Αποστολή λήψης στην Κονσόλα…";
+  try {
+    const blob = await grabBlob(1152, 0.86);
+    if (blob) {
+      const body = new FormData(); body.append("file", blob, "remote_cam.jpg");
+      await fetch("/api/shelf/photo", { method: "POST", body });
+      $("hudDot").className = "sdot ok";
+      $("hudText").textContent = "Η λήψη στάλθηκε στην Κονσόλα ✓";
+    }
+  } catch {}
+  finally { $("vfStage").classList.remove("scanning"); }
+}
+
+function handleRemoteCmd(meta) {
+  if (!meta) return;
+  if (typeof meta.paused === "boolean" && meta.paused !== paused) {
+    paused = meta.paused;
+    $("pauseBtn").textContent = paused ? "Συνέχεια" : "Παύση";
+  }
+  if (meta.snap === "live") { countdown = interval; sendFrame(true); }
+  else if (meta.snap === "console") { sendConsolePhoto(); }
+}
+
+// Lightweight 1 FPS RAM preview relay so laptop /shelf & /dev mirror live phone camera smoothly
 setInterval(async () => {
-  if (paused || document.hidden || previewBusy || !video.videoWidth || isVideoDark()) return;
+  if (document.hidden || previewBusy || !video.videoWidth || isVideoDark()) return;
   previewBusy = true;
   try {
-    const blob = await grabBlob(720, 0.66);
-    if (blob) {
-      const body = new FormData(); body.append("file", blob, "preview.jpg");
-      await fetch("/api/shelf/preview", { method: "POST", body });
+    if (paused) {
+      const r = await fetch("/api/shelf/remote_state");
+      if (r.ok) handleRemoteCmd(await r.json());
+    } else {
+      const blob = await grabBlob(720, 0.66);
+      if (blob) {
+        const body = new FormData(); body.append("file", blob, "preview.jpg");
+        const r = await fetch("/api/shelf/preview", { method: "POST", body });
+        if (r.ok) handleRemoteCmd(await r.json());
+      }
     }
   } catch {}
   finally { previewBusy = false; }

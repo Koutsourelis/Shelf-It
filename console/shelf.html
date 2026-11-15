@@ -966,8 +966,8 @@ function setMirror(on, isManual = false) {
   mirrorMode = on;
   if (isManual) manualLocal = !on;
   $("mirrorBtn").textContent = on ? "Τοπική κάμερα" : "Κάμερα κινητού";
-  $("now").hidden = on;
-  $("pause").hidden = on;
+  $("now").hidden = false;
+  $("pause").hidden = false;
   if (on) {
     if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
     if (!$("still").getAttribute("src") && last && last.frame) {
@@ -1043,14 +1043,37 @@ new EventSource("/api/events").onmessage = m => {
 };
 
 $("mirrorBtn").onclick = () => setMirror(!mirrorMode, true);
-$("pause").onclick = () => {
+$("pause").onclick = async () => {
+  if (mirrorMode) {
+    try {
+      const { data } = await S.api("/api/shelf/remote_trigger?mode=toggle_pause", { method: "POST" });
+      paused = !!data.paused;
+      $("pause").textContent = paused ? "Συνέχεια" : "Παύση";
+      $("pause").setAttribute("aria-pressed", String(paused));
+      setBarState("info", paused ? "Η κάμερα κινητού τέθηκε σε παύση" : "Η κάμερα κινητού συνεχίζει");
+    } catch (e) { setBarState("error", "Αδυναμία επικοινωνίας με το κινητό", S.errorCopy(e)); }
+    return;
+  }
   paused = !paused;
   $("pause").textContent = paused ? "Συνέχεια" : "Παύση";
   $("pause").setAttribute("aria-pressed", String(paused));
   S.announce(paused ? "Ο αυτόματος έλεγχος σε παύση." : "Ο αυτόματος έλεγχος συνεχίζεται.");
 };
-$("now").onclick = () => {
+$("now").onclick = async () => {
   if (sending) return;
+  if (mirrorMode) {
+    const restore = S.busy($("now"), "Λήψη από κινητό…");
+    setBarState("loading", "Εντολή λήψης στη σταθερή κάμερα κινητού…");
+    try {
+      await S.api("/api/shelf/remote_trigger?mode=live", { method: "POST" });
+      setBarState("info", "Η κάμερα κινητού έστειλε νέα λήψη", "Αναμονή αποτελέσματος Gemini…");
+      await refreshStatus().catch(() => {});
+    } catch (e) {
+      devLog("remote_trigger", e);
+      setBarState("warning", "Δεν βρέθηκε ενεργή κάμερα κινητού", "Άνοιξε το /cam στο κινητό ή επίλεξε εικόνα «Από αρχείο…».");
+    } finally { restore(); }
+    return;
+  }
   if (!usingFile && !video.videoWidth) {
     setBarState("warning", "Δεν υπάρχει ενεργή κάμερα", isDev ? "Χρησιμοποίησε «Από αρχείο…»." : "Άνοιξε τις Δοκιμές για φόρτωση αρχείου.");
     return;

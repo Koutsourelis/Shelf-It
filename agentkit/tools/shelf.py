@@ -26,15 +26,41 @@ STATUS = {"ok": "σωστό", "missing": "λείπει από το ράφι", "l
 # Το schema και τα prompts της ανάγνωσης είναι στο agentkit/vision (schema.py, prompts.py).
 
 
+def photo_timestamp(path: Path) -> float:
+    """Χρόνος λήψης φωτογραφίας: πρώτα EXIF DateTimeOriginal / DateTime αν υπάρχει, αλλιώς st_mtime αρχείου."""
+    try:
+        from datetime import datetime
+        from PIL import Image
+        with Image.open(path) as im:
+            exif = im.getexif()
+            for tag in (36867, 36868, 306):
+                raw = exif.get(tag)
+                if raw:
+                    dt_str = str(raw).strip().rstrip("\x00")
+                    return datetime.strptime(dt_str[:19], "%Y:%m:%d %H:%M:%S").timestamp()
+    except Exception:
+        pass
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
 def find_photo(photo: str) -> Path:
-    """Δέχεται 'data/shelf/photos/x.png', 'workspace/photos/x.jpg', σκέτο όνομα αρχείου ή 'latest' (η πιο πρόσφατη
-    λήψη της κάμερας ή του κινητού). Αν λείπει η κατάληξη που ζητήθηκε, δοκιμάζει το ίδιο όνομα ως jpg/jpeg/png/webp."""
-    if photo.strip().lower() in ("latest", ""):
-        shots = [f for d in (config.WORKSPACE / "live", UPLOADS) if d.is_dir() for f in d.iterdir()
-                 if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")]
+    """Δέχεται 'data/shelf/photos/x.png', 'workspace/photos/x.jpg', σκέτο όνομα αρχείου, 'latest'/'after' (η πιο
+    πρόσφατη χρονολογικά λήψη) ή 'previous'/'before' (η αμέσως προηγούμενη χρονολογικά λήψη βάσει EXIF/mtime)."""
+    key = photo.strip().lower()
+    if key in ("latest", "after", "previous", "before", ""):
+        shots = sorted(
+            (f for d in (config.WORKSPACE / "live", UPLOADS) if d.is_dir() for f in d.iterdir()
+             if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")),
+            key=lambda f: (photo_timestamp(f), f.stat().st_mtime, f.name),
+        )
         if not shots:
             raise FileNotFoundError("Δεν υπάρχει ακόμη λήψη από την κάμερα ή το κινητό.")
-        return max(shots, key=lambda f: f.stat().st_mtime)
+        if key in ("previous", "before") and len(shots) >= 2:
+            return shots[-2]
+        return shots[-1]
     name = photo.replace("\\", "/").split("/")[-1]
     # Το workspace/live είναι τα frames της κάμερας: εκεί δείχνει το shelf_observation μετά από ζωντανό scan.
     candidates = [safe_path(photo), UPLOADS / name, config.WORKSPACE / "live" / name, demo_data.PHOTOS_DIR / name]
@@ -82,6 +108,20 @@ async def read_shelf(ctx, photo: str) -> str:
     items = await asyncio.to_thread(record_reading, name, verdict)
     if not items:
         return "Δεν αναγνωρίστηκε κανένα προϊόν στη φωτογραφία. Ζήτα νέα λήψη, πιο κοντινή και με καλύτερο φως."
+
+    # Συγχρονίζει αυτόματα και τις διαδραστικές εργασίες (/tasks) + ειδοποίηση Telegram με κουμπιά όταν τρέχει από την Κονσόλα (/dev)
+    try:
+        from .. import events as _ev, live, tasks, telegram
+        planned = {} if verdict.get("unknown_shelf") else await asyncio.to_thread(live._planned)
+        live.regroup(verdict, planned)
+        found = live.to_findings(verdict, planned)  # type: ignore[arg-type]
+        changes = await asyncio.to_thread(tasks.sync, found, path, False)
+        if changes.get("new") or changes.get("resolved"):
+            await telegram.notify_shelf_change(changes, path)
+            _ev.emit("system", "live_report", frame=path.name, open=len(tasks.open_tasks()),
+                     new=len(changes["new"]), resolved=len(changes["resolved"]))
+    except Exception:
+        pass
 
     ctx.audit("extract", source=name, values={
         (i[3] or f"άγνωστο: {i[4]}"): f"επίπεδο {i[1]}, {i[5]} προσόψεις, {'σωστά' if True else ''}" for i in items})
@@ -222,6 +262,53 @@ def _annotate(photo: str, result: dict) -> Path | None:
     return out
 
 
+def _make_before_after(prev_photo: str, prev_pct: float, curr_photo: str, curr_img: Path, curr_pct: float) -> Path | None:
+    """Συνθέτει αυτόματα εικόνα σύγκρισης Πριν → Μετά βάσει χρονολογικής σειράς ελέγχων (ανεξαρτήτως ονόματος αρχείου)."""
+    try:
+        from datetime import datetime
+        from matplotlib import font_manager
+        from PIL import Image, ImageDraw, ImageFont, ImageOps
+
+        prev_annot = config.WORKSPACE / f"shelf_check_{Path(prev_photo).stem}.png"
+        prev_src = prev_annot if prev_annot.is_file() else find_photo(prev_photo)
+        with Image.open(prev_src) as a, Image.open(curr_img) as b:
+            im_a = ImageOps.exif_transpose(a).convert("RGB")
+            im_b = ImageOps.exif_transpose(b).convert("RGB")
+
+        target_h = 560
+        wa = round(im_a.width * (target_h / max(im_a.height, 1)))
+        wb = round(im_b.width * (target_h / max(im_b.height, 1)))
+        im_a = im_a.resize((wa, target_h))
+        im_b = im_b.resize((wb, target_h))
+
+        head_h, gap = 46, 12
+        canvas = Image.new("RGB", (wa + wb + gap, target_h + head_h), (245, 245, 247))
+        draw = ImageDraw.Draw(canvas)
+        font = ImageFont.truetype(font_manager.findfont("DejaVu Sans"), 17)
+
+        def fmt_ts(name: str) -> str:
+            try:
+                return datetime.fromtimestamp(photo_timestamp(find_photo(name))).strftime("%H:%M:%S")
+            except Exception:
+                return name
+
+        draw.rectangle([0, 0, wa, head_h], fill=(58, 58, 60))
+        draw.text((14, 12), f"ΠΡΙΝ ({fmt_ts(prev_photo)}) · Συμμόρφωση {prev_pct}%", fill="white", font=font)
+        ok_col = (27, 122, 52) if curr_pct >= prev_pct else (207, 34, 46)
+        draw.rectangle([wa + gap, 0, wa + gap + wb, head_h], fill=ok_col)
+        delta = round(curr_pct - float(prev_pct), 1)
+        sign = f"+{delta}" if delta > 0 else f"{delta}"
+        draw.text((wa + gap + 14, 12), f"ΜΕΤΑ ({fmt_ts(curr_photo)}) · Συμμόρφωση {curr_pct}% ({sign}%)", fill="white", font=font)
+
+        canvas.paste(im_a, (0, head_h))
+        canvas.paste(im_b, (wa + gap, head_h))
+        out = config.WORKSPACE / "before_after.png"
+        canvas.save(out)
+        return out
+    except Exception:
+        return None
+
+
 @tool(
     "check_planogram",
     "Σύγκρινε ό,τι διάβασε το read_shelf με το πλανόγραμμα. Επιστρέφει τα ευρήματα ανά κωδικό (λείπει, λιγότερες "
@@ -236,19 +323,34 @@ async def check_planogram(ctx) -> str:
         _replace("shelf_issues", result["issues"])
         run_sql("insert into shelf_checks values (now(), ?, ?, ?)",
                 [result["photo"], result["compliance"], len(result["issues"])])
-        return result, previous, _annotate(result["photo"], result)
-    result, previous, image = await asyncio.to_thread(work)
+        annot = _annotate(result["photo"], result)
+        ba = None
+        if previous and previous[0][0] != result["photo"] and annot:
+            ba = _make_before_after(previous[0][0], float(previous[0][1]), result["photo"], annot, float(result["compliance"]))
+        return result, previous, annot, ba
+    result, previous, image, ba_image = await asyncio.to_thread(work)
 
     ctx.audit("compute", label="Συμμόρφωση με το πλανόγραμμα (%)", expression="round(100 * correct_slots / slots, 1)",
               variables={"correct_slots": result["ok"], "slots": result["slots"]}, result=result["compliance"])
     if image:
         ctx.artifact(image)
         ctx.emit("screenshot", file=image.name, url=f"Έλεγχος ραφιού · {result['compliance']}% συμμόρφωση")
+    if ba_image:
+        ctx.artifact(ba_image)
+        ctx.emit("screenshot", file=ba_image.name,
+                 url=f"Σύγκριση Πριν ({previous[0][1]}%) → Μετά ({result['compliance']}%)")
 
     out = [f"Συμμόρφωση: {result['compliance']}% ({result['ok']} από {result['slots']} θέσεις σωστές), "
            f"{len(result['issues'])} ευρήματα."]
     if previous:
-        out.append(f"Προηγούμενος έλεγχος ({previous[0][0]}): {previous[0][1]}%, {previous[0][2]} ευρήματα.")
+        delta = round(float(result["compliance"]) - float(previous[0][1]), 1)
+        ctx.audit("compute", label="Μεταβολή συμμόρφωσης Πριν → Μετά (μονάδες %)",
+                  expression="round(after_pct - before_pct, 1)",
+                  variables={"before_pct": float(previous[0][1]), "after_pct": float(result["compliance"])},
+                  result=delta)
+        out.append(f"Προηγούμενος έλεγχος ({previous[0][0]}): {previous[0][1]}%, {previous[0][2]} ευρήματα "
+                   f"(μεταβολή {'+' if delta > 0 else ''}{delta} μονάδες)."
+                   + (f" Εικόνα σύγκρισης: workspace/{ba_image.name}" if ba_image else ""))
     if result["issues"]:
         out.append(_table(["κωδικός", "προϊόν", "επίπεδο", "εύρημα", "λεπτομέρεια"],
                           [(i[1] or "-", i[2], i[3], STATUS.get(i[4], i[4]), i[7]) for i in result["issues"]]))
