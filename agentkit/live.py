@@ -45,6 +45,8 @@ class LiveState:
         self.agent_run: str | None = None
         self.frames = self.model_calls = 0
         self.busy = False
+        self.preview_jpeg: bytes | None = None       # ελαφρύ live frame κινητού (/cam -> /shelf mirror, RAM-only)
+        self.preview_ts: float = 0.0
         tasks.reset()
 
 
@@ -197,6 +199,9 @@ async def process_frame(data: bytes, force: bool = False, single: bool = False) 
     STATE.busy = True
     try:
         STATE.frames += 1
+        if single:
+            STATE.preview_jpeg = data
+            STATE.preview_ts = time.time()
         thumb = await asyncio.to_thread(_thumb, data)
         if not (force or single) and STATE.prev_thumb is not None and STATE.last:
             d = _diff(thumb, STATE.prev_thumb)

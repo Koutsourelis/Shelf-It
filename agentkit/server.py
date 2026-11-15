@@ -193,6 +193,12 @@ async def capture_page():
     return _page("capture.html")
 
 
+@app.get("/cam")
+async def cam_page():
+    """Συνεχής ζωντανή κάμερα κινητού (viewfinder): στέλνει αυτόματα frames στο Gemini & mirror στο /shelf."""
+    return _page("cam.html")
+
+
 @app.post("/api/shelf/photo")
 async def shelf_photo(file: UploadFile):
     """Αποθηκεύει τη φωτογραφία στο workspace/photos και ξεκινά αμέσως τον έλεγχο του ραφιού."""
@@ -251,6 +257,28 @@ async def shelf_frame(file: UploadFile, force: bool = False, single: bool = Fals
     except Exception as e:
         events.emit("system", "log", text=f"Live frame: {type(e).__name__}: {e}")
         raise HTTPException(502, f"{type(e).__name__}: {e}")
+
+
+@app.post("/api/shelf/preview")
+async def shelf_preview(file: UploadFile):
+    """Ελαφρύ live frame από το /cam κινητού μόνο στη μνήμη (RAM), για ζωντανό mirror στο /shelf χωρίς κλήση LLM."""
+    data = await file.read()
+    if not data or len(data) > 4_000_000:
+        raise HTTPException(400, "Άκυρο preview frame")
+    live.STATE.preview_jpeg = data
+    live.STATE.preview_ts = time.time()
+    return {"ok": True, "ts": live.STATE.preview_ts}
+
+
+@app.get("/api/shelf/preview.jpg")
+async def get_shelf_preview(since: float = 0.0):
+    """Επιστρέφει το τελευταίο live frame κινητού αν είναι φρέσκο (<20s) και νεότερο από το since."""
+    raw = live.STATE.preview_jpeg
+    ts = live.STATE.preview_ts
+    if not raw or (time.time() - ts > 20.0) or ts <= since:
+        return Response(status_code=204)
+    return Response(raw, media_type="image/jpeg",
+                    headers={"X-Preview-Ts": f"{ts:.3f}", "Cache-Control": "no-store"})
 
 
 @app.get("/api/live/status")
@@ -333,6 +361,7 @@ async def photo(name: str):
 async def links():
     return {
         "tasks": _phone_url("/tasks"),
+        "cam": _phone_url("/cam"),
         "capture": _phone_url("/capture"),
         "shelf": _phone_url("/shelf"),
         "telegram": {

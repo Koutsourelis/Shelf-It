@@ -345,6 +345,7 @@
     <div class="bar">
       <button id="now">Έλεγχος τώρα</button>
       <button id="pause" class="ghost">Παύση</button>
+      <button id="mirrorBtn" class="ghost">Κάμερα κινητού</button>
       <button id="ref" class="ghost" title="Αποθήκευση τρέχοντος frame ως εικόνας αναφοράς">Ορισμός αναφοράς</button>
       <span class="count" id="count"></span>
     </div>
@@ -440,6 +441,8 @@ document.querySelectorAll("[data-insp]").forEach(btn => {
 
 const video = $("video"), overlay = $("overlay"), ctx = overlay.getContext("2d");
 let interval = 30, countdown = 0, paused = false, last = null, sending = false, usingFile = false;
+let mirrorMode = new URLSearchParams(location.search).has("mirror"), manualLocal = false;
+let lastPreviewTs = 0, prevBlobUrl = null, previewPolling = false, lastShownFrame = "";
 
 // Apple System Colors for AR Bounding Boxes
 const COLORS = {
@@ -495,8 +498,9 @@ async function scan(force = false) {
 
 function frameRect() {
   const W = overlay.clientWidth, H = overlay.clientHeight;
-  const el = usingFile ? $("still") : video;
-  const vw = (usingFile ? el.naturalWidth : el.videoWidth) || 16, vh = (usingFile ? el.naturalHeight : el.videoHeight) || 9;
+  const useStill = usingFile || mirrorMode || !$("still").hidden;
+  const el = useStill ? $("still") : video;
+  const vw = (useStill ? el.naturalWidth : el.videoWidth) || 16, vh = (useStill ? el.naturalHeight : el.videoHeight) || 9;
   const s = Math.min(W / vw, H / vh), w = vw * s, h = vh * s;
   return { x: (W - w) / 2, y: (H - h) / 2, w, h };
 }
@@ -683,7 +687,61 @@ function render(d) {
     (d.agent_run ? ` · agent ${d.agent_run}` : "") + "\n" + JSON.stringify(d.findings || [], null, 1).slice(0, 1500);
 }
 
+function setMirror(on, isManual = false) {
+  mirrorMode = on;
+  if (isManual) manualLocal = !on;
+  $("mirrorBtn").textContent = on ? "Τοπική κάμερα" : "Κάμερα κινητού";
+  $("now").hidden = on;
+  $("pause").hidden = on;
+  if (on) {
+    if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+    if (!$("still").getAttribute("src") && last && last.frame) {
+      $("still").src = "/files/live/" + encodeURIComponent(last.frame);
+      $("still").hidden = false;
+      $("hint").hidden = true;
+      lastShownFrame = last.frame;
+    } else if (!$("still").getAttribute("src")) {
+      $("hint").hidden = false;
+      $("hint").innerHTML = `<div>Αναμονή ζωντανής εικόνας από το κινητό (<code>/cam</code> ή <code>/capture</code>)…</div>`;
+    }
+  } else {
+    $("still").hidden = true;
+    usingFile = false;
+    openCamera().then(() => { $("hint").hidden = true; countdown = 2; }).catch(() => {});
+  }
+  draw();
+}
+
+$("still").addEventListener("load", draw);
+
+// Poll mobile live preview stream (auto-switches to mirror if phone opens /cam, unless user forced local camera)
+setInterval(async () => {
+  if (previewPolling || usingFile || document.hidden) return;
+  if (!mirrorMode && manualLocal) return;
+  previewPolling = true;
+  try {
+    const r = await fetch(`/api/shelf/preview.jpg?since=${lastPreviewTs}`);
+    if (r.status === 200) {
+      const ts = parseFloat(r.headers.get("X-Preview-Ts") || "0");
+      const blob = await r.blob();
+      if (ts > lastPreviewTs && blob.size > 0) {
+        lastPreviewTs = ts;
+        if (!mirrorMode) setMirror(true, false);
+        const nextUrl = URL.createObjectURL(blob);
+        const oldUrl = prevBlobUrl;
+        prevBlobUrl = nextUrl;
+        $("still").src = nextUrl;
+        $("still").hidden = false;
+        $("hint").hidden = true;
+        if (oldUrl) setTimeout(() => URL.revokeObjectURL(oldUrl), 300);
+      }
+    }
+  } catch {}
+  finally { previewPolling = false; }
+}, 950);
+
 setInterval(() => {
+  if (mirrorMode) { $("count").textContent = lastPreviewTs ? "ζωντανά από κινητό" : "αναμονή κινητού"; return; }
   if (paused || usingFile) { $("count").textContent = paused ? "σε παύση" : (usingFile ? "αρχείο εικόνας" : ""); return; }
   countdown -= 1;
   $("count").textContent = sending ? "ανάλυση…" : `${Math.max(countdown, 0)}s`;
@@ -692,15 +750,37 @@ setInterval(() => {
 
 new EventSource("/api/events").onmessage = m => {
   const ev = JSON.parse(m.data);
-  if (ev.run_id === "system" && ev.type === "shelf_log" && Date.now() / 1000 - ev.ts < 5)
-    fetch("/api/live/status").then(r => r.json()).then(s => { if (!sending) render(s); });
+  if (ev.run_id !== "system" || Date.now() / 1000 - ev.ts > 6) return;
+  if (["shelf_log", "live_frame", "live_report", "recommendation_feedback"].includes(ev.type)) {
+    fetch("/api/live/status").then(r => r.json()).then(s => {
+      if (!sending) {
+        if ((mirrorMode || paused || !video.videoWidth) && !usingFile && s.frame && s.frame !== lastShownFrame && !lastPreviewTs) {
+          lastShownFrame = s.frame;
+          $("still").src = "/files/live/" + encodeURIComponent(s.frame);
+          $("still").hidden = false;
+          $("hint").hidden = true;
+        }
+        render(s);
+      }
+    });
+  }
 };
 
+$("mirrorBtn").onclick = () => setMirror(!mirrorMode, true);
 $("pause").onclick = () => { paused = !paused; $("pause").textContent = paused ? "Συνέχεια" : "Παύση"; };
 $("now").onclick = () => { usingFile = false; $("still").hidden = true; scan(true); countdown = interval; };
 $("ref").onclick = async () => {
-  if (!video.videoWidth) return;
-  const body = new FormData(); body.append("file", await snapshot(), "ref.jpg");
+  let blob = null;
+  if (video.videoWidth) {
+    blob = await snapshot();
+  } else if (!$("still").hidden && $("still").naturalWidth) {
+    const c = document.createElement("canvas");
+    c.width = $("still").naturalWidth; c.height = $("still").naturalHeight;
+    c.getContext("2d").drawImage($("still"), 0, 0);
+    blob = await new Promise(res => c.toBlob(res, "image/jpeg", 0.9));
+  }
+  if (!blob) return;
+  const body = new FormData(); body.append("file", blob, "ref.jpg");
   const r = await fetch("/api/shelf/reference", { method: "POST", body });
   if (r.ok) {
     $("ref").textContent = "Αποθηκεύτηκε";
@@ -813,10 +893,10 @@ video.addEventListener("loadedmetadata", draw);
   const s = await (await fetch("/api/live/status")).json();
   interval = s.interval; render(s);
   $("mode").textContent = s.provider === "mock" ? "mock" : s.model;
+  if (mirrorMode) { setMirror(true, false); return; }
   try { await openCamera(); $("hint").hidden = true; countdown = 2; }
   catch (e) {
-    $("hint").hidden = false;
-    $("hint").innerHTML = `<div>Δεν βρέθηκε ενεργή κάμερα (${esc(e.message)}).<br>Άνοιξε από <code>localhost</code> / HTTPS ή ενεργοποίησε τις <a href="?dev=1">Δοκιμές</a> για φόρτωση αρχείου.</div>`;
+    setMirror(true, false);
   }
 })();
 </script>
