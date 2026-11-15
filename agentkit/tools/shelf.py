@@ -518,7 +518,8 @@ SOURCES = {
     "K3": "Eisend 2014, ελαστικότητα χώρου 0,17",
     "K4": "Drèze, Hoch & Purk 1994· Chandon κ.ά. 2009 (ύψος ματιών)",
     "K5": "Atalay, Bodur & Rasolofoarison 2012 (οριζόντιο κέντρο)",
-    "K7": "Κανόνας της ομάδας: ο προορισμός δεν χρειάζεται το ύψος των ματιών (πρακτική merchandising)",
+    "K7": "Chandon κ.ά. 2009 / πρακτική merchandising: οι μάρκες υψηλού μεριδίου δεν κερδίζουν τόσο από το ύψος ματιών όσο οι μικρότερες",
+    "K8": "OSHA 3192 Retail Grocery Ergonomics: βαριές συσκευασίες (≥ 1kg / 1L) στο κάτω ράφι",
 }
 LEVEL_EL = {"top": "πάνω", "eye": "ύψος ματιών", "bottom": "κάτω"}
 
@@ -533,7 +534,9 @@ def _layout_stats() -> dict[str, dict]:
     total_facings = sum(r[7] for r in rows) or 1
     total_rev = sum(r[9] for r in rows) or 1
     total_qty = sum(r[11] for r in rows) or 1
-    known = {d.sku for d in decision_rules.destinations(_slots(), decision_rules.load())}      # Κ7
+    slots_all, rules_cfg = _slots(), decision_rules.load()
+    known = {d.sku for d in decision_rules.destinations(slots_all, rules_cfg)}      # Κ7
+    heavy_skus = {h.sku for h in decision_rules.heavy(slots_all, rules_cfg)}        # Κ8
     per_shelf: dict[int, list[int]] = defaultdict(list)
     for r in rows:
         per_shelf[r[4]].append(r[6])
@@ -546,6 +549,7 @@ def _layout_stats() -> dict[str, dict]:
         stats[sku] = {"sku": sku, "name": display_name(name, brand), "brand": brand, "category": category, "shelf": shelf, "level": level,
                       "position": position, "center": center, "facings": facings,
                       "rightmost": position == max(per_shelf[shelf]), "destination": sku in known,
+                      "heavy": sku in heavy_skus,
                       "unit_share": round(100 * qty / total_qty, 1),
                       "unit_price": round(float(unit_price or 0), 2),
                       "space": round(space, 1), "sales": round(sales, 1),
@@ -613,6 +617,9 @@ async def propose_move(ctx, kind: str, sku_from: str, sku_to: str, reason: str) 
         if not numbers and inn["destination"]:
             return (f"Δεν καταχωρήθηκε: το {inn['sku']} είναι προορισμός ({inn['unit_share']}% των τεμαχίων του ραφιού)· "
                     "ο πελάτης το ψάχνει όπου κι αν είναι, άρα πάει κάτω δεξιά (Κ7), όχι στην καλή θέση.")
+        if not numbers and rule == "K4" and inn.get("heavy"):
+            return (f"Δεν καταχωρήθηκε: το {inn['sku']} ({inn['name']}) είναι βαριά συσκευασία (≥ 1kg / 1L)· "
+                    "μένει στο κάτω ράφι για εργονομία και ασφάλεια (Κ8), όχι στο ύψος των ματιών.")
         if not numbers and inn["per_facing"] <= out["per_facing"]:
             return (f"Δεν καταχωρήθηκε: {spot} θα πήγαινε το {inn['sku']} με {inn['per_facing']} € περιθώριο ανά "
                     f"πρόσοψη την ημέρα, λιγότερο από τα {out['per_facing']} € του {out['sku']} που είναι ήδη εκεί.")
