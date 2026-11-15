@@ -107,7 +107,8 @@ SHELF = Scenario(
 6. layout_suggestions: ανέφερε το πολύ δύο προτάσεις, με τους αριθμούς τους. Είναι προτάσεις για τον category
    manager· δεν αλλάζεις εσύ το πλανόγραμμα. Αν θέλεις να στηρίξεις μια πρόταση και με εξωτερικά στοιχεία, κάλεσε
    product_evidence για τον κωδικό: με status «insufficient» γράφεις «δεν βρέθηκαν επαρκή δεδομένα» και τίποτα άλλο·
-   αριθμό τάσης αναφέρεις μόνο αν έχει value, μαζί με την πηγή και την ημερομηνία του.
+   αριθμό τάσης αναφέρεις μόνο αν έχει value, μαζί με την πηγή και την ημερομηνία του. Για το ποιο ακριβώς
+   προϊόν είναι (barcode, συσκευασία) κάλεσε product_identity· αν δεν βρεθεί η ίδια μάρκα, το λες.
 7. Γράψε «shelf_report.md»: συμμόρφωση, πίνακας ευρημάτων, λίστα αναπλήρωσης, παραγγελία, προτάσεις διάταξης,
    και τη σημειωμένη φωτογραφία ως εικόνα.
 8. headline_result: αν λείπουν κωδικοί εντελώς, οι πωλήσεις σε κίνδυνο ανά ημέρα· αλλιώς το ποσοστό συμμόρφωσης.
@@ -117,7 +118,8 @@ SHELF = Scenario(
 Αν το read_shelf δεν αναγνωρίσει προϊόντα ή βρει πολλά άγνωστα, ζήτα νέα φωτογραφία αντί να συνεχίσεις.
 """,
     tools=COMMON_TOOLS + ["read_shelf", "check_planogram", "replenishment_plan", "layout_suggestions", "propose_move",
-                          "make_shelf_talker", "order_from_warehouse", "product_evidence", "describe_data",
+                          "make_shelf_talker", "order_from_warehouse", "product_evidence", "product_identity",
+                          "describe_data",
                           "sql_query", "make_chart"],
     examples=[
         f"Έλεγξε το ράφι στη φωτογραφία {SAMPLE} και κάνε ό,τι χρειάζεται.",
